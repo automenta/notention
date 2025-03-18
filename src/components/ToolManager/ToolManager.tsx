@@ -10,36 +10,37 @@ interface ToolManagerProps {
 }
 
 /**
- * Component for managing tools, allowing users to create, edit, and delete tools.
+ * Component for managing tools and templates, allowing users to create, edit, and delete them.
  */
 export const ToolManager: React.FC<ToolManagerProps> = () => {
     const system = getSystemNote();
 
-    const [newToolTitle, setNewToolTitle] = useState('');
-    const [newToolLogic, setNewToolLogic] = useState('');
-    const [newToolInputSchema, setNewToolInputSchema] = useState('');
-    const [newToolOutputSchema, setNewToolOutputSchema] = useState('');
-    const [newToolType, setNewToolType] = useState<'custom' | 'langchain' | 'api'>('custom'); // Default to 'custom'
+    const [newTitle, setNewTitle] = useState('');
+    const [newLogic, setNewLogic] = useState('');
+    const [newInputSchema, setNewInputSchema] = useState('');
+    const [newOutputSchema, setNewOutputSchema] = useState('');
+    const [newType, setNewType] = useState<'custom' | 'langchain' | 'api'>('custom'); // Default to 'custom'
     const [newApiEndpoint, setNewApiEndpoint] = useState('');
     const [newApiMethod, setNewApiMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('POST'); // Default to 'POST'
     const [newApiHeaders, setNewApiHeaders] = useState('{}'); // Default to empty JSON object
-    const [toolCreationError, setToolCreationError] = useState<string | null>(null);
-    const [editingToolId, setEditingToolId] = useState<string | null>(null);
-    const [editingToolInputSchemaId, setEditingToolInputSchemaId] = useState<string | null>(null);
-    const [editingToolOutputSchemaId, setEditingToolOutputSchemaId] = useState<string | null>(null);
-    const [editingApiToolId, setEditingApiToolId] = useState<string | null>(null);
-    const [tools, setTools] = useState<Note[]>([]);
+    const [creationError, setCreationError] = useState<string | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingInputSchemaId, setEditingInputSchemaId] = useState<string | null>(null);
+    const [editingOutputSchemaId, setEditingOutputSchemaId] = useState<string | null>(null);
+    const [editingApiId, setEditingApiId] = useState<string | null>(null);
+    const [items, setItems] = useState<Note[]>([]);
+    const [isTool, setIsTool] = useState<boolean>(true); // Toggle between tools and templates
 
     /**
-     * Fetches all tools from the system and updates the state.
+     * Fetches all tools or templates from the system and updates the state.
      */
-    const fetchTools = useCallback(async () => {
-        setTools(system.getAllTools());
-    }, [system]);
+    const fetchItems = useCallback(async () => {
+        setItems(isTool ? system.getAllTools() : await system.getAllNotes()); // Assuming getAllNotes fetches templates
+    }, [system, isTool]);
 
     useEffect(() => {
-        fetchTools();
-    }, [fetchTools, system]);
+        fetchItems();
+    }, [fetchItems, system, isTool]);
 
     const validateJson = (jsonString: string): boolean => {
         try {
@@ -51,299 +52,304 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
     };
 
     /**
-     * Handles the creation of a new tool.
+     * Handles the creation of a new tool or template.
      */
-    const handleCreateTool = useCallback(async () => {
-        if (!newToolTitle || !newToolInputSchema || !newToolOutputSchema) {
-            setToolCreationError('Tool Title, Input Schema, and Output Schema are required.');
+    const handleCreate = useCallback(async () => {
+        if (!newTitle || !newInputSchema || !newOutputSchema) {
+            setCreationError('Title, Input Schema, and Output Schema are required.');
             return;
         }
 
-        if (newToolType === 'api' && (!newApiEndpoint || !newApiMethod)) {
-            setToolCreationError('API Endpoint and Method are required for API tools.');
+        if (newType === 'api' && (!newApiEndpoint || !newApiMethod)) {
+            setCreationError('API Endpoint and Method are required for API items.');
             return;
         }
 
-        if (!validateJson(newToolInputSchema) || !validateJson(newToolOutputSchema)) {
-            setToolCreationError('Invalid JSON in Input Schema or Output Schema.');
+        if (!validateJson(newInputSchema) || !validateJson(newOutputSchema)) {
+            setCreationError('Invalid JSON in Input Schema or Output Schema.');
             return;
         }
 
         try {
-            if (newToolType === 'api') {
+            if (newType === 'api') {
                 JSON.parse(newApiHeaders); // Validate headers as JSON
                 new URL(newApiEndpoint); // Validate API Endpoint URL
             }
         } catch (e: any) {
-            setToolCreationError(`Invalid JSON or URL in Tool definition: ${e.message}`);
+            setCreationError(`Invalid JSON or URL in item definition: ${e.message}`);
             return;
         }
 
         try {
-            const newTool: Note & { type: 'custom' | 'langchain' | 'api' } = {
+            const newItem: Note & { type: 'custom' | 'langchain' | 'api' } = {
                 id: idService.generateId(),
-                type: newToolType, // Use the selected tool type
-                title: newToolTitle,
-                content: `Tool: ${newToolTitle}`,
-                logic: newToolType === 'api' ? newApiEndpoint : newToolLogic, // Store API endpoint in logic for API tools
-                inputSchema: newToolInputSchema,
-                outputSchema: newToolOutputSchema,
+                type: newType, // Use the selected item type
+                title: newTitle,
+                content: `${isTool ? 'Tool' : 'Template'}: ${newTitle}`,
+                logic: newType === 'api' ? newApiEndpoint : newLogic, // Store API endpoint in logic for API items
+                inputSchema: newInputSchema,
+                outputSchema: newOutputSchema,
                 status: 'active',
                 priority: 0,
                 createdAt: new Date().toISOString(),
                 updatedAt: null,
                 references: [],
-                config: newToolType === 'api' ? {
+                config: newType === 'api' ? {
                     method: newApiMethod,
                     headers: newApiHeaders,
                 } : undefined,
             };
-            system.registerToolDefinition(newTool);
-            setNewToolTitle('');
-            setNewToolLogic('');
-            setNewToolInputSchema('');
-            setNewToolOutputSchema('');
-            setNewToolType('custom'); // Reset to default
+
+            if (isTool) {
+                system.registerToolDefinition(newItem);
+            } else {
+                await system.addNote(newItem); // Assuming addNote registers templates
+            }
+
+            setNewTitle('');
+            setNewLogic('');
+            setNewInputSchema('');
+            setNewOutputSchema('');
+            setNewType('custom'); // Reset to default
             setNewApiEndpoint('');
             setNewApiMethod('POST');
             setNewApiHeaders('{}');
-            setToolCreationError(null);
-            fetchTools();
+            setCreationError(null);
+            fetchItems();
         } catch (error: any) {
-            systemLog.error(`Error creating tool: ${error.message}`, 'ToolManager');
-            setToolCreationError(`Error creating tool: ${error.message}`);
+            systemLog.error(`Error creating item: ${error.message}`, 'ToolManager');
+            setCreationError(`Error creating item: ${error.message}`);
         }
-    }, [newToolInputSchema, newToolLogic, newToolOutputSchema, newToolTitle, newToolType, system, fetchTools, newApiEndpoint, newApiMethod, newApiHeaders, validateJson]);
+    }, [newInputSchema, newLogic, newOutputSchema, newTitle, newType, system, fetchItems, newApiEndpoint, newApiMethod, newApiHeaders, validateJson, isTool]);
 
     /**
-     * Handles editing an existing tool's logic.
-     * @param {string} toolId - The ID of the tool to edit.
+     * Handles editing an existing item's logic.
+     * @param {string} itemId - The ID of the item to edit.
      */
-    const handleEditTool = useCallback((toolId: string) => {
+    const handleEdit = useCallback((itemId: string) => {
         try {
-            setEditingToolId(toolId);
-            const tool = system.getTool(toolId);
-            if (!tool) {
-                setToolCreationError(`Tool with id ${toolId} not found.`);
+            setEditingId(itemId);
+            const item = isTool ? system.getTool(itemId) : system.getNote(itemId);
+            if (!item) {
+                setCreationError(`item with id ${itemId} not found.`);
                 return;
             }
-            setNewToolLogic(tool.logic || '');
+            setNewLogic(item.logic || '');
         } catch (error: any) {
-            systemLog.error(`Error editing tool: ${error.message}`, 'ToolManager');
-            setToolCreationError(`Error editing tool: ${error.message}`);
+            systemLog.error(`Error editing item: ${error.message}`, 'ToolManager');
+            setCreationError(`Error editing item: ${error.message}`);
         }
-    }, [system]);
+    }, [system, isTool]);
 
     /**
-     * Handles editing an existing API tool's configuration.
-     * @param {string} toolId - The ID of the API tool to edit.
-     * @param {string} toolId - The ID of the API tool to edit.
+     * Handles editing an existing API item's configuration.
+     * @param {string} itemId - The ID of the API item to edit.
      */
-    const handleEditApiTool = useCallback((toolId: string) => {
+    const handleEditApi = useCallback((itemId: string) => {
         try {
-            setEditingApiToolId(toolId);
-            const tool = system.getTool(toolId);
-            if (!tool) {
-                setToolCreationError(`Tool with id ${toolId} not found.`);
+            setEditingApiId(itemId);
+            const item = isTool ? system.getTool(itemId) : system.getNote(itemId);
+            if (!item) {
+                setCreationError(`item with id ${itemId} not found.`);
                 return;
             }
-            setNewApiEndpoint(tool.logic || '');
-            setNewApiMethod((tool.config?.method as 'GET' | 'POST' | 'PUT' | 'DELETE') || 'POST');
-            setNewApiHeaders(tool.config?.headers || '{}');
+            setNewApiEndpoint(item.logic || '');
+            setNewApiMethod((item.config?.method as 'GET' | 'POST' | 'PUT' | 'DELETE') || 'POST');
+            setNewApiHeaders(item.config?.headers || '{}');
         } catch (error: any) {
-            systemLog.error(`Error editing API tool: ${error.message}`, 'ToolManager');
-            setToolCreationError(`Error editing API tool: ${error.message}`);
+            systemLog.error(`Error editing API item: ${error.message}`, 'ToolManager');
+            setCreationError(`Error editing API item: ${error.message}`);
         }
-    }, [system]);
+    }, [system, isTool]);
 
     /**
-     * Handles editing an existing tool's input schema.
-     * @param {string} toolId - The ID of the tool to edit.
+     * Handles editing an existing item's input schema.
+     * @param {string} itemId - The ID of the item to edit.
      */
-    const handleEditToolInputSchema = useCallback((toolId: string) => {
+    const handleEditInputSchema = useCallback((itemId: string) => {
         try {
-            setEditingToolInputSchemaId(toolId);
-            const tool = system.getTool(toolId);
-            if (!tool) {
-                setToolCreationError(`Tool with id ${toolId} not found.`);
+            setEditingInputSchemaId(itemId);
+            const item = isTool ? system.getTool(itemId) : system.getNote(itemId);
+            if (!item) {
+                setCreationError(`item with id ${itemId} not found.`);
                 return;
             }
-            setNewToolInputSchema(tool.inputSchema || '');
+            setNewInputSchema(item.inputSchema || '');
         } catch (error: any) {
-            systemLog.error(`Error editing tool input schema: ${error.message}`, 'ToolManager');
-            setToolCreationError(`Error editing tool input schema: ${error.message}`);
+            systemLog.error(`Error editing item input schema: ${error.message}`, 'ToolManager');
+            setCreationError(`Error editing item input schema: ${error.message}`);
         }
-    }, [system]);
+    }, [system, isTool]);
 
     /**
-     * Handles editing an existing tool's output schema.
-     * @param {string} toolId - The ID of the tool to edit.
+     * Handles editing an existing item's output schema.
+     * @param {string} itemId - The ID of the item to edit.
      */
-    const handleEditToolOutputSchema = useCallback((toolId: string) => {
+    const handleEditOutputSchema = useCallback((itemId: string) => {
         try {
-            setEditingToolOutputSchemaId(toolId);
-            const tool = system.getTool(toolId);
-            if (!tool) {
-                setToolCreationError(`Tool with id ${toolId} not found.`);
+            setEditingOutputSchemaId(itemId);
+            const item = isTool ? system.getTool(itemId) : system.getNote(itemId);
+            if (!item) {
+                setCreationError(`item with id ${itemId} not found.`);
                 return;
             }
-            setNewToolOutputSchema(tool.outputSchema || '');
+            setNewOutputSchema(item.outputSchema || '');
         } catch (error: any) {
-            systemLog.error(`Error editing tool output schema: ${error.message}`, 'ToolManager');
-            setToolCreationError(`Error editing tool output schema: ${error.message}`);
+            systemLog.error(`Error editing item output schema: ${error.message}`, 'ToolManager');
+            setCreationError(`Error editing item output schema: ${error.message}`);
         }
-    }, [system]);
+    }, [system, isTool]);
 
     /**
-     * Handles saving an edited tool's logic.
-     * @param {string} toolId - The ID of the tool to save.
-     * @param {string} newLogic - The new logic for the tool.
+     * Handles saving an edited item's logic.
+     * @param {string} itemId - The ID of the item to save.
+     * @param {string} newLogic - The new logic for the item.
      */
-    const handleSaveTool = useCallback((toolId: string, newLogic: string) => {
+    const handleSave = useCallback((itemId: string, newLogic: string) => {
         try {
-            const tool = system.getTool(toolId);
-            if (!tool) {
-                setToolCreationError(`Tool with id ${toolId} not found.`);
+            const item = isTool ? system.getTool(itemId) : system.getNote(itemId);
+            if (!item) {
+                setCreationError(`item with id ${itemId} not found.`);
                 return;
             }
 
-            tool.logic = newLogic;
-            system.updateNote(tool);
-            setEditingToolId(null);
-            setToolCreationError(null);
-            fetchTools();
+            item.logic = newLogic;
+            system.updateNote(item);
+            setEditingId(null);
+            setCreationError(null);
+            fetchItems();
         } catch (error: any) {
-            systemLog.error(`Error saving tool: ${error.message}`, 'ToolManager');
-            setToolCreationError(`Error saving tool: ${error.message}`);
+            systemLog.error(`Error saving item: ${error.message}`, 'ToolManager');
+            setCreationError(`Error saving item: ${error.message}`);
         }
-    }, [system, fetchTools]);
+    }, [system, fetchItems, isTool]);
 
     /**
-     * Handles saving an edited API tool's configuration.
-     * @param {string} toolId - The ID of the API tool to save.
+     * Handles saving an edited API item's configuration.
+     * @param {string} itemId - The ID of the API item to save.
      * @param {string} newApiEndpoint - The new API endpoint URL.
      * @param {string} newApiMethod - The new API method (GET, POST, PUT, DELETE).
      * @param {string} newApiHeaders - The new API headers (JSON format).
      */
-    const handleSaveApiTool = useCallback((toolId: string, newApiEndpoint: string, newApiMethod: string, newApiHeaders: string) => {
+    const handleSaveApi = useCallback((itemId: string, newApiEndpoint: string, newApiMethod: string, newApiHeaders: string) => {
         try {
-            const tool = system.getTool(toolId);
-            if (!tool) {
-                setToolCreationError(`Tool with id ${toolId} not found.`);
+            const item = isTool ? system.getTool(itemId) : system.getNote(itemId);
+            if (!item) {
+                setCreationError(`item with id ${itemId} not found.`);
                 return;
             }
 
              if (!validateJson(newApiHeaders)) {
-                 setToolCreationError('Invalid JSON in API Headers.');
+                 setCreationError('Invalid JSON in API Headers.');
                  return;
              }
 
             try {
                 new URL(newApiEndpoint); // Validate API Endpoint URL
             } catch (e: any) {
-                setToolCreationError(`Invalid URL in API definition: ${e.message}`);
+                setCreationError(`Invalid URL in API definition: ${e.message}`);
                 return;
             }
 
-            tool.logic = newApiEndpoint;
-            tool.config = {
+            item.logic = newApiEndpoint;
+            item.config = {
                 method: newApiMethod,
                 headers: newApiHeaders,
             };
-            system.updateNote(tool);
-            setEditingApiToolId(null);
-            setToolCreationError(null);
-            fetchTools();
+            system.updateNote(item);
+            setEditingApiId(null);
+            setCreationError(null);
+            fetchItems();
         } catch (error: any) {
-            systemLog.error(`Error saving API tool: ${error.message}`, 'ToolManager');
-            setToolCreationError(`Error saving API tool: ${error.message}`);
+            systemLog.error(`Error saving API item: ${error.message}`, 'ToolManager');
+            setCreationError(`Error saving API item: ${error.message}`);
         }
-    }, [system, fetchTools, validateJson]);
+    }, [system, fetchItems, validateJson, isTool]);
 
     /**
-     * Handles saving an edited tool's input schema.
-     * @param {string} toolId - The ID of the tool to save.
-     * @param {string} newInputSchema - The new input schema for the tool.
+     * Handles saving an edited item's input schema.
+     * @param {string} itemId - The ID of the item to save.
+     * @param {string} newInputSchema - The new input schema for the item.
      */
-    const handleSaveToolInputSchema = useCallback((toolId: string, newInputSchema: string) => {
+    const handleSaveInputSchema = useCallback((itemId: string, newInputSchema: string) => {
         try {
-            const tool = system.getTool(toolId);
-            if (!tool) {
-                setToolCreationError(`Tool with id ${toolId} not found.`);
+            const item = isTool ? system.getTool(itemId) : system.getNote(itemId);
+            if (!item) {
+                setCreationError(`item with id ${itemId} not found.`);
                 return;
             }
 
              if (!validateJson(newInputSchema)) {
-                 setToolCreationError('Invalid JSON in Input Schema.');
+                 setCreationError('Invalid JSON in Input Schema.');
                  return;
              }
 
-            tool.inputSchema = newInputSchema;
-            system.updateNote(tool);
-            setEditingToolInputSchemaId(null);
-            setToolCreationError(null);
-            fetchTools();
+            item.inputSchema = newInputSchema;
+            system.updateNote(item);
+            setEditingInputSchemaId(null);
+            setCreationError(null);
+            fetchItems();
         } catch (error: any) {
-            systemLog.error(`Error saving tool input schema: ${error.message}`, 'ToolManager');
-            setToolCreationError(`Error saving tool input schema: ${error.message}`);
+            systemLog.error(`Error saving item input schema: ${error.message}`, 'ToolManager');
+            setCreationError(`Error saving item input schema: ${error.message}`);
         }
-    }, [system, fetchTools, validateJson]);
+    }, [system, fetchItems, validateJson, isTool]);
 
     /**
-     * Handles saving an edited tool's output schema.
-     * @param {string} toolId - The ID of the tool to save.
-     * @param {string} newOutputSchema - The new output schema for the tool.
+     * Handles saving an edited item's output schema.
+     * @param {string} itemId - The ID of the item to save.
+     * @param {string} newOutputSchema - The new output schema for the item.
      */
-    const handleSaveToolOutputSchema = useCallback((toolId: string, newOutputSchema: string) => {
+    const handleSaveOutputSchema = useCallback((itemId: string, newOutputSchema: string) => {
         try {
-            const tool = system.getTool(toolId);
-            if (!tool) {
-                setToolCreationError(`Tool with id ${toolId} not found.`);
+            const item = isTool ? system.getTool(itemId) : system.getNote(itemId);
+            if (!item) {
+                setCreationError(`item with id ${itemId} not found.`);
                 return;
             }
 
              if (!validateJson(newOutputSchema)) {
-                 setToolCreationError('Invalid JSON in Output Schema.');
+                 setCreationError('Invalid JSON in Output Schema.');
                  return;
             }
 
-            tool.outputSchema = newOutputSchema;
-            system.updateNote(tool);
-            setEditingToolOutputSchemaId(null);
-            setToolCreationError(null);
-            fetchTools();
+            item.outputSchema = newOutputSchema;
+            system.updateNote(item);
+            setEditingOutputSchemaId(null);
+            setCreationError(null);
+            fetchItems();
         } catch (error: any) {
-            systemLog.error(`Error saving tool output schema: ${error.message}`, 'ToolManager');
-            setToolCreationError(`Error saving tool output schema: ${error.message}`);
+            systemLog.error(`Error saving item output schema: ${error.message}`, 'ToolManager');
+            setCreationError(`Error saving item output schema: ${error.message}`);
         }
-    }, [system, fetchTools, validateJson]);
+    }, [system, fetchItems, validateJson, isTool]);
 
     /**
-     * Handles canceling the editing of a tool's logic.
+     * Handles canceling the editing of an item's logic.
      */
-    const handleCancelEditTool = useCallback(() => {
-        setEditingToolId(null);
+    const handleCancelEdit = useCallback(() => {
+        setEditingId(null);
     }, []);
 
     /**
-     * Handles canceling the editing of an API tool's configuration.
+     * Handles canceling the editing of an API item's configuration.
      */
-    const handleCancelEditApiTool = useCallback(() => {
-        setEditingApiToolId(null);
+    const handleCancelEditApi = useCallback(() => {
+        setEditingApiId(null);
     }, []);
 
     /**
-     * Handles canceling the editing of a tool's input schema.
+     * Handles canceling the editing of an item's input schema.
      */
-    const handleCancelEditToolInputSchema = useCallback(() => {
-        setEditingToolInputSchemaId(null);
+    const handleCancelEditInputSchema = useCallback(() => {
+        setEditingInputSchemaId(null);
     }, []);
 
     /**
-     * Handles canceling the editing of a tool's output schema.
+     * Handles canceling the editing of an item's output schema.
      */
-    const handleCancelEditToolOutputSchema = useCallback(() => {
-        setEditingToolOutputSchemaId(null);
+    const handleCancelEditOutputSchema = useCallback(() => {
+        setEditingOutputSchemaId(null);
     }, []);
 
     /**
@@ -359,65 +365,68 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
 
     return (
         <div className={styles.toolManager}>
-            <h2>Tool Manager</h2>
-            {toolCreationError && <div className={styles.error}>{toolCreationError}</div>}
+            <h2>{isTool ? 'Tool Manager' : 'Template Manager'}</h2>
+            <button onClick={() => setIsTool(!isTool)}>
+                Switch to {isTool ? 'Templates' : 'Tools'}
+            </button>
+            {creationError && <div className={styles.error}>{creationError}</div>}
 
-            {/* Section for displaying existing tools */}
-            <div className={styles.toolList}>
-                <h3>Existing Tools</h3>
-                {tools.map(tool => (
-                    <div key={tool.id} className={styles.toolItem}>
-                        <h4>{tool.title}</h4>
-                        <p>Type: {tool.type}</p>
+            {/* Section for displaying existing items */}
+            <div className={styles.itemList}>
+                <h3>Existing {isTool ? 'Tools' : 'Templates'}</h3>
+                {items.map(item => (
+                    <div key={item.id} className={styles.itemItem}>
+                        <h4>{item.title}</h4>
+                        <p>Type: {item.type}</p>
 
-                        {/* Display and edit logic for custom tools */}
-                        {tool.type === 'custom' && (
+                        {/* Display and edit logic for custom items */}
+                        {item.type === 'custom' && (
                             <>
-                                {editingToolId === tool.id ? (
+                                {editingId === item.id ? (
                                     <div className={styles.editForm}>
-                                        <label htmlFor={`toolLogic-${tool.id}`}>Tool Logic:</label>
+                                        <label htmlFor={`itemLogic-${item.id}`}>Item Logic:</label>
                                         <MonacoEditor
                                             width="600"
                                             height="300"
                                             language="json"
                                             theme="vs-dark"
-                                            value={newToolLogic}
+                                            value={newLogic}
                                             options={editorOptions}
-                                            onChange={(value) => setNewToolLogic(value)}
+                                            onChange={(value) => setNewLogic(value)}
                                         />
                                         <div className={styles.editActions}>
-                                            <button onClick={() => handleSaveTool(tool.id, newToolLogic)}>Save Logic</button>
-                                            <button onClick={handleCancelEditTool}>Cancel</button>
+                                            <button onClick={() => handleSave(item.id, newLogic)}>Save Logic</button>
+                                            <button onClick={handleCancelEdit}>Cancel</button>
                                         </div>
                                     </div>
                                 ) : (
                                     <>
-                                        <p>Logic: {tool.logic}</p>
+                                        <p>Logic: {item.logic}</p>
                                         <button onClick={() => {
-                                            handleEditTool(tool.id);
-                                            setNewToolLogic(tool.logic || '');
+                                            handleEdit(item.id);
+                                            setNewLogic(item.logic || '');
                                         }}>Edit Logic</button>
                                     </>
                                 )}
                             </>
                         )}
 
-                        {/* Display and edit API configuration for API tools */}
-                        {tool.type === 'api' && (
+                        {/* Display and edit API configuration for API items */}
+                        {item.type === 'api' && (
                             <>
-                                {editingApiToolId === tool.id ? (
+                                {editingApiId === item.id ? (
                                     <div className={styles.editForm}>
-                                        <label htmlFor={`apiEndpoint-${tool.id}`}>API Endpoint:</label>
+                                        <label htmlFor={`apiEndpoint-${item.id}`}>API Endpoint:</label>
                                         <input
                                             type="text"
-                                            id={`apiEndpoint-${tool.id}`}
+                                            id={`apiEndpoint-${item.id}`}
                                             placeholder="API Endpoint URL"
                                             value={newApiEndpoint}
                                             onChange={(e) => setNewApiEndpoint(e.target.value)}
                                         />
-                                         <label htmlFor={`apiMethod-${tool.id}`}>API Method:</label>
+                                         <label htmlFor={`apiMethod-${item.id}`}>API Method:</label>
                                          <select
-                                             id={`apiMethod-${tool.id}`}
+                                             id={`apiMethod-${item.id}`}
                                              value={newApiMethod}
                                              onChange={(e) => setNewApiMethod(e.target.value as 'GET' | 'POST' | 'PUT' | 'DELETE')}
                                          >
@@ -426,7 +435,7 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                                              <option value="PUT">PUT</option>
                                              <option value="DELETE">DELETE</option>
                                          </select>
-                                         <label htmlFor={`apiHeaders-${tool.id}`}>API Headers (JSON):</label>
+                                         <label htmlFor={`apiHeaders-${item.id}`}>API Headers (JSON):</label>
                                          <MonacoEditor
                                              width="600"
                                              height="300"
@@ -437,77 +446,77 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                                              onChange={(value) => setNewApiHeaders(value)}
                                          />
                                         <div className={styles.editActions}>
-                                            <button onClick={() => handleSaveApiTool(tool.id, newApiEndpoint, newApiMethod, newApiHeaders)}>Update API Config</button>
-                                            <button onClick={handleCancelEditApiTool}>Cancel</button>
+                                            <button onClick={() => handleSaveApi(item.id, newApiEndpoint, newApiMethod, newApiHeaders)}>Update API Config</button>
+                                            <button onClick={handleCancelEditApi}>Cancel</button>
                                         </div>
                                     </div>
                                 ) : (
                                     <>
-                                        <p>API Endpoint: {JSON.parse(tool.logic || '{}').apiEndpoint}</p>
-                                        <p>API Method: {tool.config?.method}</p>
-                                        <p>API Headers: {tool.config?.headers}</p>
+                                        <p>API Endpoint: {JSON.parse(item.logic || '{}').apiEndpoint}</p>
+                                        <p>API Method: {item.config?.method}</p>
+                                        <p>API Headers: {item.config?.headers}</p>
                                         <button onClick={() => {
-                                            handleEditApiTool(tool.id);
-                                            setNewApiEndpoint(tool.logic || '');
-                                            setNewApiMethod((tool.config?.method as 'GET' | 'POST' | 'PUT' | 'DELETE') || 'POST');
-                                            setNewApiHeaders(tool.config?.headers || '{}');
+                                            handleEditApi(item.id);
+                                            setNewApiEndpoint(item.logic || '');
+                                            setNewApiMethod((item.config?.method as 'GET' | 'POST' | 'PUT' | 'DELETE') || 'POST');
+                                            setNewApiHeaders(item.config?.headers || '{}');
                                         }}>Edit API Config</button>
                                     </>
                                 )}
                             </>
                         )}
-                         {/* Display and edit input schema for all tool types */}
-                         {editingToolInputSchemaId === tool.id ? (
+                         {/* Display and edit input schema for all item types */}
+                         {editingInputSchemaId === item.id ? (
                              <div className={styles.editForm}>
-                                 <label htmlFor={`toolInputSchema-${tool.id}`}>Input Schema (JSON):</label>
+                                 <label htmlFor={`itemInputSchema-${item.id}`}>Input Schema (JSON):</label>
                                  <MonacoEditor
                                      width="600"
                                      height="300"
                                      language="json"
                                      theme="vs-dark"
-                                     value={newToolInputSchema}
+                                     value={newInputSchema}
                                      options={editorOptions}
-                                     onChange={(value) => setNewToolInputSchema(value)}
+                                     onChange={(value) => setNewInputSchema(value)}
                                  />
                                  <div className={styles.editActions}>
-                                     <button onClick={() => handleSaveToolInputSchema(tool.id, newToolInputSchema)}>Save Input Schema</button>
-                                     <button onClick={handleCancelEditToolInputSchema}>Cancel</button>
+                                     <button onClick={() => handleSaveInputSchema(item.id, newInputSchema)}>Save Input Schema</button>
+                                     <button onClick={handleCancelEditInputSchema}>Cancel</button>
                                  </div>
                              </div>
                          ) : (
                              <>
-                                 <p>Input Schema: {tool.inputSchema}</p>
+                                 <p>Input Schema: {item.inputSchema}</p>
                                  <button onClick={() => {
-                                     handleEditToolInputSchema(tool.id);
-                                     setNewToolInputSchema(tool.inputSchema || '');
+                                     handleEditInputSchema(item.id);
+                                     setNewInputSchema(item.inputSchema || '');
                                  }}>Edit Input Schema</button>
                              </>
                          )}
 
-                         {/* Display and edit output schema for all tool types */}
-                         {editingToolOutputSchemaId === tool.id ? (
+                         {/* Display and edit output schema for all item types */}
+                         {editingOutputSchemaId === item.id ? (
                              <div className={styles.editForm}>
-                                 <label htmlFor={`toolOutputSchema-${tool.id}`}>Output Schema (JSON):</label>
+                                 <label htmlFor={`itemOutputSchema-${item.id}`}>Output Schema (JSON):</label>
                                  <MonacoEditor
                                      width="600"
                                      height="300"
                                      language="json"
                                      theme="vs-dark"
-                                     value={newToolOutputSchema}
+                                     value={newOutputSchema}
                                      options={editorOptions}
-                                     onChange={(value) => setNewToolOutputSchema(value)}
+                                     onChange={(value) => setNewOutputSchema(value)}
                                  />
                                  <div className={styles.editActions}>
-                                     <button onClick={() => handleSaveToolOutputSchema(tool.id, newToolOutputSchema)}>Save Output Schema</button>
-                                     <button onClick={handleCancelEditToolOutputSchema}>Cancel</button>
+                                     <button onClick={() => handleSaveOutputSchema(item.id, newOutputSchema)}>Save Output Schema</button>
+                                     <button onClick={handleCancelEditOutputSchema}>Cancel</button>
                                  </div>
                              </div>
                          ) : (
                              <>
-                                 <p>Output Schema: {tool.outputSchema}</p>
+                                 <p>Output Schema: {item.outputSchema}</p>
                                  <button onClick={() => {
-                                     handleEditToolOutputSchema(tool.id);
-                                     setNewToolOutputSchema(tool.outputSchema || '');
+                                     handleEditOutputSchema(item.id);
+                                     setNewOutputSchema(item.outputSchema || '');
                                  }}>Edit Output Schema</button>
                              </>
                          )}
@@ -515,46 +524,46 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                 ))}
             </div>
 
-            {/* Section for creating new tools */}
-            <div className={styles.createTool}>
-                <h3>Create New Tool</h3>
-                {toolCreationError && <div className={styles.error}>{toolCreationError}</div>}
-                <label htmlFor="newToolTitle">Tool Title:</label>
+            {/* Section for creating new items */}
+            <div className={styles.createItem}>
+                <h3>Create New {isTool ? 'Tool' : 'Template'}</h3>
+                {creationError && <div className={styles.error}>{creationError}</div>}
+                <label htmlFor="newTitle">Title:</label>
                 <input
                     type="text"
-                    id="newToolTitle"
-                    placeholder="Tool Title"
-                    value={newToolTitle}
-                    onChange={(e) => setNewToolTitle(e.target.value)}
+                    id="newTitle"
+                    placeholder="Title"
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
                 />
 
-                <label htmlFor="newToolType">Tool Type:</label>
+                <label htmlFor="newType">Type:</label>
                 <select
-                    id="newToolType"
-                    value={newToolType}
-                    onChange={(e) => setNewToolType(e.target.value as 'custom' | 'langchain' | 'api')}
+                    id="newType"
+                    value={newType}
+                    onChange={(e) => setNewType(e.target.value as 'custom' | 'langchain' | 'api')}
                 >
                     <option value="custom">Custom</option>
                     <option value="langchain">LangChain</option>
                     <option value="api">API</option>
                 </select>
 
-                {newToolType === 'custom' && (
+                {newType === 'custom' && (
                     <>
-                        <label htmlFor="newToolLogic">Tool Logic:</label>
+                        <label htmlFor="newLogic">Logic:</label>
                         <MonacoEditor
                             width="600"
                             height="300"
                             language="json"
                             theme="vs-dark"
-                            value={newToolLogic}
+                            value={newLogic}
                             options={editorOptions}
-                            onChange={(value) => setNewToolLogic(value)}
+                            onChange={(value) => setNewLogic(value)}
                         />
                     </>
                 )}
 
-                {newToolType === 'api' && (
+                {newType === 'api' && (
                     <>
                         <label htmlFor="newApiEndpoint">API Endpoint:</label>
                         <input
@@ -588,29 +597,29 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                     </>
                 )}
 
-                <label htmlFor="newToolInputSchema">Input Schema (JSON):</label>
+                <label htmlFor="newInputSchema">Input Schema (JSON):</label>
                 <MonacoEditor
                     width="600"
                     height="300"
                     language="json"
                     theme="vs-dark"
-                    value={newToolInputSchema}
+                    value={newInputSchema}
                     options={editorOptions}
-                    onChange={(value) => setNewToolInputSchema(value)}
+                    onChange={(value) => setNewInputSchema(value)}
                 />
 
-                <label htmlFor="newToolOutputSchema">Output Schema (JSON):</label>
+                <label htmlFor="newOutputSchema">Output Schema (JSON):</label>
                 <MonacoEditor
                     width="600"
                     height="300"
                     language="json"
                     theme="vs-dark"
-                    value={newToolOutputSchema}
+                    value={newOutputSchema}
                     options={editorOptions}
-                    onChange={(value) => setNewToolOutputSchema(value)}
+                    onChange={(value) => setNewOutputSchema(value)}
                 />
 
-                <button onClick={handleCreateTool}>Create Template</button>
+                <button onClick={handleCreate}>Create</button>
             </div>
         </div>
     );
