@@ -69,6 +69,7 @@ export const SettingsView: React.FC = () => {
 
         if (!settings.apiKey) {
             newErrors.apiKey = 'API Key is required';
+            isValid = false;
         }
 
         setErrors(newErrors);
