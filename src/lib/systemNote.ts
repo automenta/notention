@@ -6,6 +6,7 @@ import { z } from "zod";
 import * as fs from 'fs'; // Import the fs module
 import { executeTool } from './executor'; // Import the executeTool function
 import { SerpAPI } from "langchain/tools";
+import path from 'path';
 
 type Listener = () => void;
 const listeners: Listener[] = [];
@@ -193,6 +194,14 @@ export const onSystemNoteChange = (listener: Listener) => {
     return () => listeners.splice(listeners.indexOf(listener), 1);
 };
 
+// Define the safe directory
+const SAFE_DIRECTORY = path.resolve('./safe_files');
+
+// Ensure the safe directory exists
+if (!fs.existsSync(SAFE_DIRECTORY)) {
+    fs.mkdirSync(SAFE_DIRECTORY);
+}
+
 const registerInitialTools = () => {
     const systemNote = getSystemNote();
 
@@ -287,26 +296,18 @@ const registerInitialTools = () => {
         id: 'file-operations-tool',
         type: 'Tool',
         title: 'File Operations Tool',
-        content: 'A tool to read and write local files (SECURITY WARNING).',
+        content: `A tool to read and write local files within the safe directory: ${SAFE_DIRECTORY} (SECURITY WARNING).`,
         logic: JSON.stringify({
             "steps": [
                 {
                     "id": "read-file",
-                    "type": "passthrough", // Placeholder
-                    "runnable": {
-                        "constructor": "RunnablePassthrough",
-                        "kwargs": {}
-                    },
-                    "input": "{filename}" // Pass input through
+                    "type": "passthrough",
+                    "input": "{filename}"
                 },
                 {
                     "id": "write-file",
-                    "type": "passthrough", // Placeholder
-                    "runnable": {
-                        "constructor": "RunnablePassthrough",
-                        "kwargs": {}
-                    },
-                    "input": "{filename, content}" // Pass input through
+                    "type": "passthrough",
+                    "input": "{filename, content}"
                 }
             ],
         }),
@@ -334,11 +335,18 @@ const registerInitialTools = () => {
 
     const fileOperationsToolImplementation = async (input: any) => {
         try {
+            const filename = path.resolve(SAFE_DIRECTORY, input.filename);
+
+            // Check if the resolved path is within the safe directory
+            if (!filename.startsWith(SAFE_DIRECTORY)) {
+                throw new Error('Access denied: Filename is outside the safe directory.');
+            }
+
             if (input.action === 'read') {
-                const content = fs.readFileSync(input.filename, 'utf-8');
+                const content = fs.readFileSync(filename, 'utf-8');
                 return { result: content };
             } else if (input.action === 'write') {
-                fs.writeFileSync(input.filename, input.content, 'utf-8');
+                fs.writeFileSync(filename, input.content, 'utf-8');
                 return { result: 'File written successfully' };
             } else {
                 throw new Error('Invalid action');
