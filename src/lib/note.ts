@@ -1,4 +1,4 @@
-import { Note, TaskLogic } from '../types';
+import { Note } from '../types';
 import { z } from "zod";
 import { systemLog } from './systemLog';
 import { getSystemNote } from './systemNote';
@@ -82,7 +82,7 @@ export class NoteImpl {
 
         try {
             if (this.data.logic) {
-                const logic: TaskLogic = this.data.logic;
+                const logic: any = this.data.logic;
                 if (logic && logic.steps && Array.isArray(logic.steps)) {
                     for (const step of logic.steps) {
                         if (step.type === 'tool') {
