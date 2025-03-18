@@ -88,7 +88,7 @@ export const initializeInitialTools = () => {
                 {
                     "id": "search",
                     "type": "serpapi",
-                    "input": "{query}"
+                    "input": "{query, apiKey}"
                 }
             ],
         }),
