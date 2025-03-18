@@ -115,26 +115,34 @@ class SystemNote {
     };
     canRun = () => this.data.content.runningCount < this.data.content.concurrencyLimit;
 
-    // Run a specific note
-    runNote = async (noteId: string) => {
-        const note = this.getNote(noteId);
-        if (note) {
-            const noteImpl = new NoteImpl(note);
-            await noteImpl.run();
-
-            // Apply planning rules after running the note
-            for (const rule of planningRules) {
+    // Apply planning rules
+    private async applyPlanningRules(note: Note, order: 'before' | 'after') {
+        for (const rule of planningRules) {
+            if (rule.order === order) {
                 try {
                     if (rule.condition(note, this)) {
-                        systemLog.info(`Applying planning rule: ${rule.name} to note ${note.title}`, 'SystemNote');
+                        systemLog.info(`Applying planning rule (${order}): ${rule.name} to note ${note.title}`, 'SystemNote');
                         await rule.action(note, this);
                     }
                 } catch (error: any) {
                     systemLog.error(`Error applying planning rule ${rule.name} to note ${note.title}: ${error.message}`, 'SystemNote');
                 }
             }
+        }
+    }
 
+    // Run a specific note
+    runNote = async (noteId: string) => {
+        const note = this.getNote(noteId);
+        if (note) {
+            // Apply 'before' planning rules
+            await this.applyPlanningRules(note, 'before');
 
+            const noteImpl = new NoteImpl(note);
+            await noteImpl.run();
+
+            // Apply 'after' planning rules
+            await this.applyPlanningRules(note, 'after');
         } else {
             systemLog.error(`🔥 Note with ID ${noteId} not found, cannot run.`, 'SystemNote');
         }
