@@ -5,7 +5,7 @@ import { systemLog } from '../../lib/systemLog';
 import { NoteImpl } from '../../lib/note';
 import { NoteEditor } from '../NoteEditor/NoteEditor';
 import styles from './ChatView.module.css';
-import { TaskLogic } from '../../types';
+import { TaskLogic, WorkflowStep } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 
 export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selectedTaskId }) => {
@@ -155,16 +155,21 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
             return;
         }
 
-        const newStep = {
+        const newStep: WorkflowStep = {
             id: uuidv4(),
             type: 'tool',
             toolId: selectedTool,
             input: toolInputValues, // Use the input values from the form
         };
 
+        // Ensure task.logic is an object with a steps property
+        if (!task.logic || typeof task.logic !== 'object' || !Array.isArray(task.logic.steps)) {
+            task.logic = { steps: [] };
+        }
+
         const newLogic: TaskLogic = {
             steps: [
-                ...(task.logic && Array.isArray((task.logic as any).steps) ? (task.logic as any).steps : []),
+                ...(task.logic.steps as any[]),
                 newStep
             ]
         };

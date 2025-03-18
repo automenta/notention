@@ -14,7 +14,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose, onSave})
     const [note, setNote] = useState<Note | undefined>(undefined);
     const [title, setTitle] = useState<string>('');
     const [content, setContent] = useState<string>('');
-    const [logic, setLogic] = useState<string>('');
+    const [logic, setLogic] = useState<any>('');
     const [validationError, setValidationError] = React.useState<string | null>(null);
     const system = getSystemNote();
 
@@ -46,13 +46,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose, onSave})
             return;
         }
 
-        let parsedLogic;
+        // Basic validation to ensure logic is valid JSON
         try {
-            parsedLogic = JSON.parse(logic);
-            setValidationError(null); // Clear error if parsing succeeds
+            JSON.parse(logic);
+            setValidationError(null);
         } catch (e: any) {
             setValidationError(`JSON Parse Error: ${e.message}`);
-            return; // Do not save if JSON is invalid
+            return;
         }
 
         const updatedNote: Note = {
