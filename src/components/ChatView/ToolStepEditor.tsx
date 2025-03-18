@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import styles from './ChatView.module.css';
 import { getSystemNote } from '../../lib/systemNote';
 
@@ -19,12 +19,21 @@ export const ToolStepEditor: React.FC<ToolStepEditorProps> = ({
     onCancel,
     onGenerate,
 }) => {
+    const [generating, setGenerating] = useState(false);
     const system = getSystemNote();
     const tool = system.getTool(toolId);
 
     const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>, inputName: string) => {
         onChange(inputName, event.target.value);
     }, [onChange]);
+
+    const handleGenerate = useCallback(() => {
+        if (onGenerate) {
+            setGenerating(true);
+            onGenerate()
+                .finally(() => setGenerating(false));
+        }
+    }, [onGenerate]);
 
     if (!tool || !tool.inputSchema) {
         return <div>Tool or input schema not found.</div>;
@@ -86,7 +95,11 @@ export const ToolStepEditor: React.FC<ToolStepEditorProps> = ({
             ))}
             <button onClick={onSave}>Save</button>
             <button onClick={onCancel}>Cancel</button>
-            {onGenerate && <button onClick={onGenerate}>Generate Inputs</button>}
+            {onGenerate && (
+                <button onClick={handleGenerate} disabled={generating}>
+                    {generating ? 'Generating...' : 'Generate Inputs'}
+                </button>
+            )}
         </div>
     );
 };

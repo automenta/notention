@@ -324,7 +324,8 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
         }
 
         const inputSchema = JSON.parse(selectedToolData.inputSchema);
-        const prompt = `Generate input values (JSON format) for the "${selectedToolData.title}" tool, based on the following task description: ${task.description}. The input schema is: ${selectedToolData.inputSchema}`;
+        const conversationHistory = messages.map(msg => `${msg.type}: ${msg.content}`).join('\n');
+        const prompt = `Generate input values (JSON format) for the "${selectedToolData.title}" tool, based on the following task description: ${task.description}. The input schema is: ${selectedToolData.inputSchema}. Here's the conversation history: ${conversationHistory}`;
 
         try {
             const generatedInputs = await llm.invoke(prompt);
@@ -335,7 +336,7 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
         } catch (error: any) {
             systemLog.error(`Error generating tool inputs: ${error.message}`, 'ChatView');
         }
-    }, [selectedTaskId, selectedTool, system]);
+    }, [selectedTaskId, selectedTool, system, messages]);
 
     return (
         <div className={styles.chatView}>
