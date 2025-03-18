@@ -17,6 +17,7 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
     const [selectedTool, setSelectedTool] = useState<string | null>(null);
     const [toolInputValues, setToolInputValues] = useState<any>({});
     const [addingTool, setAddingTool] = useState(false);
+    const [editingToolStep, setEditingToolStep] = useState<string | null>(null); // Track the tool step being edited
 
     useEffect(() => {
         systemLog.debug('ChatView useEffect triggered', 'ChatView');
@@ -187,6 +188,54 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
         return null;
     }, [selectedTool, system]);
 
+    const handleEditToolStep = useCallback((stepId: string) => {
+        setEditingToolStep(stepId);
+        // Find the task and the step
+        if (!selectedTaskId) return;
+        const task = system.getNote(selectedTaskId);
+        if (!task || !task.logic) return;
+
+        const logic = JSON.parse(task.logic);
+        const step = logic.steps.find((s: any) => s.id === stepId);
+
+        if (step && step.input) {
+            setToolInputValues(step.input); // Initialize the input values for editing
+        }
+    }, [system, selectedTaskId]);
+
+    const handleSaveEditedToolStep = useCallback(() => {
+        if (!selectedTaskId || !editingToolStep) return;
+
+        const task = system.getNote(selectedTaskId);
+        if (!task || !task.logic) return;
+
+        const logic = JSON.parse(task.logic);
+        const stepIndex = logic.steps.findIndex((s: any) => s.id === editingToolStep);
+
+        if (stepIndex !== -1) {
+            logic.steps[stepIndex].input = toolInputValues; // Update the input values
+            task.logic = JSON.stringify(logic);
+            system.updateNote(task);
+            setEditingToolStep(null);
+            setToolInputValues({}); // Clear the input values
+            systemLog.info(`Tool step ${editingToolStep} updated in Task ${selectedTaskId}`, 'ChatView');
+        }
+    }, [system, selectedTaskId, editingToolStep, toolInputValues]);
+
+    const handleCancelEditToolStep = useCallback(() => {
+        setEditingToolStep(null);
+        setToolInputValues({});
+    }, []);
+
+    const getToolStep = useCallback((stepId: string) => {
+        if (!selectedTaskId) return null;
+        const task = system.getNote(selectedTaskId);
+        if (!task || !task.logic) return null;
+
+        const logic = JSON.parse(task.logic);
+        return logic.steps.find((s: any) => s.id === stepId);
+    }, [system, selectedTaskId]);
+
     return (
         <div className={styles.chatView}>
             <div className={styles.chatHeader}>
@@ -295,6 +344,68 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
                             ))}
                             <button onClick={handleAddSelectedTool}>Add Tool</button>
                             <button onClick={handleCancelAddTool}>Cancel</button>
+                        </div>
+                    )}
+
+                    {/* Display existing tool steps with edit option */}
+                    {selectedTaskId && system.getNote(selectedTaskId)?.logic && (
+                        <div>
+                            <h3>Tool Steps</h3>
+                            <ul>
+                                {JSON.parse(system.getNote(selectedTaskId)!.logic!).steps.map((step: any) => (
+                                    <li key={step.id}>
+                                        {step.type === 'tool' ? (
+                                            <>
+                                                {system.getTool(step.toolId)?.title}
+                                                <button onClick={() => handleEditToolStep(step.id)}>Edit</button>
+                                            </>
+                                        ) : (
+                                            <span>{step.type}</span>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Conditionally render the tool input form for editing */}
+                    {editingToolStep && selectedTaskId && (
+                        <div className={styles.toolInputForm}>
+                            <h3>Edit Input Parameters for {system.getTool(getToolStep(editingToolStep)?.toolId)?.title}</h3>
+                            {selectedToolData && selectedToolData.inputSchema && (
+                                Object.entries(JSON.parse(selectedToolData.inputSchema).properties).map(([inputName, inputDetails]: [string, any]) => (
+                                    <div key={inputName} className={styles.inputGroup}>
+                                        <label htmlFor={inputName}>{inputDetails.description || inputName}:</label>
+                                        {inputDetails.type === 'string' && (
+                                            <input
+                                                type="text"
+                                                id={inputName}
+                                                value={toolInputValues[inputName] || ''}
+                                                onChange={(e) => handleInputChange(e, inputName)}
+                                            />
+                                        )}
+                                        {inputDetails.type === 'number' && (
+                                            <input
+                                                type="number"
+                                                id={inputName}
+                                                value={toolInputValues[inputName] || ''}
+                                                onChange={(e) => handleInputChange(e, inputName)}
+                                            />
+                                        )}
+                                        {inputDetails.type === 'boolean' && (
+                                            <input
+                                                type="checkbox"
+                                                id={inputName}
+                                                checked={toolInputValues[inputName] || false}
+                                                onChange={(e) => handleInputChange(e, inputName)}
+                                            />
+                                        )}
+                                        {/* Add more input types as needed */}
+                                    </div>
+                                ))
+                            )}
+                            <button onClick={handleSaveEditedToolStep}>Save</button>
+                            <button onClick={handleCancelEditToolStep}>Cancel</button>
                         </div>
                     )}
                 </div>
