@@ -197,6 +197,9 @@ export const onSystemNoteChange = (listener: Listener) => {
 // Define the safe directory
 const SAFE_DIRECTORY = path.resolve('./safe_files');
 
+// Allowed file extensions
+const ALLOWED_EXTENSIONS = ['.txt', '.md', '.json', '.js'];
+
 // Ensure the safe directory exists
 if (!fs.existsSync(SAFE_DIRECTORY)) {
     fs.mkdirSync(SAFE_DIRECTORY);
@@ -350,6 +353,12 @@ const registerInitialTools = () => {
             // Check if the resolved path is within the safe directory
             if (!filename.startsWith(SAFE_DIRECTORY)) {
                 throw new Error('Access denied: Filename is outside the safe directory.');
+            }
+
+            // Validate file extension
+            const ext = path.extname(filename).toLowerCase();
+            if (!ALLOWED_EXTENSIONS.includes(ext)) {
+                throw new Error(`Access denied: Invalid file extension. Allowed extensions are: ${ALLOWED_EXTENSIONS.join(', ')}`);
             }
 
             if (input.action === 'read') {
