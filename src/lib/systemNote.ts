@@ -236,8 +236,29 @@ class SystemNote {
                     return await tool.implementation.call(input); // Or however you call the LangChain tool
                 case 'api':
                     // Implement API call logic here (e.g., using fetch)
-                    systemLog.warn(`API Tool not yet implemented ${toolId}`, 'SystemNote');
-                    throw new Error(`API Tool not yet implemented ${toolId}`);
+                    systemLog.info(`Executing API Tool ${toolId}`, 'SystemNote');
+                    try {
+                        const response = await fetch(tool.logic, { // Assuming tool.logic contains the API endpoint
+                            method: 'POST', // Assuming it's a POST request, adjust as needed
+                            headers: {
+                                'Content-Type': 'application/json',
+                                // Add any other necessary headers here
+                            },
+                            body: JSON.stringify(input), // Send the input as JSON
+                        });
+
+                        if (!response.ok) {
+                            systemLog.error(`API call failed for tool ${toolId}: ${response.status} ${response.statusText}`, 'SystemNote');
+                            throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+                        }
+
+                        const data = await response.json();
+                        systemLog.info(`API call successful for tool ${toolId}`, 'SystemNote');
+                        return data;
+                    } catch (error: any) {
+                        systemLog.error(`Error executing API tool ${toolId}: ${error.message}`, 'SystemNote');
+                        throw error;
+                    }
                 default:
                     throw new Error(`Unknown tool type: ${tool.type}`);
             }
