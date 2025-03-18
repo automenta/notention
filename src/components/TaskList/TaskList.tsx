@@ -122,10 +122,11 @@ export const TaskList: React.FC<{
         //This will require updating the order of the tasks in the system.data.content.notes Map
     };
 
-    // Stubbed functions
     const handleRunTask = useCallback(() => {
-        console.log('Run Task clicked');
-    }, []);
+        if (selectedId) {
+            system.runNote(selectedId);
+        }
+    }, [system, selectedId]);
 
     const handleArchiveTask = useCallback(() => {
         console.log('Archive Task clicked');
