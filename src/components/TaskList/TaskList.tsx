@@ -64,6 +64,9 @@ export const TaskList: React.FC<{
     const handleAddTask = useCallback(() => {
         if (selectedToolId) {
             // Create a task with the selected tool
+            const selectedTool = system.getTool(selectedToolId);
+            const taskTitle = selectedTool ? `Task with ${selectedTool.title}` : 'New Task with Tool';
+
             const newLogic = {
                 steps: [
                     {
@@ -75,7 +78,7 @@ export const TaskList: React.FC<{
                 ]
             };
 
-            NoteImpl.createTaskNote('New Task with Tool', 'Describe your task here...').then(noteImpl => {
+            NoteImpl.createTaskNote(taskTitle, 'Describe your task here...').then(noteImpl => {
                 noteImpl.data.logic = JSON.stringify(newLogic);
                 system.addNote(noteImpl.data);
             });
