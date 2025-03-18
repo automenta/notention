@@ -4,6 +4,10 @@ import { SystemNote, getSystemNote } from '../systemNote';
 import { systemLog } from '../systemLog';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
 
+/**
+ * Registers the summarization tool with the system.
+ * @param {SystemNote} systemNote - The system note instance.
+ */
 export const registerSummarizationTool = (systemNote: SystemNote) => {
     // 6. Summarization Tool
     const summarizationToolData: Note = {
@@ -49,16 +53,21 @@ export const registerSummarizationTool = (systemNote: SystemNote) => {
         description: 'Summarizes text using the LLM.',
     };
 
-    const summarizationToolImplementation = async (input: any) => {
+    /**
+     * Implementation for the summarization tool.
+     * @param {any} input - The input to the tool, containing the text to summarize.
+     * @returns {Promise<{ summary: string }>} - A promise that resolves with the summary of the text.
+     */
+    const summarizationToolImplementation = async (input: any): Promise<{ summary: string }> => {
         try {
-            const llm = systemNote.getLLM();
+            const llm: ChatOpenAI = systemNote.getLLM();
             if (!llm) {
                 systemLog.warn('LLM not initialized, cannot summarize.', 'SummarizationTool');
                 return { summary: 'LLM not initialized. Please check your settings.' };
             }
 
-            const prompt = `Summarize the following text: ${input.text}`;
-            const summary = await llm.invoke(prompt);
+            const prompt: string = `Summarize the following text: ${input.text}`;
+            const summary: string = await llm.invoke(prompt);
             return { summary: summary };
         } catch (error: any) {
             systemLog.error(`Error summarizing text: ${error.message}`, 'SummarizationTool');
