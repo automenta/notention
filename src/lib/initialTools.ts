@@ -431,7 +431,8 @@ export const initializeInitialTools = () => {
     };
 
     const userInteractionToolImplementation = async (input: any) => {
-        const userInput = prompt(input.prompt); // Use the prompt function
+        // Use window.prompt to get user input
+        const userInput = window.prompt(input.prompt);
         return { userInput: userInput || '' };
     };
 
