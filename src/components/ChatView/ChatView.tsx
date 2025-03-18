@@ -227,6 +227,23 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
         setToolInputValues({});
     }, []);
 
+    const handleDeleteToolStep = useCallback((stepId: string) => {
+        if (!selectedTaskId) return;
+
+        const task = system.getNote(selectedTaskId);
+        if (!task || !task.logic) return;
+
+        const logic = JSON.parse(task.logic);
+        const stepIndex = logic.steps.findIndex((s: any) => s.id === stepId);
+
+        if (stepIndex !== -1) {
+            logic.steps.splice(stepIndex, 1); // Remove the step from the array
+            task.logic = JSON.stringify(logic);
+            system.updateNote(task);
+            systemLog.info(`Tool step ${stepId} deleted from Task ${selectedTaskId}`, 'ChatView');
+        }
+    }, [system, selectedTaskId]);
+
     const getToolStep = useCallback((stepId: string) => {
         if (!selectedTaskId) return null;
         const task = system.getNote(selectedTaskId);
@@ -358,6 +375,7 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
                                             <>
                                                 {system.getTool(step.toolId)?.title}
                                                 <button onClick={() => handleEditToolStep(step.id)}>Edit</button>
+                                                <button onClick={() => handleDeleteToolStep(step.id)}>Delete</button>
                                             </>
                                         ) : (
                                             <span>{step.type}</span>
