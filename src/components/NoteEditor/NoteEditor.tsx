@@ -12,6 +12,7 @@ interface NoteEditorProps {
 
 export const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose, onSave}) => {
     const [note, setNote] = useState<Note | undefined>(undefined);
+    const [title, setTitle] = useState<string>('');
     const [content, setContent] = useState<string>('');
     const [logic, setLogic] = useState<string>('');
     const [validationError, setValidationError] = React.useState<string | null>(null);
@@ -21,10 +22,15 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose, onSave})
         const currentNote = system.getNote(noteId);
         if (currentNote) {
             setNote(currentNote);
+            setTitle(currentNote.title || '');
             setContent(currentNote.content || '');
             setLogic(currentNote.logic || '');
         }
     }, [noteId, system]);
+
+    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setTitle(e.target.value);
+    };
 
     const handleContentChange = (value: string) => {
         setContent(value);
@@ -51,6 +57,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose, onSave})
 
         const updatedNote: Note = {
             ...note,
+            title: title,
             content: content,
             logic: logic,
         };
@@ -68,6 +75,13 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose, onSave})
 
     return (
         <div className={styles.noteEditor}>
+            <h3>Title</h3>
+            <input
+                type="text"
+                value={title}
+                onChange={handleTitleChange}
+            />
+
             <h3>Content</h3>
             <MonacoEditor
                 width="800"
