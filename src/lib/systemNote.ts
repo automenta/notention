@@ -120,9 +120,22 @@ class SystemNote {
         for (const rule of planningRules) {
             if (rule.order === order) {
                 try {
-                    if (rule.condition(note, this)) {
+                    let conditionMet = false;
+                    if (rule.condition) {
+                        conditionMet = rule.condition(note, this);
+                    }
+                    if (rule.llmCondition) {
+                        conditionMet = await rule.llmCondition(note, this);
+                    }
+
+                    if (conditionMet) {
                         systemLog.info(`Applying planning rule (${order}): ${rule.name} to note ${note.title}`, 'SystemNote');
-                        await rule.action(note, this);
+                        if (rule.action) {
+                            await rule.action(note, this);
+                        } else if (rule.llmAction) {
+                            const action = await rule.llmAction(note, this);
+                            await action(note, this);
+                        }
                     }
                 } catch (error: any) {
                     systemLog.error(`Error applying planning rule ${rule.name} to note ${note.title}: ${error.message}`, 'SystemNote');

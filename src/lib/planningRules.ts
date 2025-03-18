@@ -7,8 +7,10 @@ import { systemLog } from './systemLog';
 export interface PlanningRule {
     name: string;
     order: 'before' | 'after'; // Specify when the rule should be applied
-    condition: (task: Note, system: SystemNote) => boolean;
-    action: (task: Note, system: SystemNote) => Promise<void>;
+    condition?: (task: Note, system: SystemNote) => boolean; // Optional synchronous condition
+    llmCondition?: (task: Note, system: SystemNote) => Promise<boolean>; // Optional LLM-powered condition
+    action?: (task: Note, system: SystemNote) => Promise<void>; // Optional synchronous action
+    llmAction?: (task: Note, system: SystemNote) => Promise<(task: Note, system: SystemNote) => Promise<void>>; // Optional LLM-powered action generator
 }
 
 const planningRules: PlanningRule[] = [
