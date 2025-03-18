@@ -63,21 +63,13 @@ export const TaskList: React.FC<{
         setTasks(items);
 
         // Persist the new order in the system note
-        const newNotesMap = new Map<string, Note>();
-        items.forEach(task => {
-            newNotesMap.set(task.id, task);
+        // Instead of updating the entire notes map, update only the task notes
+        items.forEach((task, index) => {
+            const note = system.getNote(task.id);
+            if (note) {
+                system.updateNote({ ...note, priority: index }); // Update priority to reflect order
+            }
         });
-
-        // Get all existing notes that are not tasks
-        const nonTaskNotes = Array.from(system.data.content.notes.values()).filter(note => note.type !== 'Task');
-
-        // Add the non-task notes back to the new map
-        nonTaskNotes.forEach(note => {
-            newNotesMap.set(note.id, note);
-        });
-
-        system.data.content.notes = newNotesMap;
-        system.notify();
     }, [system, sortedAndFilteredTasks]);
 
     const handleRunTask = useCallback(() => {
