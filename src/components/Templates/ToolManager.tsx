@@ -20,9 +20,6 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
     const [newApiEndpoint, setNewApiEndpoint] = useState('');
     const [newApiMethod, setNewApiMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('POST'); // Default to 'POST'
     const [newApiHeaders, setNewApiHeaders] = useState('{}'); // Default to empty JSON object
-    //const [newApiAuthType, setNewApiAuthType] = useState<'none' | 'apiKey'>('none'); // Default to no auth
-    //const [newApiKeyHeader, setNewApiKeyHeader] = useState('Authorization'); // Default API Key Header
-    //const [newApiKeyValue, setNewApiKeyValue] = useState(''); // API Key Value
     const [toolCreationError, setToolCreationError] = useState<string | null>(null);
     const [editingToolId, setEditingToolId] = useState<string | null>(null);
     const [editingToolInputSchemaId, setEditingToolInputSchemaId] = useState<string | null>(null);
@@ -75,9 +72,6 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                 config: newToolType === 'api' ? {
                     method: newApiMethod,
                     headers: newApiHeaders,
-                    //authType: newApiAuthType,
-                    //apiKeyHeader: newApiKeyHeader,
-                    //apiKeyValue: newApiKeyValue,
                 } : undefined,
             };
             system.registerToolDefinition(newTool);
@@ -89,16 +83,13 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
             setNewApiEndpoint('');
             setNewApiMethod('POST');
             setNewApiHeaders('{}');
-            //setNewApiAuthType('none');
-            //setNewApiKeyHeader('Authorization');
-            //setNewApiKeyValue('');
             setToolCreationError(null);
             fetchTools();
         } catch (error: any) {
             systemLog.error(`Error creating tool: ${error.message}`, 'ToolManager');
             setToolCreationError(`Error creating tool: ${error.message}`);
         }
-    }, [newToolInputSchema, newToolLogic, newToolOutputSchema, newToolTitle, newToolType, system, fetchTools, newApiEndpoint, newApiMethod, newApiHeaders/*, newApiAuthType, newApiKeyHeader, newApiKeyValue*/]);
+    }, [newToolInputSchema, newToolLogic, newToolOutputSchema, newToolTitle, newToolType, system, fetchTools, newApiEndpoint, newApiMethod, newApiHeaders]);
 
     // Handle editing an existing tool
     const handleEditTool = useCallback((toolId: string) => {
@@ -127,9 +118,6 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
             setNewApiEndpoint(tool.logic || '');
             setNewApiMethod((tool.config?.method as 'GET' | 'POST' | 'PUT' | 'DELETE') || 'POST');
             setNewApiHeaders(tool.config?.headers || '{}');
-            //setNewApiAuthType((tool.config?.authType as 'none' | 'apiKey') || 'none');
-            //setNewApiKeyHeader(tool.config?.apiKeyHeader || 'Authorization');
-            //setNewApiKeyValue(tool.config?.apiKeyValue || '');
         } catch (error: any) {
             systemLog.error(`Error editing API tool: ${error.message}`, 'ToolManager');
             setToolCreationError(`Error editing API tool: ${error.message}`);
@@ -186,7 +174,7 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
     }, [system, fetchTools]);
 
-    const handleSaveApiTool = useCallback((toolId: string, newApiEndpoint: string, newApiMethod: string, newApiHeaders: string/*, newApiAuthType: string, newApiKeyHeader: string, newApiKeyValue: string*/) => {
+    const handleSaveApiTool = useCallback((toolId: string, newApiEndpoint: string, newApiMethod: string, newApiHeaders: string) => {
          try {
             const tool = system.getTool(toolId);
             if (!tool) {
@@ -206,9 +194,6 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
             tool.config = {
                 method: newApiMethod,
                 headers: newApiHeaders,
-                //authType: newApiAuthType,
-                //apiKeyHeader: newApiKeyHeader,
-                //apiKeyValue: newApiKeyValue,
             };
             system.updateNote(tool);
             setEditingApiToolId(null);
@@ -343,38 +328,6 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                         options={editorOptions}
                         onChange={(value) => setNewApiHeaders(value)}
                     />
-
-                   {/* <label htmlFor="newApiAuthType">Authentication Type:</label>
-                    <select
-                        id="newApiAuthType"
-                        value={newApiAuthType}
-                        onChange={(e) => setNewApiAuthType(e.target.value as 'none' | 'apiKey')}
-                    >
-                        <option value="none">None</option>
-                        <option value="apiKey">API Key</option>
-                    </select>
-
-                    {newApiAuthType === 'apiKey' && (
-                        <>
-                            <label htmlFor="newApiKeyHeader">API Key Header:</label>
-                            <input
-                                type="text"
-                                id="newApiKeyHeader"
-                                placeholder="Header name for API Key"
-                                value={newApiKeyHeader}
-                                onChange={(e) => setNewApiKeyHeader(e.target.value)}
-                            />
-
-                            <label htmlFor="newApiKeyValue">API Key Value:</label>
-                            <input
-                                type="text"
-                                id="newApiKeyKeyValue"
-                                placeholder="Your API Key"
-                                value={newApiKeyValue}
-                                onChange={(e) => setNewApiKeyValue(e.target.value)}
-                            />
-                        </>
-                    )}*/}
                 </>
             )}
 
@@ -491,39 +444,7 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                                         options={editorOptions}
                                         onChange={(value) => setNewApiHeaders(value)}
                                     />
-
-                                   {/* <label htmlFor={`newApiAuthType`}>Authentication Type:</label>
-                                    <select
-                                        id={`newApiAuthType`}
-                                        value={newApiAuthType}
-                                        onChange={(e) => setNewApiAuthType(e.target.value as 'none' | 'apiKey')}
-                                    >
-                                        <option value="none">None</option>
-                                        <option value="apiKey">API Key</option>
-                                    </select>
-
-                                    {newApiAuthType === 'apiKey' && (
-                                        <>
-                                            <label htmlFor={`newApiKeyHeader`}>API Key Header:</label>
-                                            <input
-                                                type="text"
-                                                id={`newApiKeyHeader`}
-                                                placeholder="Header name for API Key"
-                                                value={newApiKeyHeader}
-                                                onChange={(e) => setNewApiKeyHeader(e.target.value)}
-                                            />
-
-                                            <label htmlFor={`newApiKeyKeyValue`}>API Key Value:</label>
-                                            <input
-                                                type="text"
-                                                id={`newApiKeyKeyValue`}
-                                                placeholder="Your API Key"
-                                                value={newApiKeyValue}
-                                                onChange={(e) => setNewApiKeyValue(e.target.value)}
-                                            />
-                                        </>
-                                    )}*/}
-                                <button onClick={() => handleSaveApiTool(tool.id, newApiEndpoint, newApiMethod, newApiHeaders/*, newApiAuthType, newApiKeyHeader, newApiKeyValue*/)}>Save</button>
+                                <button onClick={() => handleSaveApiTool(tool.id, newApiEndpoint, newApiMethod, newApiHeaders)}>Save</button>
                                 <button onClick={handleCancelEditApiTool}>Cancel</button>
                             </div>
                         )}
@@ -539,7 +460,7 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                                     options={editorOptions}
                                     onChange={(value) => setNewToolInputSchema(value)}
                                 />
-                                <button onClick={() => handleSaveToolInputSchema(tool.id, newToolInputSchema)}>Save</button>
+                                <button onClick={() => handleSaveToolInputSchema(tool.id, newInputSchema)}>Save</button>
                                 <button onClick={handleCancelEditToolInputSchema}>Cancel</button>
                             </div>
                         )}
