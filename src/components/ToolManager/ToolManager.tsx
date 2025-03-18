@@ -113,7 +113,7 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
             systemLog.error(`Error creating tool: ${error.message}`, 'ToolManager');
             setToolCreationError(`Error creating tool: ${error.message}`);
         }
-    }, [newToolInputSchema, newToolLogic, newToolOutputSchema, newToolTitle, newToolType, system, fetchTools, newApiEndpoint, newApiMethod, newApiHeaders]);
+    }, [newToolInputSchema, newToolLogic, newToolOutputSchema, newToolTitle, newToolType, system, fetchTools, newApiEndpoint, newApiMethod, newApiHeaders, validateJson]);
 
     /**
      * Handles editing an existing tool's logic.
