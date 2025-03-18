@@ -115,8 +115,9 @@ export const initializeInitialTools = () => {
 
     const webSearchToolImplementation = async (input: any) => {
         try {
-            const settings = localStorage.getItem('settings');
-            const serpApiKey = settings ? JSON.parse(settings).serpApiKey : null;
+            const settingsString = localStorage.getItem('settings');
+            const settings = settingsString ? JSON.parse(settingsString) : null;
+            const serpApiKey = settings ? settings.serpApiKey : null;
 
             if (!serpApiKey) {
                 systemLog.error('SerpAPI key not found in settings.', 'WebSearchTool');
