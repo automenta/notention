@@ -4,6 +4,7 @@ import {getSystemNote} from '../../lib/systemNote';
 import {Note} from '../../types';
 import MonacoEditor from 'react-monaco-editor';
 import {systemLog} from "../../lib/systemLog";
+import idService from "../../lib/idService";
 
 interface ToolManagerProps {
 }
@@ -15,6 +16,7 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
     const [newToolLogic, setNewToolLogic] = useState('');
     const [newToolInputSchema, setNewToolInputSchema] = useState('');
     const [newToolOutputSchema, setNewToolOutputSchema] = useState('');
+    const [newToolType, setNewToolType] = useState<'custom' | 'langchain' | 'api'>('custom'); // Default to 'custom'
     const [toolCreationError, setToolCreationError] = useState<string | null>(null);
     const [editingToolId, setEditingToolId] = useState<string | null>(null);
     const [editingToolInputSchemaId, setEditingToolInputSchemaId] = useState<string | null>(null);
@@ -42,9 +44,9 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
 
         try {
-            const newTool: Note = {
-                id: `tool-${Date.now()}`,
-                type: 'Tool',
+            const newTool: Note & { type: 'custom' | 'langchain' | 'api' } = {
+                id: idService.generateId(),
+                type: newToolType, // Use the selected tool type
                 title: newToolTitle,
                 content: `Tool: ${newToolTitle}`,
                 logic: newToolLogic,
@@ -56,18 +58,19 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                 updatedAt: null,
                 references: [],
             };
-            system.registerTool(newTool);
+            system.registerToolDefinition(newTool);
             setNewToolTitle('');
             setNewToolLogic('');
             setNewToolInputSchema('');
             setNewToolOutputSchema('');
+            setNewToolType('custom'); // Reset to default
             setToolCreationError(null);
             fetchTools();
         } catch (error: any) {
             systemLog.error(`Error creating tool: ${error.message}`, 'ToolManager');
             setToolCreationError(`Error creating tool: ${error.message}`);
         }
-    }, [newToolInputSchema, newToolLogic, newToolOutputSchema, newToolTitle, system, fetchTools]);
+    }, [newToolInputSchema, newToolLogic, newToolOutputSchema, newToolTitle, newToolType, system, fetchTools]);
 
     // Handle editing an existing tool
     const handleEditTool = useCallback((toolId: string) => {
@@ -207,6 +210,18 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                 value={newToolTitle}
                 onChange={(e) => setNewToolTitle(e.target.value)}
             />
+
+            <label htmlFor="newToolType">Tool Type:</label>
+            <select
+                id="newToolType"
+                value={newToolType}
+                onChange={(e) => setNewToolType(e.target.value as 'custom' | 'langchain' | 'api')}
+            >
+                <option value="custom">Custom</option>
+                <option value="langchain">LangChain</option>
+                <option value="api">API</option>
+            </select>
+
             <label htmlFor="newToolLogic">Tool Logic (JSON):</label>
             <textarea
                 id="newToolLogic"
