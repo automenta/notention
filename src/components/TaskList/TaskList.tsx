@@ -13,7 +13,7 @@ const TaskList: React.FC<{ onTaskSelect: (id: string) => void, selectedId: strin
                                                                                                     selectedId
                                                                                                 }) => {
     const [sortBy, setSortBy] = useState<'priority' | 'status' | 'createdAt'>('priority');
-    const [filterByStatus, setFilterByStatus] = useState<'active' | 'pending' | 'completed' | 'failed' | 'dormant' | 'bypassed' | 'pendingRefinement'>('pending');
+    const [filterByStatus, setFilterByStatus] = useState<'active' | 'pending' | 'completed' | 'failed' | 'dormant' | 'bypassed' | 'pendingRefinement' | 'all'>('pending');
     const [tasks, setTasks] = useState<Note[]>([]);
     const [systemNote, setSystemNote] = useState(getSystemNote());
 
@@ -41,7 +41,7 @@ const TaskList: React.FC<{ onTaskSelect: (id: string) => void, selectedId: strin
         setSortBy(newSortBy);
     };
 
-    const handleFilterByStatusChange = (newFilterByStatus: 'active' | 'pending' | 'completed' | 'failed' | 'dormant' | 'bypassed' | 'pendingRefinement') => {
+    const handleFilterByStatusChange = (newFilterByStatus: 'active' | 'pending' | 'completed' | 'failed' | 'dormant' | 'bypassed' | 'pendingRefinement' | 'all') => {
         setFilterByStatus(newFilterByStatus);
     };
 
@@ -84,3 +84,5 @@ const TaskList: React.FC<{ onTaskSelect: (id: string) => void, selectedId: strin
         </DragDropContext>
     );
 };
+
+export default TaskList;
