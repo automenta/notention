@@ -8,7 +8,7 @@ export const NoteSchema = z.object({
     ]).default("Task"),
     title: z.string().default("Untitled Note"),
     content: z.any().optional(),
-    logic: z.string().optional(),
+    logic: z.any().optional(),
     status: z.enum(["pending", "active", "running", "completed", "failed", "dormant", "bypassed", "pendingRefinement"]).default("pending"),
     priority: z.number().int().default(0),
     createdAt: z.string().datetime().default(() => new Date().toISOString()),
