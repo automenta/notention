@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import styles from './PromptDialog.module.css';
 
 interface PromptDialogProps {
@@ -6,7 +6,7 @@ interface PromptDialogProps {
     onClose: (userInput: string) => void;
 }
 
-const PromptDialog: React.FC<PromptDialogProps> = ({ prompt, onClose }) => {
+const PromptDialog: React.FC<PromptDialogProps> = ({prompt, onClose}) => {
     const [userInput, setUserInput] = useState('');
 
     useEffect(() => {

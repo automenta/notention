@@ -1,8 +1,8 @@
-import { Note } from '../../types';
+import {Note} from '../../types';
 import idService from '../idService';
-import { SystemNote } from '../systemNote';
-import { systemLog } from '../systemLog';
-import { handleToolError } from './toolUtils';
+import {SystemNote} from '../systemNote';
+import {systemLog} from '../systemLog';
+import {handleToolError} from './toolUtils';
 
 export const registerWebSearchTool = (systemNote: SystemNote): void => {
     const webSearchToolData: Note = {
@@ -72,12 +72,16 @@ export const registerWebSearchTool = (systemNote: SystemNote): void => {
 
             systemLog.info(`Web Search: Found ${results.length} results for ${input.query}`, 'WebSearchTool');
 
-            return { results };
+            return {results};
         } catch (error: any) {
             return handleToolError(error, webSearchToolData.id);
         }
     };
 
-    systemNote.registerToolDefinition({ ...webSearchToolData, implementation: webSearchToolImplementation, type: 'custom' });
+    systemNote.registerToolDefinition({
+        ...webSearchToolData,
+        implementation: webSearchToolImplementation,
+        type: 'custom'
+    });
     systemLog.info(`🔨 Registered Tool ${webSearchToolData.id}: ${webSearchToolData.title}`, 'SystemNote');
 };

@@ -1,8 +1,8 @@
-import { Note } from '../../types';
+import {Note} from '../../types';
 import idService from '../idService';
-import { SystemNote } from '../systemNote';
-import { systemLog } from '../systemLog';
-import { handleToolError } from './toolUtils';
+import {SystemNote} from '../systemNote';
+import {systemLog} from '../systemLog';
+import {handleToolError} from './toolUtils';
 
 export const registerSummarizationTool = (systemNote: SystemNote): void => {
     const summarizationToolData: Note = {
@@ -59,12 +59,16 @@ export const registerSummarizationTool = (systemNote: SystemNote): void => {
 
             systemLog.info('Summarization Tool: Text summarized', 'SummarizationTool');
 
-            return { summary };
+            return {summary};
         } catch (error: any) {
             return handleToolError(error, summarizationToolData.id);
         }
     };
 
-    systemNote.registerToolDefinition({ ...summarizationToolData, implementation: summarizationToolImplementation, type: 'custom' });
+    systemNote.registerToolDefinition({
+        ...summarizationToolData,
+        implementation: summarizationToolImplementation,
+        type: 'custom'
+    });
     systemLog.info(`🔨 Registered Tool ${summarizationToolData.id}: ${summarizationToolData.title}`, 'SystemNote');
 };

@@ -1,17 +1,14 @@
-import { Note } from '../types';
-import idService from './idService';
-import { getSystemNote } from './systemNote';
-import { systemLog } from './systemLog';
+import {getSystemNote} from './systemNote';
+import {systemLog} from './systemLog';
 import * as fs from 'fs';
 import path from 'path';
-import { registerTool } from './tools/toolUtils'; // Import the registerTool function
-import { registerWebSearchTool } from './tools/webSearchTool';
-import { registerFileOperationsTool } from './tools/fileOperationsTool';
-import { registerGenerateTaskLogicTool } from './tools/generateTaskLogicTool';
-import { registerApiTool } from './tools/apiTool';
-import { registerSummarizationTool } from './tools/summarizationTool';
-import { registerUserInteractionTool } from './tools/userInteractionTool';
-import { registerEchoTool } from './tools/echoTool';
+import {registerWebSearchTool} from './tools/webSearchTool';
+import {registerFileOperationsTool} from './tools/fileOperationsTool';
+import {registerGenerateTaskLogicTool} from './tools/generateTaskLogicTool';
+import {registerApiTool} from './tools/apiTool';
+import {registerSummarizationTool} from './tools/summarizationTool';
+import {registerUserInteractionTool} from './tools/userInteractionTool';
+import {registerEchoTool} from './tools/echoTool';
 
 // Define the safe directory
 const SAFE_DIRECTORY = path.resolve('./safe_files');
@@ -44,4 +41,4 @@ export const initializeInitialTools = () => {
     systemLog.info('Initial tools registered.', 'SystemNote');
 };
 
-export { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, sanitizeFilename };
+export {SAFE_DIRECTORY, ALLOWED_EXTENSIONS, sanitizeFilename};

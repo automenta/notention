@@ -1,10 +1,7 @@
-import { InMemoryNoteStorage, GraphDBNoteStorage } from './noteStorage';
-import { Note } from '../types';
-import idService from './idService';
-import level from 'level';
-import levelgraph from 'levelgraph';
+import {GraphDBNoteStorage, InMemoryNoteStorage, NoteStorage} from '../lib/noteStorage';
+import {Note} from '../types';
+import idService from '../lib/idService';
 import * as fs from 'fs';
-import { NoteStorage } from './noteStorage';
 
 const TEST_DB_PATH = 'test.db';
 
@@ -60,7 +57,7 @@ describe('NoteStorage Implementations', () => {
     afterEach(async () => {
         // Clear the test database after each test
         if (fs.existsSync(TEST_DB_PATH)) {
-            fs.rmSync(TEST_DB_PATH, { recursive: true, force: true });
+            fs.rmSync(TEST_DB_PATH, {recursive: true, force: true});
         }
     });
 
@@ -93,7 +90,7 @@ describe('NoteStorage Implementations', () => {
 
             it('should update a note', async () => {
                 await storage.addNote(note1);
-                const updatedNote = { ...note1, title: 'Updated Test Note' };
+                const updatedNote = {...note1, title: 'Updated Test Note'};
                 await storage.updateNote(updatedNote);
                 const retrievedNote = await storage.getNote(note1.id);
                 expect(retrievedNote).toEqual(updatedNote);

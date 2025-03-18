@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import styles from './NoteEditor.module.css';
-import { Note, NoteSchema } from '../../types';
-import { useSystemNote } from '../../lib/systemNote';
-import { NoteImpl } from '../../lib/note';
+import {Note, NoteSchema} from '../../types';
+import {useSystemNote} from '../../lib/systemNote';
+import {NoteImpl} from '../../lib/note';
 import idService from '../../lib/idService';
 
 interface NoteEditorProps {
@@ -11,7 +11,7 @@ interface NoteEditorProps {
     onSave: (note: Note) => void;
 }
 
-const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose, onSave }) => {
+const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose, onSave}) => {
     const [note, setNote] = useState<Note | null>(null);
     const [title, setTitle] = useState('');
     const [content, setContent] = useState<any>('');
@@ -86,7 +86,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose, onSave }) => {
                     // Extract the last system message as the tool result
                     if (updatedNote.content?.messages && updatedNote.content.messages.length > 0) {
                         const lastMessage = updatedNote.content.messages[updatedNote.content.messages.length - 1];
-                         if (lastMessage.type === 'error') {
+                        if (lastMessage.type === 'error') {
                             setError(lastMessage.content);
                             setToolResult(null);
                         } else {
@@ -127,7 +127,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose, onSave }) => {
                 <button onClick={handleRun}>Run</button>
                 <button onClick={onClose}>Close</button>
             </div>
-             {toolResult && (
+            {toolResult && (
                 <div className={styles.toolResult}>
                     <h3>Tool Result:</h3>
                     <textarea

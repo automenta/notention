@@ -1,14 +1,14 @@
-import React, { useState, useCallback } from 'react';
+import React, {useState, useCallback} from 'react';
 import styles from './SettingsView.module.css';
-import { Settings, validateSettings } from './settingsValidation';
-import { SettingsService } from '../../lib/settingsService';
-import { getSystemNote } from '../../lib/systemNote';
+import {Settings, validateSettings} from './settingsValidation';
+import {SettingsService} from '../../lib/settingsService';
+import {getSystemNote} from '../../lib/systemNote';
 
 interface SettingsViewProps {
     onClose: () => void;
 }
 
-const SettingsView: React.FC<SettingsViewProps> = ({ onClose }) => {
+const SettingsView: React.FC<SettingsViewProps> = ({onClose}) => {
     const initialSettings = SettingsService.getSettings() || {
         concurrency: 5,
         apiKey: '',
@@ -87,7 +87,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onClose }) => {
                 />
                 {errors.apiKey && <div className={styles.error}>{errors.apiKey}</div>}
             </div>
-             <div className={styles.settingRow}>
+            <div className={styles.settingRow}>
                 <label htmlFor="serpApiKey">Serp API Key:</label>
                 <input
                     type="text"

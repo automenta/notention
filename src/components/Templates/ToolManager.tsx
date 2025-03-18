@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, {useState, useEffect, useCallback, useMemo} from 'react';
 import styles from './TemplatesView.module.css';
-import { getSystemNote } from '../../lib/systemNote';
-import { Note } from '../../types';
+import {getSystemNote} from '../../lib/systemNote';
+import {Note} from '../../types';
 import MonacoEditor from 'react-monaco-editor';
-import { systemLog } from "../../lib/systemLog";
+import {systemLog} from "../../lib/systemLog";
 import idService from "../../lib/idService";
 
 interface ToolManagerProps {

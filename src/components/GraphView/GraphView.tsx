@@ -1,8 +1,8 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, {useRef, useEffect, useState, useCallback} from 'react';
 import * as d3 from 'd3';
 import styles from './GraphView.module.css';
-import { Note } from '../../types';
-import { useSystemNote } from '../../lib/systemNote';
+import {Note} from '../../types';
+import {useSystemNote} from '../../lib/systemNote';
 
 interface Node {
     id: string;
@@ -17,7 +17,7 @@ interface Edge {
     target: string;
 }
 
-const GraphView: React.FC<{ selectedNoteId: string | null }> = ({ selectedNoteId }) => {
+const GraphView: React.FC<{ selectedNoteId: string | null }> = ({selectedNoteId}) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const container = useRef<HTMLDivElement>(null);
     const zoom = useRef<any>(null);

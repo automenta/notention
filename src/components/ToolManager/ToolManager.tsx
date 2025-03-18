@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, {useState, useEffect, useCallback, useMemo} from 'react';
 import styles from './ToolManager.module.css';
-import { getSystemNote } from '../../lib/systemNote';
-import { Note } from '../../types';
+import {getSystemNote} from '../../lib/systemNote';
+import {Note} from '../../types';
 import MonacoEditor from 'react-monaco-editor';
-import { systemLog } from "../../lib/systemLog";
+import {systemLog} from "../../lib/systemLog";
 import idService from "../../lib/idService";
 
 interface ToolManagerProps {
@@ -239,10 +239,10 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                 return;
             }
 
-             if (!validateJson(newApiHeaders)) {
-                 setCreationError('Invalid JSON in API Headers.');
-                 return;
-             }
+            if (!validateJson(newApiHeaders)) {
+                setCreationError('Invalid JSON in API Headers.');
+                return;
+            }
 
             try {
                 new URL(newApiEndpoint); // Validate API Endpoint URL
@@ -279,10 +279,10 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                 return;
             }
 
-             if (!validateJson(newInputSchema)) {
-                 setCreationError('Invalid JSON in Input Schema.');
-                 return;
-             }
+            if (!validateJson(newInputSchema)) {
+                setCreationError('Invalid JSON in Input Schema.');
+                return;
+            }
 
             item.inputSchema = newInputSchema;
             system.updateNote(item);
@@ -308,9 +308,9 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                 return;
             }
 
-             if (!validateJson(newOutputSchema)) {
-                 setCreationError('Invalid JSON in Output Schema.');
-                 return;
+            if (!validateJson(newOutputSchema)) {
+                setCreationError('Invalid JSON in Output Schema.');
+                return;
             }
 
             item.outputSchema = newOutputSchema;
@@ -405,7 +405,8 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                                         <button onClick={() => {
                                             handleEdit(item.id);
                                             setNewLogic(item.logic || '');
-                                        }}>Edit Logic</button>
+                                        }}>Edit Logic
+                                        </button>
                                     </>
                                 )}
                             </>
@@ -424,29 +425,32 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                                             value={newApiEndpoint}
                                             onChange={(e) => setNewApiEndpoint(e.target.value)}
                                         />
-                                         <label htmlFor={`apiMethod-${item.id}`}>API Method:</label>
-                                         <select
-                                             id={`apiMethod-${item.id}`}
-                                             value={newApiMethod}
-                                             onChange={(e) => setNewApiMethod(e.target.value as 'GET' | 'POST' | 'PUT' | 'DELETE')}
-                                         >
-                                             <option value="GET">GET</option>
-                                             <option value="POST">POST</option>
-                                             <option value="PUT">PUT</option>
-                                             <option value="DELETE">DELETE</option>
-                                         </select>
-                                         <label htmlFor={`apiHeaders-${item.id}`}>API Headers (JSON):</label>
-                                         <MonacoEditor
-                                             width="600"
-                                             height="300"
-                                             language="json"
-                                             theme="vs-dark"
-                                             value={newApiHeaders}
-                                             options={editorOptions}
-                                             onChange={(value) => setNewApiHeaders(value)}
-                                         />
+                                        <label htmlFor={`apiMethod-${item.id}`}>API Method:</label>
+                                        <select
+                                            id={`apiMethod-${item.id}`}
+                                            value={newApiMethod}
+                                            onChange={(e) => setNewApiMethod(e.target.value as 'GET' | 'POST' | 'PUT' | 'DELETE')}
+                                        >
+                                            <option value="GET">GET</option>
+                                            <option value="POST">POST</option>
+                                            <option value="PUT">PUT</option>
+                                            <option value="DELETE">DELETE</option>
+                                        </select>
+                                        <label htmlFor={`apiHeaders-${item.id}`}>API Headers (JSON):</label>
+                                        <MonacoEditor
+                                            width="600"
+                                            height="300"
+                                            language="json"
+                                            theme="vs-dark"
+                                            value={newApiHeaders}
+                                            options={editorOptions}
+                                            onChange={(value) => setNewApiHeaders(value)}
+                                        />
                                         <div className={styles.editActions}>
-                                            <button onClick={() => handleSaveApi(item.id, newApiEndpoint, newApiMethod, newApiHeaders)}>Update API Config</button>
+                                            <button
+                                                onClick={() => handleSaveApi(item.id, newApiEndpoint, newApiMethod, newApiHeaders)}>Update
+                                                API Config
+                                            </button>
                                             <button onClick={handleCancelEditApi}>Cancel</button>
                                         </div>
                                     </div>
@@ -460,66 +464,73 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                                             setNewApiEndpoint(item.logic || '');
                                             setNewApiMethod((item.config?.method as 'GET' | 'POST' | 'PUT' | 'DELETE') || 'POST');
                                             setNewApiHeaders(item.config?.headers || '{}');
-                                        }}>Edit API Config</button>
+                                        }}>Edit API Config
+                                        </button>
                                     </>
                                 )}
                             </>
                         )}
-                         {/* Display and edit input schema for all item types */}
-                         {editingInputSchemaId === item.id ? (
-                             <div className={styles.editForm}>
-                                 <label htmlFor={`itemInputSchema-${item.id}`}>Input Schema (JSON):</label>
-                                 <MonacoEditor
-                                     width="600"
-                                     height="300"
-                                     language="json"
-                                     theme="vs-dark"
-                                     value={newInputSchema}
-                                     options={editorOptions}
-                                     onChange={(value) => setNewInputSchema(value)}
-                                 />
-                                 <div className={styles.editActions}>
-                                     <button onClick={() => handleSaveInputSchema(item.id, newInputSchema)}>Save Input Schema</button>
-                                     <button onClick={handleCancelEditInputSchema}>Cancel</button>
-                                 </div>
-                             </div>
-                         ) : (
-                             <>
-                                 <p>Input Schema: {item.inputSchema}</p>
-                                 <button onClick={() => {
-                                     handleEditInputSchema(item.id);
-                                     setNewInputSchema(item.inputSchema || '');
-                                 }}>Edit Input Schema</button>
-                             </>
-                         )}
+                        {/* Display and edit input schema for all item types */}
+                        {editingInputSchemaId === item.id ? (
+                            <div className={styles.editForm}>
+                                <label htmlFor={`itemInputSchema-${item.id}`}>Input Schema (JSON):</label>
+                                <MonacoEditor
+                                    width="600"
+                                    height="300"
+                                    language="json"
+                                    theme="vs-dark"
+                                    value={newInputSchema}
+                                    options={editorOptions}
+                                    onChange={(value) => setNewInputSchema(value)}
+                                />
+                                <div className={styles.editActions}>
+                                    <button onClick={() => handleSaveInputSchema(item.id, newInputSchema)}>Save Input
+                                        Schema
+                                    </button>
+                                    <button onClick={handleCancelEditInputSchema}>Cancel</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <p>Input Schema: {item.inputSchema}</p>
+                                <button onClick={() => {
+                                    handleEditInputSchema(item.id);
+                                    setNewInputSchema(item.inputSchema || '');
+                                }}>Edit Input Schema
+                                </button>
+                            </>
+                        )}
 
-                         {/* Display and edit output schema for all item types */}
-                         {editingOutputSchemaId === item.id ? (
-                             <div className={styles.editForm}>
-                                 <label htmlFor={`itemOutputSchema-${item.id}`}>Output Schema (JSON):</label>
-                                 <MonacoEditor
-                                     width="600"
-                                     height="300"
-                                     language="json"
-                                     theme="vs-dark"
-                                     value={newOutputSchema}
-                                     options={editorOptions}
-                                     onChange={(value) => setNewOutputSchema(value)}
-                                 />
-                                 <div className={styles.editActions}>
-                                     <button onClick={() => handleSaveOutputSchema(item.id, newOutputSchema)}>Save Output Schema</button>
-                                     <button onClick={handleCancelEditOutputSchema}>Cancel</button>
-                                 </div>
-                             </div>
-                         ) : (
-                             <>
-                                 <p>Output Schema: {item.outputSchema}</p>
-                                 <button onClick={() => {
-                                     handleEditOutputSchema(item.id);
-                                     setNewOutputSchema(item.outputSchema || '');
-                                 }}>Edit Output Schema</button>
-                             </>
-                         )}
+                        {/* Display and edit output schema for all item types */}
+                        {editingOutputSchemaId === item.id ? (
+                            <div className={styles.editForm}>
+                                <label htmlFor={`itemOutputSchema-${item.id}`}>Output Schema (JSON):</label>
+                                <MonacoEditor
+                                    width="600"
+                                    height="300"
+                                    language="json"
+                                    theme="vs-dark"
+                                    value={newOutputSchema}
+                                    options={editorOptions}
+                                    onChange={(value) => setNewOutputSchema(value)}
+                                />
+                                <div className={styles.editActions}>
+                                    <button onClick={() => handleSaveOutputSchema(item.id, newOutputSchema)}>Save Output
+                                        Schema
+                                    </button>
+                                    <button onClick={handleCancelEditOutputSchema}>Cancel</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <p>Output Schema: {item.outputSchema}</p>
+                                <button onClick={() => {
+                                    handleEditOutputSchema(item.id);
+                                    setNewOutputSchema(item.outputSchema || '');
+                                }}>Edit Output Schema
+                                </button>
+                            </>
+                        )}
                     </div>
                 ))}
             </div>
@@ -573,27 +584,27 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                             value={newApiEndpoint}
                             onChange={(e) => setNewApiEndpoint(e.target.value)}
                         />
-                         <label htmlFor="newApiMethod">API Method:</label>
-                         <select
-                             id="newApiMethod"
-                             value={newApiMethod}
-                             onChange={(e) => setNewApiMethod(e.target.value as 'GET' | 'POST' | 'PUT' | 'DELETE')}
-                         >
-                             <option value="GET">GET</option>
-                             <option value="POST">POST</option>
-                             <option value="PUT">PUT</option>
-                             <option value="DELETE">DELETE</option>
-                         </select>
-                         <label htmlFor="newApiHeaders">API Headers (JSON):</label>
-                         <MonacoEditor
-                             width="600"
-                             height="300"
-                             language="json"
-                             theme="vs-dark"
-                             value={newApiHeaders}
-                             options={editorOptions}
-                             onChange={(value) => setNewApiHeaders(value)}
-                         />
+                        <label htmlFor="newApiMethod">API Method:</label>
+                        <select
+                            id="newApiMethod"
+                            value={newApiMethod}
+                            onChange={(e) => setNewApiMethod(e.target.value as 'GET' | 'POST' | 'PUT' | 'DELETE')}
+                        >
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                        <label htmlFor="newApiHeaders">API Headers (JSON):</label>
+                        <MonacoEditor
+                            width="600"
+                            height="300"
+                            language="json"
+                            theme="vs-dark"
+                            value={newApiHeaders}
+                            options={editorOptions}
+                            onChange={(value) => setNewApiHeaders(value)}
+                        />
                     </>
                 )}
 

@@ -1,8 +1,8 @@
-import { Note } from '../../types';
+import {Note} from '../../types';
 import idService from '../idService';
-import { SystemNote } from '../systemNote';
-import { systemLog } from '../systemLog';
-import { handleToolError } from './toolUtils';
+import {SystemNote} from '../systemNote';
+import {systemLog} from '../systemLog';
+import {handleToolError} from './toolUtils';
 
 export const registerUserInteractionTool = (systemNote: SystemNote): void => {
     const userInteractionToolData: Note = {
@@ -53,12 +53,16 @@ export const registerUserInteractionTool = (systemNote: SystemNote): void => {
 
             systemLog.info('User Interaction Tool: User input received', 'UserInteractionTool');
 
-            return { response };
+            return {response};
         } catch (error: any) {
             return handleToolError(error, userInteractionToolData.id);
         }
     };
 
-    systemNote.registerToolDefinition({ ...userInteractionToolData, implementation: userInteractionToolImplementation, type: 'custom' });
+    systemNote.registerToolDefinition({
+        ...userInteractionToolData,
+        implementation: userInteractionToolImplementation,
+        type: 'custom'
+    });
     systemLog.info(`🔨 Registered Tool ${userInteractionToolData.id}: ${userInteractionToolData.title}`, 'SystemNote');
 };

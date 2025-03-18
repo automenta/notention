@@ -1,8 +1,8 @@
-import { Note } from '../../types';
+import {Note} from '../../types';
 import idService from '../idService';
-import { SystemNote } from '../systemNote';
-import { systemLog } from '../systemLog';
-import { handleToolError } from './toolUtils';
+import {SystemNote} from '../systemNote';
+import {systemLog} from '../systemLog';
+import {handleToolError} from './toolUtils';
 
 export const registerApiTool = (systemNote: SystemNote): void => {
     const apiToolData: Note = {
@@ -73,6 +73,6 @@ export const registerApiTool = (systemNote: SystemNote): void => {
         }
     };
 
-    systemNote.registerToolDefinition({ ...apiToolData, implementation: apiToolImplementation, type: 'custom' });
+    systemNote.registerToolDefinition({...apiToolData, implementation: apiToolImplementation, type: 'custom'});
     systemLog.info(`🔨 Registered Tool ${apiToolData.id}: ${apiToolData.title}`, 'SystemNote');
 };

@@ -1,15 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import Message from './Message';
-import { getSystemNote, onSystemNoteChange } from '../../lib/systemNote';
-import { systemLog } from '../../lib/systemLog';
-import { NoteImpl } from '../../lib/note';
-import { NoteEditor } from '../NoteEditor/NoteEditor';
+import {getSystemNote, onSystemNoteChange} from '../../lib/systemNote';
+import {systemLog} from '../../lib/systemLog';
+import {NoteImpl} from '../../lib/note';
+import {NoteEditor} from '../NoteEditor/NoteEditor';
 import styles from './ChatView.module.css';
-import { TaskLogic, WorkflowStep } from '../../types';
-import { v4 as uuidv4 } from 'uuid';
-import { ToolStepEditor } from './ToolStepEditor';
+import {TaskLogic, WorkflowStep} from '../../types';
+import {v4 as uuidv4} from 'uuid';
+import {ToolStepEditor} from './ToolStepEditor';
 
-export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selectedTaskId }) => {
+export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({selectedTaskId}) => {
     const [messages, setMessages] = useState<any[]>([]);
     const [input, setInput] = useState('');
     const messagesEnd = useRef<HTMLDivElement>(null);
@@ -60,7 +60,7 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
     }, [selectedTaskId, system]); // Dependencies: selectedTaskId and system
 
     useEffect(() => {
-        messagesEnd.current?.scrollIntoView({ behavior: 'smooth' });
+        messagesEnd.current?.scrollIntoView({behavior: 'smooth'});
     }, [messages]);
 
     useEffect(() => {
@@ -184,7 +184,7 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
 
         // Ensure task.logic is an object with a steps property
         if (!task.logic || typeof task.logic !== 'object' || !Array.isArray(task.logic.steps)) {
-            task.logic = { steps: [] };
+            task.logic = {steps: []};
         }
 
         const newLogic: TaskLogic = {
@@ -311,8 +311,8 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
             </div>
 
             <div className={styles.messagesContainer}>
-                {messages.map((msg, i) => <Message key={i} message={msg} />)}
-                <div ref={messagesEnd} />
+                {messages.map((msg, i) => <Message key={i} message={msg}/>)}
+                <div ref={messagesEnd}/>
             </div>
 
             {editingNote && selectedTaskId ? (
@@ -409,7 +409,8 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
                                                         </div>
                                                     )}
                                                     <button onClick={() => handleEditToolStep(step.id)}>Edit</button>
-                                                    <button onClick={() => handleDeleteToolStep(step.id)}>Delete</button>
+                                                    <button onClick={() => handleDeleteToolStep(step.id)}>Delete
+                                                    </button>
                                                 </>
                                             )}
                                         </li>

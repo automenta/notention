@@ -3,8 +3,8 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import {initializeSystemNote} from './lib/systemNote';
-import { ChatOpenAI } from "langchain/chat_models/openai";
-import { systemLog } from './lib/systemLog';
+import {ChatOpenAI} from "langchain/chat_models/openai";
+import {systemLog} from './lib/systemLog';
 
 const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
 const usePersistence = localStorage.getItem('usePersistence') === 'true' || false;

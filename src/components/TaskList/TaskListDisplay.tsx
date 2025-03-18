@@ -1,8 +1,8 @@
-import React, { useCallback } from 'react';
+import React, {useCallback} from 'react';
 import TaskListItem from './TaskListItem';
-import { Note } from '../../types';
+import {Note} from '../../types';
 import styles from './TaskList.module.css';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import {DragDropContext, Droppable, Draggable} from 'react-beautiful-dnd';
 
 interface TaskListDisplayProps {
     tasks: Note[];
@@ -12,11 +12,11 @@ interface TaskListDisplayProps {
 }
 
 export const TaskListDisplay: React.FC<TaskListDisplayProps> = ({
-    tasks,
-    selectedId,
-    onTaskSelect,
-    onPriorityChange,
-}) => {
+                                                                    tasks,
+                                                                    selectedId,
+                                                                    onTaskSelect,
+                                                                    onPriorityChange,
+                                                                }) => {
     const handleChangePriority = useCallback((id: string, priority: number) => {
         onPriorityChange(id, priority);
     }, [onPriorityChange]);

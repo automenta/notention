@@ -1,8 +1,8 @@
-import { Note } from '../../types';
+import {Note} from '../../types';
 import idService from '../idService';
-import { SystemNote } from '../systemNote';
-import { systemLog } from '../systemLog';
-import { handleToolError } from './toolUtils';
+import {SystemNote} from '../systemNote';
+import {systemLog} from '../systemLog';
+import {handleToolError} from './toolUtils';
 
 export const registerGenerateTaskLogicTool = (systemNote: SystemNote): void => {
     const generateTaskLogicToolData: Note = {
@@ -59,12 +59,16 @@ export const registerGenerateTaskLogicTool = (systemNote: SystemNote): void => {
 
             systemLog.info('Generate Task Logic: Task logic generated', 'GenerateTaskLogicTool');
 
-            return { logic };
+            return {logic};
         } catch (error: any) {
             return handleToolError(error, generateTaskLogicToolData.id);
         }
     };
 
-    systemNote.registerToolDefinition({ ...generateTaskLogicToolData, implementation: generateTaskLogicToolImplementation, type: 'custom' });
+    systemNote.registerToolDefinition({
+        ...generateTaskLogicToolData,
+        implementation: generateTaskLogicToolImplementation,
+        type: 'custom'
+    });
     systemLog.info(`🔨 Registered Tool ${generateTaskLogicToolData.id}: ${generateTaskLogicToolData.title}`, 'SystemNote');
 };

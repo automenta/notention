@@ -210,11 +210,13 @@ export const TemplateManager: React.FC<TemplateManagerProps> = () => {
                         <button onClick={() => {
                             handleEditTemplate(template.id);
                             setNewTemplateLogic(template.logic || '');
-                        }}>Edit Logic</button>
+                        }}>Edit Logic
+                        </button>
                         <button onClick={() => {
                             handleEditContentTemplate(template.id);
                             setNewTemplateContent(template.content || '');
-                        }}>Edit Content</button>
+                        }}>Edit Content
+                        </button>
                         {editingTemplateId === template.id && (
                             <div className={styles.templateEditor}>
                                 <MonacoEditor
@@ -241,7 +243,9 @@ export const TemplateManager: React.FC<TemplateManagerProps> = () => {
                                     options={editorOptions}
                                     onChange={(value) => setNewTemplateContent(value)}
                                 />
-                                <button onClick={() => handleSaveContentTemplate(template.id, newTemplateContent)}>Save</button>
+                                <button
+                                    onClick={() => handleSaveContentTemplate(template.id, newTemplateContent)}>Save
+                                </button>
                                 <button onClick={handleCancelContentEdit}>Cancel</button>
                             </div>
                         )}

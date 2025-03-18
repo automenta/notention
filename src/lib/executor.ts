@@ -1,6 +1,6 @@
-import { Note } from '../types';
-import { systemLog } from './systemLog';
-import { ChatOpenAI } from '@langchain/openai';
+import {Note} from '../types';
+import {systemLog} from './systemLog';
+import {ChatOpenAI} from '@langchain/openai';
 
 // Custom error types
 class ToolExecutionError extends Error {
@@ -44,7 +44,7 @@ export async function executeTool(tool: Note, input: any, llm: ChatOpenAI, toolI
                 throw new InvalidToolLogicError(`Tool has invalid or missing logic steps.`, tool.id);
             }
 
-            let context: any = { ...input }; // Shared context for passing data between steps
+            let context: any = {...input}; // Shared context for passing data between steps
             let output: any = null;
 
             for (const step of steps) {
@@ -88,7 +88,7 @@ export async function executeTool(tool: Note, input: any, llm: ChatOpenAI, toolI
                     throw new ToolExecutionError(stepError.message, tool.id, step.id);
                 }
             }
-            return { output };
+            return {output};
         } catch (error: any) {
             systemLog.error(`Error executing default logic for tool ${tool.id}: ${error.message}`, 'Executor');
             if (error instanceof InvalidToolLogicError || error instanceof ToolExecutionError) {

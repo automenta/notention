@@ -1,8 +1,8 @@
-import { Note } from '../types';
-import { getSystemNote } from './systemNote';
-import { systemLog } from './systemLog';
-import { updateNote } from './noteUpdate';
-import { NoteImpl } from './note';
+import {Note} from '../types';
+import {getSystemNote} from './systemNote';
+import {systemLog} from './systemLog';
+import {updateNote} from './noteUpdate';
+import {NoteImpl} from './note';
 
 export const reflect = async (note: Note, executionResult: any) => {
     systemLog.debug(`Note ${note.id} Reflecting on result: ${JSON.stringify(executionResult)}`, note.type);

@@ -1,15 +1,15 @@
-import React, { useCallback, useState, useEffect } from 'react';
-import { useSystemNote } from '../../lib/systemNote';
-import { Note, TaskLogic } from '../../types';
+import React, {useCallback, useState, useEffect} from 'react';
+import {useSystemNote} from '../../lib/systemNote';
+import {Note, TaskLogic} from '../../types';
 import styles from './TaskList.module.css';
-import { NoteImpl } from "../../lib/note";
+import {NoteImpl} from "../../lib/note";
 import idService from '../../lib/idService'; // Import the IdService
 
 interface TaskCreationProps {
     onTaskAdd: () => void;
 }
 
-export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
+export const TaskCreation: React.FC<TaskCreationProps> = ({onTaskAdd}) => {
     const [showToolSelector, setShowToolSelector] = useState(false);
     const [availableTools, setAvailableTools] = useState<Note[]>([]);
     const [showTemplateSelector, setShowTemplateSelector] = useState(false);
@@ -47,7 +47,7 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
                         id: idService.generateId(), // Generate UUID for tool step
                         type: 'tool',
                         toolId: selectedToolId,
-                        input: { /* Define input parameters here */ }
+                        input: { /* Define input parameters here */}
                     }
                 ]
             };

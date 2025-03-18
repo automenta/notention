@@ -1,10 +1,8 @@
-import { Note } from '../../types';
+import {Note} from '../../types';
 import idService from '../idService';
-import { SystemNote, getSystemNote } from '../systemNote';
-import { RunnablePassthrough } from "@langchain/core/runnables";
-import { systemLog } from '../systemLog';
-import { registerTool } from './toolUtils';
-import { handleToolError } from './toolUtils';
+import {SystemNote} from '../systemNote';
+import {systemLog} from '../systemLog';
+import {handleToolError, registerTool} from './toolUtils';
 
 export const registerEchoTool = (systemNote: SystemNote) => {
     const echoToolNoteData: Note = {
@@ -44,7 +42,7 @@ export const registerEchoTool = (systemNote: SystemNote) => {
         outputSchema: {  //Basic output schema for the tool
             type: 'object',
             properties: {
-                output: { type: 'string', description: 'Echoed text' }
+                output: {type: 'string', description: 'Echoed text'}
             },
             required: ['output']
         },
@@ -52,11 +50,11 @@ export const registerEchoTool = (systemNote: SystemNote) => {
     };
     const echoToolImplementation = async (input: any) => {
         try {
-            return { output: input.input };
+            return {output: input.input};
         } catch (error: any) {
             return handleToolError(error, echoToolNoteData.id);
         }
     };
-    registerTool({ ...echoToolNoteData, implementation: echoToolImplementation, type: 'custom' }); // Register Echo Tool
+    registerTool({...echoToolNoteData, implementation: echoToolImplementation, type: 'custom'}); // Register Echo Tool
     systemLog.info(`🔨 Registered Tool ${echoToolNoteData.id}: ${echoToolNoteData.title}`, 'SystemNote');
 };

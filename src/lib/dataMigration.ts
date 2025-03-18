@@ -1,5 +1,5 @@
-import { InMemoryNoteStorage, GraphDBNoteStorage } from './noteStorage';
-import { systemLog } from './systemLog';
+import {GraphDBNoteStorage, InMemoryNoteStorage} from './noteStorage';
+import {systemLog} from './systemLog';
 
 // Function to migrate data from InMemoryNoteStorage to GraphDBNoteStorage
 export const migrateDataToGraphDB = async () => {

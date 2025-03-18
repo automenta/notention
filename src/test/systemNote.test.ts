@@ -1,11 +1,11 @@
-import { InMemoryNoteStorage, GraphDBNoteStorage } from './noteStorage';
-import { Note } from '../types';
-import idService from './idService';
-import { SystemNote, initializeSystemNote, getSystemNote } from './systemNote';
-import { ChatOpenAI } from '@langchain/openai';
+import {InMemoryNoteStorage} from '../lib/noteStorage';
+import {Note} from '../types';
+import idService from '../lib/idService';
+import {getSystemNote, initializeSystemNote, SystemNote} from '../lib/systemNote';
+import {ChatOpenAI} from '@langchain/openai';
 import * as fs from 'fs';
 import path from 'path';
-import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, sanitizeFilename } from './initialTools';
+import {SAFE_DIRECTORY} from '../lib/initialTools';
 
 jest.mock('@langchain/openai', () => ({
     ChatOpenAI: jest.fn().mockImplementation(() => ({
@@ -57,7 +57,7 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
 
     it('should update a note in the storage through SystemNote', async () => {
         await systemNote.addNote(note1);
-        const updatedNote = { ...note1, title: 'Updated Test Note' };
+        const updatedNote = {...note1, title: 'Updated Test Note'};
         await systemNote.updateNote(updatedNote);
         const retrievedNote = await inMemoryStorage.getNote(note1.id);
         expect(retrievedNote).toEqual(updatedNote);
@@ -93,12 +93,12 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
             systemNote.registerToolDefinition({
                 ...customTool,
                 type: 'custom',
-                implementation: async (input: any) => ({ result: `Custom tool executed with input: ${JSON.stringify(input)}` })
+                implementation: async (input: any) => ({result: `Custom tool executed with input: ${JSON.stringify(input)}`})
             });
 
-            const result = await systemNote.executeTool(customTool.id, { input: 'test' });
+            const result = await systemNote.executeTool(customTool.id, {input: 'test'});
 
-            expect(result).toEqual({ result: 'Custom tool executed with input: {"input":"test"}' });
+            expect(result).toEqual({result: 'Custom tool executed with input: {"input":"test"}'});
         });
 
         it('should execute a langchain tool', async () => {
@@ -130,10 +130,10 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                 implementation: mockLangchainTool,
             });
 
-            const result = await systemNote.executeTool(langchainTool.id, { input: 'test' });
+            const result = await systemNote.executeTool(langchainTool.id, {input: 'test'});
 
             expect(result).toEqual('Mock Langchain Tool Response');
-            expect(mockLangchainTool.call).toHaveBeenCalledWith({ input: 'test' });
+            expect(mockLangchainTool.call).toHaveBeenCalledWith({input: 'test'});
         });
 
         it('should execute an api tool', async () => {
@@ -153,25 +153,25 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                 outputSchema: '',
                 config: {
                     method: 'POST',
-                    headers: JSON.stringify({ 'Content-Type': 'application/json' }),
+                    headers: JSON.stringify({'Content-Type': 'application/json'}),
                 },
                 logic: 'https://example.com/api',
             };
 
             global.fetch = jest.fn().mockResolvedValue({
                 ok: true,
-                json: async () => ({ result: 'Mock API Response' }),
+                json: async () => ({result: 'Mock API Response'}),
             }) as jest.Mock;
 
             systemNote.registerToolDefinition(apiTool);
 
-            const result = await systemNote.executeTool(apiTool.id, { input: 'test' });
+            const result = await systemNote.executeTool(apiTool.id, {input: 'test'});
 
-            expect(result).toEqual({ result: 'Mock API Response' });
+            expect(result).toEqual({result: 'Mock API Response'});
             expect(fetch).toHaveBeenCalledWith('https://example.com/api', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ input: 'test' }),
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({input: 'test'}),
             });
         });
 
@@ -194,7 +194,7 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                     filename: 'test.txt',
                 });
 
-                expect(result).toEqual({ result: 'test content' });
+                expect(result).toEqual({result: 'test content'});
             });
 
             it('should write to a file within the safe directory', async () => {
@@ -204,7 +204,7 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                     content: 'test content',
                 });
 
-                expect(result).toEqual({ result: 'File written successfully' });
+                expect(result).toEqual({result: 'File written successfully'});
 
                 const fileContent = fs.readFileSync(testFilePath, 'utf-8');
                 expect(fileContent).toBe('test content');
@@ -240,7 +240,7 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                 ).rejects.toThrow('Invalid file extension.');
             });
 
-             it('should create a directory within the safe directory', async () => {
+            it('should create a directory within the safe directory', async () => {
                 const testDirectoryPath = path.join(SAFE_DIRECTORY, 'test_directory');
 
                 const result = await systemNote.executeTool('file-operations-tool', {
@@ -248,7 +248,7 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                     filename: 'test_directory',
                 });
 
-                expect(result).toEqual({ result: 'Directory created successfully' });
+                expect(result).toEqual({result: 'Directory created successfully'});
 
                 expect(fs.existsSync(testDirectoryPath)).toBe(true);
 
@@ -263,7 +263,7 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                     filename: 'test.txt',
                 });
 
-                expect(result).toEqual({ result: 'File deleted successfully' });
+                expect(result).toEqual({result: 'File deleted successfully'});
 
                 expect(fs.existsSync(testFilePath)).toBe(false);
             });
@@ -298,7 +298,7 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
             });
 
             it('should not allow actions that are not whitelisted for test_directory', async () => {
-                 await expect(
+                await expect(
                     systemNote.executeTool('file-operations-tool', {
                         action: 'read',
                         filename: 'test_directory',

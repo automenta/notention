@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import TaskListDisplay from './TaskListDisplay';
 import TaskListFilters from './TaskListFilters';
-import { Note, NoteSchema } from '../../types';
+import {Note, NoteSchema} from '../../types';
 import styles from './TaskList.module.css';
-import { useSystemNote } from '../../lib/systemNote';
+import {useSystemNote} from '../../lib/systemNote';
 
 const TaskList: React.FC<{ onTaskSelect: (id: string) => void, selectedId: string | null }> = ({
-    onTaskSelect,
-    selectedId
-}) => {
+                                                                                                   onTaskSelect,
+                                                                                                   selectedId
+                                                                                               }) => {
     const [sortBy, setSortBy] = useState<'priority' | 'status' | 'createdAt'>('priority');
     const [filterByStatus, setFilterByStatus] = useState<'active' | 'pending' | 'completed' | 'failed' | 'dormant' | 'bypassed' | 'pendingRefinement' | 'all'>('pending');
     const [tasks, setTasks] = useState<Note[]>([]);
@@ -59,7 +59,7 @@ const TaskList: React.FC<{ onTaskSelect: (id: string) => void, selectedId: strin
         if (!systemNote) return;
         const taskToUpdate = tasks.find(task => task.id === id);
         if (taskToUpdate) {
-            const updatedTask = { ...taskToUpdate, priority: newPriority };
+            const updatedTask = {...taskToUpdate, priority: newPriority};
             systemNote.updateNote(updatedTask);
         }
     }, [systemNote, tasks]);

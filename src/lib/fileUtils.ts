@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import path from 'path';
-import { systemLog } from './systemLog';
+import {systemLog} from './systemLog';
 
 export const SAFE_DIRECTORY = path.resolve('./safe_files');
 export const ALLOWED_EXTENSIONS = ['.txt', '.md', '.json', '.js'];

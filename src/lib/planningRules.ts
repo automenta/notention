@@ -1,8 +1,8 @@
 // src/lib/planningRules.ts
-import { Note } from '../types';
-import { SystemNote, getSystemNote } from './systemNote';
+import {Note} from '../types';
+import {SystemNote} from './systemNote';
 import idService from './idService';
-import { systemLog } from './systemLog';
+import {systemLog} from './systemLog';
 
 /**
  * Represents a planning rule that can be applied to a note.
@@ -75,7 +75,7 @@ const planningRules: PlanningRule[] = [
                 id: idService.generateId(),
                 type: 'Task',
                 title: `Sub-task 1 of ${task.title}`,
-                content: { messages: [] },
+                content: {messages: []},
                 status: 'pending',
                 priority: task.priority - 10,
                 createdAt: new Date().toISOString(),
@@ -125,7 +125,7 @@ const planningRules: PlanningRule[] = [
                 id: idService.generateId(),
                 type: 'Task',
                 title: `Follow-up task for ${task.title}`,
-                content: { messages: [] },
+                content: {messages: []},
                 status: 'pending',
                 priority: task.priority - 5,
                 createdAt: new Date().toISOString(),

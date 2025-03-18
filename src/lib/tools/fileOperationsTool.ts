@@ -1,11 +1,11 @@
-import { Note } from '../../types';
+import {Note} from '../../types';
 import idService from '../idService';
-import { SystemNote, getSystemNote } from '../systemNote';
-import { systemLog } from '../systemLog';
+import {SystemNote} from '../systemNote';
+import {systemLog} from '../systemLog';
 import * as fs from 'fs';
 import path from 'path';
-import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, sanitizeFilename } from '../fileUtils';
-import { handleToolError } from './toolUtils';
+import {ALLOWED_EXTENSIONS, SAFE_DIRECTORY, sanitizeFilename} from '../fileUtils';
+import {handleToolError} from './toolUtils';
 
 const ALLOWED_ACTIONS: { [filename: string]: string[] } = {
     'test.txt': ['read', 'write', 'deleteFile'],
@@ -46,22 +46,22 @@ export const registerFileOperationsTool = (systemNote: SystemNote): void => {
                     description: 'Action to perform',
                     inputType: 'select',
                 },
-                filename: { type: 'string', description: 'Filename' },
-		        content: { type: 'string', description: 'Content to write', inputType: 'textarea' }
+                filename: {type: 'string', description: 'Filename'},
+                content: {type: 'string', description: 'Content to write', inputType: 'textarea'}
             },
             required: ['action', 'filename', 'content']
         },
         outputSchema: {
             type: 'object',
             properties: {
-                result: { type: 'string', description: 'Result of the operation' }
+                result: {type: 'string', description: 'Result of the operation'}
             }
         },
         description: 'Reads and writes local files within a safe directory (SECURITY WARNING).',
     };
 
     const fileOperationsToolImplementation = async (input: any) => {
-         try {
+        try {
             if (!input || !input.filename || !input.action) {
                 systemLog.warn('File operation: Invalid input', 'FileOperationsTool');
                 throw new Error('Invalid input: Action and filename are required.');
@@ -99,9 +99,9 @@ export const registerFileOperationsTool = (systemNote: SystemNote): void => {
             if (action === 'read') {
                 systemLog.info(`File operation: Reading file`, 'FileOperationsTool');
                 const content: string = fs.readFileSync(filename, 'utf-8');
-                return { result: content };
+                return {result: content};
             } else if (action === 'write') {
-                 if (input.content === undefined || input.content === null) {
+                if (input.content === undefined || input.content === null) {
                     systemLog.warn(`File operation: Write action - content missing`, 'FileOperationsTool');
                     throw new Error('Invalid input: Content is required for write action.');
                 }
@@ -114,19 +114,19 @@ export const registerFileOperationsTool = (systemNote: SystemNote): void => {
 
                 systemLog.info(`File operation: Writing to file`, 'FileOperationsTool');
                 fs.writeFileSync(filename, contentToWrite, 'utf-8');
-                return { result: 'File written successfully' };
+                return {result: 'File written successfully'};
             } else if (action === 'createDirectory') {
                 if (fs.existsSync(filename)) {
                     systemLog.warn(`File operation: Directory already exists`, 'FileOperationsTool');
                     throw new Error('Directory already exists.');
                 }
                 systemLog.info(`File operation: Creating directory`, 'FileOperationsTool');
-                fs.mkdirSync(filename, { recursive: true });
-                return { result: 'Directory created successfully' };
+                fs.mkdirSync(filename, {recursive: true});
+                return {result: 'Directory created successfully'};
             } else if (action === 'deleteFile') {
                 systemLog.info(`File operation: Deleting file`, 'FileOperationsTool');
                 fs.unlinkSync(filename);
-                return { result: 'File deleted successfully' };
+                return {result: 'File deleted successfully'};
             } else {
                 systemLog.error(`File operation: Invalid action`, 'FileOperationsTool');
                 throw new Error('Invalid action');
@@ -135,6 +135,10 @@ export const registerFileOperationsTool = (systemNote: SystemNote): void => {
             return handleToolError(error, fileOperationsToolData.id);
         }
     };
-    systemNote.registerToolDefinition({ ...fileOperationsToolData, implementation: fileOperationsToolImplementation, type: 'custom' });
+    systemNote.registerToolDefinition({
+        ...fileOperationsToolData,
+        implementation: fileOperationsToolImplementation,
+        type: 'custom'
+    });
     systemLog.info(`🔨 Registered Tool ${fileOperationsToolData.id}: ${fileOperationsToolData.title}`, 'SystemNote');
 };

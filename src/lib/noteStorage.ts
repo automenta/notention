@@ -1,17 +1,23 @@
-import { Note } from '../types';
-import { systemLog } from './systemLog';
+import {Note} from '../types';
+import {systemLog} from './systemLog';
 import level from 'level';
 import levelgraph from 'levelgraph';
-import leveldown from 'leveldown';
 
 export interface NoteStorage {
     getNote(id: string): Promise<Note | undefined>;
+
     getAllNotes(): Promise<Note[]>;
+
     addNote(note: Note): Promise<void>;
+
     updateNote(note: Note): Promise<void>;
+
     deleteNote(id: string): Promise<void>;
+
     getReferences(noteId: string): Promise<string[]>;
+
     addReference(sourceId: string, targetId: string): Promise<void>;
+
     removeReference(sourceId: string, targetId: string): Promise<void>;
 }
 
@@ -38,7 +44,7 @@ export class InMemoryNoteStorage implements NoteStorage {
         this.notes.delete(id);
     }
 
-   async getReferences(noteId: string): Promise<string[]> {
+    async getReferences(noteId: string): Promise<string[]> {
         const note = this.notes.get(noteId);
         return note?.references || [];
     }
@@ -52,7 +58,7 @@ export class InMemoryNoteStorage implements NoteStorage {
     }
 
     async removeReference(sourceId: string, targetId: string): Promise<void> {
-         const sourceNote = this.notes.get(sourceId);
+        const sourceNote = this.notes.get(sourceId);
         if (sourceNote) {
             sourceNote.references = sourceNote.references?.filter(ref => ref !== targetId) || [];
             this.updateNote(sourceNote);
@@ -65,7 +71,7 @@ export class GraphDBNoteStorage implements NoteStorage {
 
     constructor(dbPath: string = 'netention.db') {
         try {
-            const leveldb = level(dbPath, { createIfMissing: true, valueEncoding: 'json' });
+            const leveldb = level(dbPath, {createIfMissing: true, valueEncoding: 'json'});
             this.db = levelgraph(leveldb);
             systemLog.info(`GraphDBNoteStorage initialized with database at ${dbPath}`, 'GraphDBNoteStorage');
         } catch (error: any) {
@@ -76,14 +82,14 @@ export class GraphDBNoteStorage implements NoteStorage {
 
     async getNote(id: string): Promise<Note | undefined> {
         return new Promise((resolve, reject) => {
-            this.db.get({ subject: id, predicate: 'type', object: 'Note' }, (err: any, list: any) => {
+            this.db.get({subject: id, predicate: 'type', object: 'Note'}, (err: any, list: any) => {
                 if (err) {
                     systemLog.error(`Error getting note ${id}: ${err.message}`, 'GraphDBNoteStorage');
                     return reject(err);
                 }
 
                 if (list && list.length > 0) {
-                    this.db.get({ subject: id, predicate: 'data', object: 'note' }, (err: any, noteList: any) => {
+                    this.db.get({subject: id, predicate: 'data', object: 'note'}, (err: any, noteList: any) => {
                         if (err) {
                             systemLog.error(`Error getting note data ${id}: ${err.message}`, 'GraphDBNoteStorage');
                             return reject(err);
@@ -110,7 +116,7 @@ export class GraphDBNoteStorage implements NoteStorage {
     async getAllNotes(): Promise<Note[]> {
         return new Promise((resolve, reject) => {
             const notes: Note[] = [];
-            this.db.search([{ subject: this.db.v('id'), predicate: 'type', object: 'Note' }],
+            this.db.search([{subject: this.db.v('id'), predicate: 'type', object: 'Note'}],
                 (err: any, results: any) => {
                     if (err) {
                         systemLog.error(`Error getting all notes: ${err.message}`, 'GraphDBNoteStorage');
@@ -132,8 +138,8 @@ export class GraphDBNoteStorage implements NoteStorage {
     async addNote(note: Note): Promise<void> {
         return new Promise((resolve, reject) => {
             const ops = [
-                { subject: note.id, predicate: 'type', object: 'Note' },
-                { subject: note.id, predicate: 'data', object: note }
+                {subject: note.id, predicate: 'type', object: 'Note'},
+                {subject: note.id, predicate: 'data', object: note}
             ];
 
             this.db.put(ops, (err: any) => {
@@ -158,8 +164,8 @@ export class GraphDBNoteStorage implements NoteStorage {
 
     async deleteNote(id: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.db.del([{ subject: id, predicate: 'type', object: 'Note' },
-            { subject: id, predicate: 'data', object: 'note' }], (err: any) => {
+            this.db.del([{subject: id, predicate: 'type', object: 'Note'},
+                {subject: id, predicate: 'data', object: 'note'}], (err: any) => {
                 if (err) {
                     systemLog.error(`Error deleting note ${id}: ${err.message}`, 'GraphDBNoteStorage');
                     return reject(err);
@@ -170,9 +176,13 @@ export class GraphDBNoteStorage implements NoteStorage {
     }
 
     async getReferences(noteId: string): Promise<string[]> {
-         return new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             const references: string[] = [];
-            this.db.search([{ subject: noteId, predicate: 'references', object: this.db.v('reference') }], (err: any, results: any) => {
+            this.db.search([{
+                subject: noteId,
+                predicate: 'references',
+                object: this.db.v('reference')
+            }], (err: any, results: any) => {
                 if (err) {
                     systemLog.error(`Error getting references for note ${noteId}: ${err.message}`, 'GraphDBNoteStorage');
                     return reject(err);
@@ -187,7 +197,7 @@ export class GraphDBNoteStorage implements NoteStorage {
 
     async addReference(sourceId: string, targetId: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.db.put({ subject: sourceId, predicate: 'references', object: targetId }, (err: any) => {
+            this.db.put({subject: sourceId, predicate: 'references', object: targetId}, (err: any) => {
                 if (err) {
                     systemLog.error(`Error adding reference from ${sourceId} to ${targetId}: ${err.message}`, 'GraphDBNoteStorage');
                     return reject(err);
@@ -199,7 +209,7 @@ export class GraphDBNoteStorage implements NoteStorage {
 
     async removeReference(sourceId: string, targetId: string): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.db.del({ subject: sourceId, predicate: 'references', object: targetId }, (err: any) => {
+            this.db.del({subject: sourceId, predicate: 'references', object: targetId}, (err: any) => {
                 if (err) {
                     systemLog.error(`Error removing reference from ${sourceId} to ${targetId}: ${err.message}`, 'GraphDBNoteStorage');
                     return reject(err);

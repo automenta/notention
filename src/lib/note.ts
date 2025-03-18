@@ -1,11 +1,10 @@
-import { Note } from '../types';
-import { z } from "zod";
-import { systemLog } from './systemLog';
-import { getSystemNote } from './systemNote';
-import { Runnable } from "langchain/runnables";
+import {Note} from '../types';
+import {systemLog} from './systemLog';
+import {getSystemNote} from './systemNote';
+import {Runnable} from "langchain/runnables";
 import idService from './idService'; // Import the IdService
-import { handleFailure, reflect } from './noteLifecycle';
-import { updateNote } from './noteUpdate';
+import {handleFailure, reflect} from './noteLifecycle';
+import {updateNote} from './noteUpdate';
 
 //const NoteSchema = z.object({
 //    id: z.string(),
@@ -25,7 +24,8 @@ import { updateNote } from './noteUpdate';
 export class NoteImpl {
     private _runnable: Runnable | null = null; // Cache runnable
 
-    constructor(public data: Note) { }
+    constructor(public data: Note) {
+    }
 
     // Static factory method for creating Root Note
     static createRootNote = async (llm: any): Promise<NoteImpl> => {
@@ -112,6 +112,39 @@ export class NoteImpl {
         }
     }
 
+    addSystemMessage(message: string, level: 'info' | 'warning' | 'error' = 'info') {
+        const systemMessage = {
+            type: 'system',
+            content: message,
+            timestamp: new Date().toISOString(),
+        };
+
+        this.data.content.messages = [...(this.data.content.messages ?? []), systemMessage];
+        updateNote(this.data);
+        systemLog[level](`[Note ${this.data.id}] ${message}`, this.data.type);
+    }
+
+    getRunnable(): Runnable | null {
+        if (this._runnable) {
+            systemLog.debug(`Note ${this.data.id} using cached runnable.`, this.data.type);
+            return this._runnable;
+        }
+
+        if (!this.data.logic) {
+            systemLog.debug(`Note ${this.data.id} has no logic defined, using simulation.`, this.data.type);
+            return null;
+        }
+
+        try {
+            // this._runnable = Runnable.fromJSON(JSON.parse(this.data.logic));
+            systemLog.debug(`Note ${this.data.id} runnable created from logic.`, this.data.type);
+            return null;
+        } catch (e) {
+            systemLog.error(`Error creating runnable from logic: ${e}`, this.data.type);
+            return null;
+        }
+    }
+
     private async executeLogic() {
         if (!this.data.logic) {
             systemLog.debug(`Note ${this.data.id} has no logic defined, using simulation.`, this.data.type);
@@ -168,7 +201,7 @@ export class NoteImpl {
 
         if (previousStepResult && typeof input === 'object' && input !== null) {
             // Merge previous step result into the input
-            input = { ...input, ...previousStepResult };
+            input = {...input, ...previousStepResult};
         }
 
         systemLog.info(`⚙️ Executing tool ${toolId} for Note ${this.data.id} with input ${JSON.stringify(input)}`, this.data.type);
@@ -181,39 +214,6 @@ export class NoteImpl {
             systemLog.error(`❌ Error executing tool ${toolId} for Note ${this.data.id}: ${toolError.message}`, this.data.type);
             this.addSystemMessage(`Error executing tool ${toolId}: ${toolError.message}`, 'error');
             throw toolError; // Re-throw to be caught by the executeLogic function
-        }
-    }
-
-    addSystemMessage(message: string, level: 'info' | 'warning' | 'error' = 'info') {
-        const systemMessage = {
-            type: 'system',
-            content: message,
-            timestamp: new Date().toISOString(),
-        };
-
-        this.data.content.messages = [...(this.data.content.messages ?? []), systemMessage];
-        updateNote(this.data);
-        systemLog[level](`[Note ${this.data.id}] ${message}`, this.data.type);
-    }
-
-    getRunnable(): Runnable | null {
-        if (this._runnable) {
-            systemLog.debug(`Note ${this.data.id} using cached runnable.`, this.data.type);
-            return this._runnable;
-        }
-
-        if (!this.data.logic) {
-            systemLog.debug(`Note ${this.data.id} has no logic defined, using simulation.`, this.data.type);
-            return null;
-        }
-
-        try {
-            // this._runnable = Runnable.fromJSON(JSON.parse(this.data.logic));
-            systemLog.debug(`Note ${this.data.id} runnable created from logic.`, this.data.type);
-            return null;
-        } catch (e) {
-            systemLog.error(`Error creating runnable from logic: ${e}`, this.data.type);
-            return null;
         }
     }
 }

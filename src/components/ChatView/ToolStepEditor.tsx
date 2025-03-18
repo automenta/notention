@@ -1,7 +1,7 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, {useCallback, useState, useEffect} from 'react';
 import styles from './ChatView.module.css';
-import { getSystemNote } from '../../lib/systemNote';
-import { Note } from '../../types';
+import {getSystemNote} from '../../lib/systemNote';
+import {Note} from '../../types';
 
 interface ToolStepEditorProps {
     note: Note; // Pass the entire note as a prop
@@ -12,12 +12,12 @@ interface ToolStepEditorProps {
 }
 
 export const ToolStepEditor: React.FC<ToolStepEditorProps> = ({
-    note,
-    onChange,
-    onSave,
-    onCancel,
-    onGenerate,
-}) => {
+                                                                  note,
+                                                                  onChange,
+                                                                  onSave,
+                                                                  onCancel,
+                                                                  onGenerate,
+                                                              }) => {
     const [generating, setGenerating] = useState(false);
     const system = getSystemNote();
     const tool = system.getTool(note.logic ? JSON.parse(note.logic)?.steps?.[0]?.toolId : ''); // Get tool from the note's logic
@@ -30,19 +30,19 @@ export const ToolStepEditor: React.FC<ToolStepEditorProps> = ({
         }
         let updatedLogic;
         try {
-            updatedLogic = { ...JSON.parse(note.logic) };
+            updatedLogic = {...JSON.parse(note.logic)};
         } catch (e) {
             console.error("Failed to parse note logic", note.logic, e);
             return;
         }
 
         if (updatedLogic.steps && updatedLogic.steps.length > 0) {
-            updatedLogic.steps[0].input = { ...updatedLogic.steps[0].input, [inputName]: event.target.value };
+            updatedLogic.steps[0].input = {...updatedLogic.steps[0].input, [inputName]: event.target.value};
         } else {
             console.warn("Note logic does not contain any steps. Cannot update input.");
             return;
         }
-        const updatedNote = { ...note, logic: JSON.stringify(updatedLogic) };
+        const updatedNote = {...note, logic: JSON.stringify(updatedLogic)};
         onChange(updatedNote);
     }, [onChange, note]);
 
@@ -55,7 +55,7 @@ export const ToolStepEditor: React.FC<ToolStepEditorProps> = ({
     }, [onGenerate]);
 
     const handleRequiresWebSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        const updatedNote = { ...note, requiresWebSearch: event.target.checked };
+        const updatedNote = {...note, requiresWebSearch: event.target.checked};
         onChange(updatedNote);
     }, [onChange, note]);
 

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, {useCallback} from 'react';
 import styles from './TaskList.module.css';
 
 interface TaskListFiltersProps {
@@ -9,11 +9,11 @@ interface TaskListFiltersProps {
 }
 
 export const TaskListFilters: React.FC<TaskListFiltersProps> = ({
-    sortBy,
-    filterByStatus,
-    onSortByChange,
-    onFilterByStatusChange,
-}) => {
+                                                                    sortBy,
+                                                                    filterByStatus,
+                                                                    onSortByChange,
+                                                                    onFilterByStatusChange,
+                                                                }) => {
     const handleSortByChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
         onSortByChange(e.target.value as 'priority' | 'status' | 'createdAt');
     }, [onSortByChange]);

@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import { useSystemNote } from '../../lib/systemNote';
-import { ChatOpenAI } from '@langchain/openai';
+import React, {useState, useCallback} from 'react';
+import {useSystemNote} from '../../lib/systemNote';
+import {ChatOpenAI} from '@langchain/openai';
 import styles from './LLMInterface.module.css';
 
 interface LLMInterfaceProps {

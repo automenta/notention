@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import './App.css';
 import GraphView from './components/GraphView/GraphView';
 import TaskList from './components/TaskList/TaskList';
 import NoteEditor from './components/NoteEditor/NoteEditor';
-import { initializeSystemNote, getSystemNote, onSystemNoteChange, useSystemNote } from './lib/systemNote';
-import { ChatOpenAI } from '@langchain/openai';
+import {initializeSystemNote, getSystemNote, onSystemNoteChange, useSystemNote} from './lib/systemNote';
+import {ChatOpenAI} from '@langchain/openai';
 import SystemLog from './components/SystemLog/SystemLog';
 import SettingsView from './components/Settings/SettingsView';
 import TemplatesView from './components/Templates/TemplatesView';
 import ToolManager from './components/Templates/ToolManager';
 import TaskCreation from './components/TaskList/TaskCreation';
 import LLMInterface from './components/LLMInterface/LLMInterface';
-import { SettingsService } from './lib/settingsService';
+import {SettingsService} from './lib/settingsService';
 
 function App() {
     const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
@@ -75,13 +75,14 @@ function App() {
                         </div>
                     )}
                     {selectedNoteId && isEditing ? (
-                        <NoteEditor noteId={selectedNoteId} onClose={handleCloseEditor} onSave={() => setIsEditing(false)}/>
+                        <NoteEditor noteId={selectedNoteId} onClose={handleCloseEditor}
+                                    onSave={() => setIsEditing(false)}/>
                     ) : (
                         <GraphView selectedNoteId={selectedNoteId}/>
                     )}
                 </div>
             </div>
-            <LLMInterface />
+            <LLMInterface/>
             {showSettings && <SettingsView onClose={handleSettingsToggle}/>}
             {showTemplates && <TemplatesView onClose={handleTemplatesToggle}/>}
             {showToolManager && <ToolManager onClose={handleToolManagerToggle}/>}

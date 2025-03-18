@@ -33,5 +33,5 @@ export const validateSettings = (settings: Settings): ValidationResult => {
         isValid = false;
     }
 
-    return { isValid, errors };
+    return {isValid, errors};
 };

@@ -1,5 +1,5 @@
-import { Note } from '../types';
-import { systemLog } from './systemLog';
+import {Note} from '../types';
+import {systemLog} from './systemLog';
 
 export class ToolRegistry {
     private tools: Map<string, Note>;
