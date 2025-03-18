@@ -13,6 +13,54 @@ export interface PlanningRule {
     llmAction?: (task: Note, system: SystemNote) => Promise<(task: Note, system: SystemNote) => Promise<void>>; // Optional LLM-powered action generator
 }
 
+// Helper function to determine if a web search step should be added
+const shouldAddWebSearch = async (task: Note, system: SystemNote): Promise<boolean> => {
+    if (task.requiresWebSearch !== undefined) {
+        return task.requiresWebSearch; // User override
+    }
+
+    const llm = system.getLLM();
+    if (llm) {
+        try {
+            const prompt = `Analyze the following task description and determine if it requires a web search to be completed. 
+            Respond with a JSON object containing "result" (true or false) and "confidence" (a number between 0 and 1 representing your certainty).
+            Task Description: ${task.description}`;
+            const response = await llm.invoke(prompt);
+            const jsonResponse = JSON.parse(response);
+            const result = jsonResponse.result === true;
+            const confidence = parseFloat(jsonResponse.confidence);
+
+            if (isNaN(confidence) || confidence < 0 || confidence > 1) {
+                systemLog.warn(`Invalid confidence value received: ${jsonResponse.confidence}`, 'PlanningRules');
+                // Fallback to keyword check
+                const keywords = ["search", "find", "research", "investigate"];
+                return keywords.some(keyword => task.description?.toLowerCase().includes(keyword));
+            }
+
+            const confidenceThreshold = 0.75; // Adjust this value as needed
+            if (confidence < confidenceThreshold) {
+                systemLog.info(`LLM confidence below threshold (${confidenceThreshold}), using fallback.`, 'PlanningRules');
+                 // Fallback to keyword check
+                const keywords = ["search", "find", "research", "investigate"];
+                return keywords.some(keyword => task.description?.toLowerCase().includes(keyword));
+            }
+
+            return result;
+        } catch (error: any) {
+            systemLog.error(`Error during LLM call: ${error.message}, using fallback.`, 'PlanningRules');
+             // Fallback to keyword check
+            const keywords = ["search", "find", "research", "investigate"];
+            return keywords.some(keyword => task.description?.toLowerCase().includes(keyword));
+        }
+    } else {
+        systemLog.warn('LLM not initialized, using keyword-based fallback.', 'PlanningRules');
+         // Fallback to keyword check
+        const keywords = ["search", "find", "research", "investigate"];
+        return keywords.some(keyword => task.description?.toLowerCase().includes(keyword));
+    }
+};
+
+
 const planningRules: PlanningRule[] = [
     {
         name: "Decompose Complex Task (Before)",
@@ -42,52 +90,26 @@ const planningRules: PlanningRule[] = [
         }
     },
     {
-        name: "Add Web Search Step (LLM - Before)",
+        name: "Add Web Search Step (Before)",
         order: 'before',
-        llmCondition: async (task: Note, system: SystemNote) => {
-            const llm = system.getLLM();
-            if (!llm) {
-                systemLog.warn('LLM not initialized, cannot use LLM-powered condition.', 'PlanningRules');
-                return { result: false, confidence: 0 };
-            }
-
-            const prompt = `Analyze the following task description and determine if it requires a web search to be completed. 
-            Respond with a JSON object containing "result" (true or false) and "confidence" (a number between 0 and 1 representing your certainty).
-            Task Description: ${task.description}`;
-            try {
-                const response = await llm.invoke(prompt);
-                const jsonResponse = JSON.parse(response);
-                const result = jsonResponse.result === true;
-                const confidence = parseFloat(jsonResponse.confidence);
-
-                if (isNaN(confidence) || confidence < 0 || confidence > 1) {
-                    systemLog.warn(`Invalid confidence value received: ${jsonResponse.confidence}`, 'PlanningRules');
-                    return { result: false, confidence: 0 };
-                }
-
-                return { result, confidence };
-            } catch (error: any) {
-                systemLog.error(`Error during LLM call: ${error.message}`, 'PlanningRules');
-                return { result: false, confidence: 0 };
-            }
+        condition: async (task: Note, system: SystemNote) => {
+            return await shouldAddWebSearch(task, system);
         },
-        llmAction: async (task: Note, system: SystemNote) => {
-            return async (task: Note, system: SystemNote) => {
-                systemLog.info(`[BEFORE - LLM] Adding web search step to task: ${task.title}`, 'PlanningRules');
-                // In a real implementation, this would modify the task's logic to include a web search tool step
-                task.logic = JSON.stringify({
-                    steps: [
-                        {
-                            id: idService.generateId(),
-                            type: "tool",
-                            toolId: system.getAllTools().find(tool => tool.title === "Web Search Tool")?.id,
-                            input: "{query: task.description}"
-                        }
-                    ]
-                });
-                system.updateNote(task);
-                systemLog.info(`Added web search step to task: ${task.title}`, 'PlanningRules');
-            };
+        action: async (task: Note, system: SystemNote) => {
+            systemLog.info(`[BEFORE] Adding web search step to task: ${task.title}`, 'PlanningRules');
+            // In a real implementation, this would modify the task's logic to include a web search tool step
+            task.logic = JSON.stringify({
+                steps: [
+                    {
+                        id: idService.generateId(),
+                        type: "tool",
+                        toolId: system.getAllTools().find(tool => tool.title === "Web Search Tool")?.id,
+                        input: "{query: task.description}"
+                    }
+                ]
+            });
+            system.updateNote(task);
+            systemLog.info(`Added web search step to task: ${task.title}`, 'PlanningRules');
         }
     },
     {
