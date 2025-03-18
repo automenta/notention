@@ -12,6 +12,7 @@ import idService from './idService';
 import { NoteStorage, InMemoryNoteStorage, GraphDBNoteStorage } from './noteStorage';
 import { migrateDataToGraphDB } from './dataMigration';
 import { SettingsService } from './settingsService';
+import React from 'react';
 
 type Listener = () => void;
 const listeners: Listener[] = [];
@@ -68,6 +69,72 @@ class Executor {
         }
     }
 }
+
+// Centralized system note initialization
+export const useSystemNote = () => {
+    const [systemNote, setSystemNote] = React.useState<SystemNote | null>(null);
+
+    React.useEffect(() => {
+        let defaultLLM: ChatOpenAI | any;
+        try {
+            const settings = SettingsService.getSettings();
+            defaultLLM = new ChatOpenAI({
+                apiKey: settings.apiKey,
+                modelName: settings.modelName,
+                temperature: settings.temperature,
+            });
+            systemLog.info(`LLM Initialized with model ${settings.modelName}`, 'SystemNote');
+        } catch (error: any) {
+            systemLog.error(`Error initializing LLM: ${error.message}.  Ensure you have an OPENAI_API_KEY set.`, 'SystemNote');
+            defaultLLM = null;
+        }
+
+        if (!systemNoteData) {
+            systemNoteData = {
+                id: 'system',
+                type: 'System',
+                title: 'Netention System',
+                content: {
+                    notes: new Map<string, Note>(),
+                    activeQueue: [],
+                    runningCount: 0,
+                    concurrencyLimit: 5,
+                    llm: defaultLLM,
+                    toolRegistry: new ToolRegistry(),
+                    executor: new Executor(),
+                },
+                status: 'active',
+                priority: 100,
+                createdAt: new Date().toISOString(),
+                updatedAt: null,
+                references: [],
+                description: 'The root note for the system.',
+                inputSchema: undefined,
+                outputSchema: undefined,
+                config: undefined,
+                logic: undefined
+            };
+            systemLog.info('System Note Initialized 🚀', 'SystemNote');
+            initializeInitialTools();
+        }
+
+        if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
+            migrateDataToGraphDB();
+            hasMigratedData = true;
+        }
+
+        const newSystemNote = new SystemNote(systemNoteData!, noteStorage);
+        setSystemNote(newSystemNote);
+
+        const unsubscribe = onSystemNoteChange(() => {
+            setSystemNote(new SystemNote(systemNoteData!, noteStorage));
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    return systemNote;
+};
 
 export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: boolean = false) => {
     if (systemNoteData) throw new Error('System Note already initialized');
