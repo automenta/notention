@@ -1,4 +1,4 @@
-import { Note } from '../types';
+import { Note, TaskLogic } from '../types';
 import { z } from "zod";
 import { systemLog } from './systemLog';
 import { getSystemNote } from './systemNote';
@@ -9,8 +9,8 @@ const NoteSchema = z.object({
     type: z.enum(['Task', 'System', 'Template', 'Tool']),
     title: z.string(),
     content: z.any(),
-    logic: z.string().optional(),
-    status: z.enum(['active', 'pending', 'completed', 'failed', 'dormant', 'bypassed', 'pendingRefinement']),
+    logic: z.any().optional(), // Change to any for now
+    status: z.enum(['active', 'pending', 'completed', 'failed', 'dormant', 'bypassed', 'pendingRefinement', 'running']),
     priority: z.number(),
     createdAt: z.string(),
     updatedAt: z.string().nullable(),
@@ -82,7 +82,7 @@ export class NoteImpl {
 
         try {
             if (this.data.logic) {
-                const logic = JSON.parse(this.data.logic);
+                const logic: TaskLogic = this.data.logic;
                 if (logic && logic.steps && Array.isArray(logic.steps)) {
                     for (const step of logic.steps) {
                         if (step.type === 'tool') {
