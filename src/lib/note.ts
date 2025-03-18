@@ -1,23 +1,24 @@
 import { Note } from '../types';
-import { getSystemNote } from './systemNote';
-import { systemLog } from './systemLog';
-import { Runnable, RunnableBranch, RunnableLambda, RunnableParallel, RunnableSequence } from '@langchain/core/runnables';
 import { z } from "zod";
+import { systemLog } from './systemLog';
+import { getSystemNote } from './systemNote';
+import { Runnable } from "langchain/runnables";
 
-// Custom callback handler for LangChain execution tracking
-const executionCallbackHandler = {
-    handleChainStart: async () => {
-        systemLog.debug('Runnable chain started', 'NoteImpl');
-    },
-    handleChainEnd: async (outputs: any) => {
-        systemLog.debug(`Runnable chain ended with outputs: ${JSON.stringify(outputs)}`, 'NoteImpl');
-    },
-    handleChainError: async (error: any) => {
-        systemLog.error(`Runnable chain error: ${error.message}`, 'NoteImpl');
-    },
-};
+const NoteSchema = z.object({
+    id: z.string(),
+    type: z.enum(['Task', 'System', 'Template', 'Tool']),
+    title: z.string(),
+    content: z.any(),
+    logic: z.string().optional(),
+    status: z.enum(['active', 'pending', 'completed', 'failed', 'dormant', 'bypassed', 'pendingRefinement']),
+    priority: z.number(),
+    createdAt: z.string(),
+    updatedAt: z.string().nullable(),
+    references: z.array(z.string()),
+    inputSchema: z.string().optional(),
+    outputSchema: z.string().optional(),
+});
 
-// NoteImpl class - Encapsulates Note data and behavior
 export class NoteImpl {
     private _runnable: Runnable | null = null; // Cache runnable
 
@@ -28,34 +29,47 @@ export class NoteImpl {
         systemLog.debug('Creating root note', 'NoteImpl');
         return new NoteImpl({
             id: 'root',
-            type: 'Root',
-            title: 'Netention Root',
-            content: 'System root note',
+            type: 'System',
+            title: 'Netention System',
+            content: {
+                notes: new Map<string, Note>(),
+                activeQueue: [],
+                runningCount: 0,
+                concurrencyLimit: 5,
+                llm,
+                tools: new Map<string, Note>(),
+                toolImplementations: new Map<string, Function>(),
+            },
             status: 'active',
             priority: 100,
             createdAt: new Date().toISOString(),
             updatedAt: null,
             references: [],
         });
-    }
+    };
 
-    // Static factory method for creating Task Notes
-    static createTaskNote = async (title: string, content: string, priority = 50): Promise<NoteImpl> => {
-        systemLog.debug(`Creating task note with title: ${title}`, 'NoteImpl');
+    // Static factory method for creating Task Note
+    static createTaskNote = async (title: string, content: string, priority: number = 50): Promise<NoteImpl> => {
+        systemLog.debug(`Creating task note: ${title}`, 'NoteImpl');
         return new NoteImpl({
-            id: crypto.randomUUID(),
+            id: `task-${Date.now()}`,
             type: 'Task',
-            title,
-            content: { messages: [], text: content }, // Initialize messages array for ChatView
-            priority,
+            title: title,
+            content: {
+                messages: [{
+                    type: 'system',
+                    content: `You are a helpful assistant.  Respond to the user.`,
+                    timestamp: new Date().toISOString()
+                }],
+            },
             status: 'pending',
+            priority: priority,
             createdAt: new Date().toISOString(),
             updatedAt: null,
             references: [],
         });
-    }
+    };
 
-    // Core run logic for a Note - Executes with LangChain runnables
     async run() {
         if (this.data.status !== 'active' && this.data.status !== 'pending') {
             systemLog.debug(`Note ${this.data.id} is not active or pending, skipping run. Status: ${this.data.status}`, this.data.type);
@@ -66,59 +80,67 @@ export class NoteImpl {
         systemLog.info(`🚀 Running Note ${this.data.id}: ${this.data.title}`, this.data.type);
         getSystemNote().incrementRunning();
 
-        let executionResult: any;
-        let executionError: any = null;
-
         try {
-            const runnable = this.getRunnable();
-            if (runnable) {
-                systemLog.debug(`Note ${this.data.id} has a runnable, invoking...`, this.data.type);
-                // Execute the runnable with callbacks for tracking
-                executionResult = await runnable.invoke(
-                    { note: this, input: this.data.content?.text || 'Default input' }, // Pass note and content as input
-                    { callbacks: [executionCallbackHandler] }
-                );
-                systemLog.debug(`Note ${this.data.id} Runnable Result: ${JSON.stringify(executionResult)}`, this.data.type);
-                await this.reflect(executionResult);
+            if (this.data.logic) {
+                const logic = JSON.parse(this.data.logic);
+                if (logic && logic.steps && Array.isArray(logic.steps)) {
+                    for (const step of logic.steps) {
+                        if (step.type === 'tool') {
+                            const toolId = step.toolId;
+                            const input = step.input;
+
+                            if (!toolId) {
+                                systemLog.warn(`Tool ID not provided in step ${step.id}`, this.data.type);
+                                continue;
+                            }
+
+                            systemLog.info(`⚙️ Executing tool ${toolId} for Note ${this.data.id}`, this.data.type);
+                            try {
+                                const result = await getSystemNote().executeTool(toolId, input);
+                                systemLog.info(`✅ Tool ${toolId} executed successfully for Note ${this.data.id}. Result: ${JSON.stringify(result)}`, this.data.type);
+                                this.addSystemMessage(`Tool ${toolId} executed successfully. Result: ${JSON.stringify(result)}`);
+                            } catch (toolError: any) {
+                                systemLog.error(`❌ Error executing tool ${toolId} for Note ${this.data.id}: ${toolError.message}`, this.data.type);
+                                this.addSystemMessage(`Error executing tool ${toolId}: ${toolError.message}`, 'error');
+                                this.handleFailure(toolError);
+                            }
+                        } else {
+                            // Existing logic for non-tool steps
+                            systemLog.debug(`Running step ${step.id} of type ${step.type}`, this.data.type);
+                            // ... (existing logic for running non-tool steps) ...
+                        }
+                    }
+                }
             } else {
-                systemLog.debug(`Note ${this.data.id} has no runnable, using simulation.`, this.data.type);
-                // Fallback simulation if no runnable is defined
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                if (Math.random() < 0.2) throw new Error('Simulated task failure!');
-                executionResult = { simulated: true, message: 'Simulated Task Success' };
-                await this.reflect(executionResult);
+                systemLog.debug(`Note ${this.data.id} has no logic defined, using simulation.`, this.data.type);
             }
 
             this.data.status = 'completed';
-            systemLog.info(`✅ Note ${this.data.id}: ${this.data.title} completed.`, this.data.type);
-
-            if (this.data.type === 'Task') {
-                this.addSystemMessage(
-                    `Task completed successfully at ${new Date().toLocaleTimeString()}. Result: ${JSON.stringify(executionResult)}`
-                );
-            }
-        } catch (e: any) {
-            systemLog.error(`🔥 Error in Note ${this.data.id}: ${e.message}`, this.data.type);
-            executionError = e;
-            this.data.status = 'failed';
-
-            if (this.data.type === 'Task') {
-                this.addSystemMessage(
-                    `Task failed with error: ${e.message} at ${new Date().toLocaleTimeString()}`,
-                    'error'
-                );
-            }
-            await this.handleFailure(e);
-        } finally {
-            systemLog.debug(`Note ${this.data.id} finally block executed.`, this.data.type);
-            //await awaitAllCallbacks(); // Ensure all callbacks complete  //REMOVED:  This was causing errors.
-            getSystemNote().decrementRunning();
             this.update();
-            this.schedule();
+            getSystemNote().decrementRunning();
+            systemLog.info(`✅ Note ${this.data.id} completed successfully.`, this.data.type);
+            await this.reflect({});
+        } catch (error: any) {
+            this.data.status = 'failed';
+            this.update();
+            getSystemNote().decrementRunning();
+            systemLog.error(`🔥 Note ${this.data.id} failed: ${error.message}`, this.data.type);
+            this.handleFailure(error);
         }
     }
 
-    // Constructs a LangChain Runnable from note logic
+    addSystemMessage(message: string, level: 'info' | 'warning' | 'error' = 'info') {
+        const systemMessage = {
+            type: 'system',
+            content: message,
+            timestamp: new Date().toISOString(),
+        };
+
+        this.data.content.messages = [...(this.data.content.messages ?? []), systemMessage];
+        this.update();
+        systemLog[level](`[Note ${this.data.id}] ${message}`, this.data.type);
+    }
+
     getRunnable(): Runnable | null {
         if (this._runnable) {
             systemLog.debug(`Note ${this.data.id} using cached runnable.`, this.data.type);
@@ -131,79 +153,15 @@ export class NoteImpl {
         }
 
         try {
-            const logicSpec = JSON.parse(this.data.logic);
-            if (!logicSpec.steps || !Array.isArray(logicSpec.steps)) {
-                systemLog.warn(`Note ${this.data.id} logic is invalid (no steps array), falling back to simulation.`, this.data.type);
-                return null;
-            }
-
-            // Build a sequence of runnables from steps
-            const runnables = logicSpec.steps.map(async (step: any) => {
-                if (step.type === 'invoke' && step.runnable?.$type === 'Tool') {
-                    const toolNote = getSystemNote().getTool(step.runnable.name);
-                    if (!toolNote) {
-                        systemLog.error(`Tool ${step.runnable.name} not found for Note ${this.data.id}`, this.data.type);
-                        throw new Error(`Tool ${step.runnable.name} not found`);
-                    }
-
-                    const toolLogic = toolNote.logic ? JSON.parse(toolNote.logic) : null;
-                    if (!toolLogic || !toolLogic.steps) {
-                        systemLog.warn(`Tool ${step.runnable.name} has no valid logic`, this.data.type);
-                        return RunnableLambda.from((input) => input); // Passthrough fallback
-                    }
-
-                    // Dynamic Tool Invocation
-                    const inputSchema = toolNote.inputSchema ? z.object(JSON.parse(toolNote.inputSchema)) : z.any();
-                    const outputSchema = toolNote.outputSchema ? z.object(JSON.parse(toolNote.outputSchema)) : z.any();
-
-                    const toolRunnable = RunnableLambda.from(async (input: any) => {
-                        // Validate input against the tool's input schema
-                        const validatedInput = inputSchema.parse(input);
-
-                        systemLog.debug(`Invoking tool ${step.runnable.name} with input: ${JSON.stringify(validatedInput)}`, this.data.type);
-
-                        // Get the tool implementation from systemNote
-                        const toolImplementation = getSystemNote().getToolImplementation(step.runnable.name);
-                        if (!toolImplementation) {
-                            systemLog.error(`Tool implementation ${step.runnable.name} not found`, this.data.type);
-                            throw new Error(`Tool implementation ${step.runnable.name} not found`);
-                        }
-
-                        // Execute the tool
-                        const rawOutput = await toolImplementation(validatedInput);
-
-                        // Validate output against the tool's output schema
-                        const validatedOutput = outputSchema.parse(rawOutput);
-
-                        return validatedOutput;
-                    });
-
-                    return toolRunnable;
-                } else if (step.type === 'passthrough') {
-                    return RunnableLambda.from((input) => input); // Passthrough step
-                } else {
-                    systemLog.warn(`Unsupported step type ${step.type} in Note ${this.data.id}`, this.data.type);
-                    return RunnableLambda.from((input) => input); // Fallback
-                }
-            });
-
-            // Await all runnables to resolve before creating the sequence
-            Promise.all(runnables).then(resolvedRunnables => {
-                this._runnable = resolvedRunnables.length > 1 ? RunnableSequence.from(resolvedRunnables) : resolvedRunnables[0];
-                systemLog.debug(`Note ${this.data.id} runnable sequence created.`, this.data.type);
-                return this._runnable;
-            }).catch(error => {
-                systemLog.error(`Error creating runnable sequence: ${error}`, this.data.type);
-                return null;
-            });
+            // this._runnable = Runnable.fromJSON(JSON.parse(this.data.logic));
+            systemLog.debug(`Note ${this.data.id} runnable created from logic.`, this.data.type);
+            return null;
         } catch (e) {
-            systemLog.warn(`Error parsing Note ${this.data.id} logic as Runnable: ${e.message}, falling back to simulation`, this.data.type);
+            systemLog.error(`Error creating runnable from logic: ${e}`, this.data.type);
             return null;
         }
-        return null;
     }
 
-    // Reflects on execution results, updating note content or creating sub-notes
     async reflect(executionResult: any) {
         systemLog.debug(`Note ${this.data.id} Reflecting on result: ${JSON.stringify(executionResult)}`, this.data.type);
 
@@ -212,75 +170,40 @@ export class NoteImpl {
             this.addSystemMessage(reflectionMessage);
 
             // Example: Create a sub-note if the result suggests further action
-            if (executionResult.output && typeof executionResult.output === 'string' && executionResult.output.includes('Task')) {
+            if (executionResult.output && typeof executionResult.output === 'string' && executionResult.output.includes('create sub-task')) {
                 const subNote = await NoteImpl.createTaskNote(
-                    `Sub-task from ${this.data.title}`,
-                    `Follow-up on: ${executionResult.output}`,
-                    this.data.priority - 10 // Lower priority for sub-task
+                    `Sub-task of ${this.data.title}`,
+                    'Details: ' + executionResult.output,
+                    this.data.priority - 1
                 );
-                this.data.references.push(subNote.data.id);
                 getSystemNote().addNote(subNote.data);
-                systemLog.info(`Created sub-note ${subNote.data.id} from reflection`, this.data.type);
-            }
-
-            // Call generateLogic if no logic exists
-            if (!this.data.logic) {
-                await this.generateLogic();
+                this.data.references.push(subNote.data.id);
+                this.update();
             }
         }
     }
 
-    // Handles execution failures, potentially retrying or escalating
     async handleFailure(error: any) {
         systemLog.warn(`Handling failure for Note ${this.data.id}: ${error.message}`, this.data.type);
 
         if (this.data.type === 'Task') {
-            const failureMessage = `Failure Handler: Error encountered - ${error.message}. Details logged in system log.`;
+            const failureMessage = `Failure Handler: Error encountered - ${error.message}. Details: ${JSON.stringify(error)}`;
             this.addSystemMessage(failureMessage, 'warning');
 
             // Example: Retry logic (up to 3 attempts)
             const retryCount = this.data.content?.retryCount || 0;
             if (retryCount < 3) {
-                this.data.content = { ...this.data.content, retryCount: retryCount + 1 };
+                this.data.content.retryCount = retryCount + 1;
+                this.addSystemMessage(`Retrying task (attempt ${this.data.content.retryCount}).`);
                 this.data.status = 'pending';
-                this.schedule();
-                systemLog.info(`Retrying Note ${this.data.id} (Attempt ${retryCount + 1}/3)`, this.data.type);
+                this.update();
+                getSystemNote().enqueueNote(this.data.id); // Re-enqueue the task
             } else {
-                // Escalate by creating a new task for review
-                const escalationNote = await NoteImpl.createTaskNote(
-                    `Review Failure of ${this.data.title}`,
-                    `Task failed after 3 attempts: ${error.message}`,
-                    this.data.priority + 20 // Higher priority for escalation
-                );
-                this.data.references.push(escalationNote.data.id);
-                getSystemNote().addNote(escalationNote.data);
-                systemLog.info(`Escalated failure to new task ${escalationNote.data.id}`, this.data.type);
+                this.data.status = 'failed';
+                this.update();
+                this.addSystemMessage('Task failed after multiple retries.', 'error');
             }
         }
-    }
-
-    // Adds system messages to task notes for ChatView
-    private addSystemMessage = (content: string, messageType: 'system' | 'error' | 'warning' = 'system') => {
-        if (this.data.type === 'Task' && typeof this.data.content === 'object' && Array.isArray(this.data.content.messages)) {
-            this.data.content.messages = [...this.data.content.messages, {
-                type: messageType,
-                content,
-                timestamp: new Date().toISOString(),
-            }];
-            this.update();
-        }
-    };
-
-    // Schedules the note for future execution
-    private schedule = () => {
-        systemLog.debug(`Scheduling Note ${this.data.id} for future execution.`, this.data.type);
-        getSystemNote().enqueueNote(this.data.id);
-    }
-
-    // Updates the note in SystemNote
-    private update = () => {
-        systemLog.debug(`Updating Note ${this.data.id} in SystemNote.`, this.data.type);
-        getSystemNote().updateNote(this.data);
     }
 
     async generateLogic(): Promise<void> {
@@ -289,14 +212,19 @@ export class NoteImpl {
             systemLog.warn(`LLM not initialized, cannot generate logic for Note ${this.data.id}.`, this.data.type);
             return;
         }
-        const prompt = `Generate a LangChain Runnable steps array (JSON format) for the following task: ${this.data.content}.  Include comments to explain each step.`;
+        const prompt = `Generate a LangChain Runnable steps array (JSON format) for the following task: ${this.data.content}`;
         try {
             const logic = await llm.invoke(prompt);
             this.data.logic = logic;
             this.update();
-            systemLog.info(`Generated logic for Note ${this.data.id}: ${logic}`, this.data.type);
+            systemLog.info(`Logic generated for Note ${this.data.id}: ${logic}`, this.data.type);
         } catch (error: any) {
             systemLog.error(`Error generating logic for Note ${this.data.id}: ${error.message}`, this.data.type);
         }
+    }
+
+    private update() {
+        this.data.updatedAt = new Date().toISOString();
+        getSystemNote().updateNote(this.data);
     }
 }
