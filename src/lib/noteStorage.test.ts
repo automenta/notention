@@ -4,6 +4,7 @@ import idService from './idService';
 import level from 'level';
 import levelgraph from 'levelgraph';
 import * as fs from 'fs';
+import { NoteStorage } from './noteStorage';
 
 const TEST_DB_PATH = 'test.db';
 
@@ -31,6 +32,11 @@ describe('NoteStorage Implementations', () => {
             updatedAt: null,
             references: [],
             description: 'Test Description',
+            requiresWebSearch: false,
+            inputSchema: '',
+            outputSchema: '',
+            config: {},
+            logic: ''
         };
         note2 = {
             id: idService.generateId(),
@@ -43,6 +49,11 @@ describe('NoteStorage Implementations', () => {
             updatedAt: null,
             references: [],
             description: 'Test Description 2',
+            requiresWebSearch: false,
+            inputSchema: '',
+            outputSchema: '',
+            config: {},
+            logic: ''
         };
     });
 
@@ -54,7 +65,7 @@ describe('NoteStorage Implementations', () => {
     });
 
     // Helper function to run the same tests for both storage implementations
-    const testStorage = (storageName: string, storage: any) => {
+    const testStorage = (storageName: string, storage: NoteStorage) => {
         describe(`${storageName}`, () => {
             it('should add a note', async () => {
                 await storage.addNote(note1);
