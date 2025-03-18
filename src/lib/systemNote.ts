@@ -125,7 +125,12 @@ class SystemNote {
                         conditionMet = rule.condition(note, this);
                     }
                     if (rule.llmCondition) {
-                        conditionMet = await rule.llmCondition(note, this);
+                        try {
+                            conditionMet = await rule.llmCondition(note, this);
+                        } catch (error: any) {
+                            systemLog.error(`Error during LLM condition check: ${error.message}`, 'SystemNote');
+                            conditionMet = false; // Treat LLM errors as condition not met
+                        }
                     }
 
                     if (conditionMet) {
@@ -133,8 +138,12 @@ class SystemNote {
                         if (rule.action) {
                             await rule.action(note, this);
                         } else if (rule.llmAction) {
-                            const action = await rule.llmAction(note, this);
-                            await action(note, this);
+                            try {
+                                const action = await rule.llmAction(note, this);
+                                await action(note, this);
+                            } catch (error: any) {
+                                systemLog.error(`Error during LLM action generation: ${error.message}`, 'SystemNote');
+                            }
                         }
                     }
                 } catch (error: any) {
@@ -171,7 +180,7 @@ class SystemNote {
         const toolNote = toolDefinition as Note;
         this.data.content.tools.set(toolNote.id, toolNote);
         if (toolDefinition.type === 'custom' && toolDefinition.implementation) {
-            this.data.content.toolImplementations.set(toolNote.id, toolDefinition.implementation);
+            this.data.content.toolImplementations.set(toolDefinition.id, toolDefinition.implementation);
         }
         this.notify();
         systemLog.info(`🔨 Registered Tool ${toolNote.id}: ${toolNote.title}`, 'SystemNote');

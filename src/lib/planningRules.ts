@@ -42,26 +42,42 @@ const planningRules: PlanningRule[] = [
         }
     },
     {
-        name: "Add Web Search Step (Before)",
+        name: "Add Web Search Step (LLM - Before)",
         order: 'before',
-        condition: (task: Note, system: SystemNote) => {
-            return task.description?.toLowerCase().includes("information") && !task.logic?.includes("web-search-tool");
+        llmCondition: async (task: Note, system: SystemNote) => {
+            const llm = system.getLLM();
+            if (!llm) {
+                systemLog.warn('LLM not initialized, cannot use LLM-powered condition.', 'PlanningRules');
+                return false;
+            }
+
+            const prompt = `Does the following task description require a web search to be completed? Answer "yes" or "no".\n\n${task.description}`;
+            try {
+                const response = await llm.invoke(prompt);
+                const answer = response.toLowerCase().trim();
+                return answer.includes('yes');
+            } catch (error: any) {
+                systemLog.error(`Error during LLM call: ${error.message}`, 'PlanningRules');
+                return false;
+            }
         },
-        action: async (task: Note, system: SystemNote) => {
-            systemLog.info(`[BEFORE] Adding web search step to task: ${task.title}`, 'PlanningRules');
-            // In a real implementation, this would modify the task's logic to include a web search tool step
-            task.logic = JSON.stringify({
-                steps: [
-                    {
-                        id: idService.generateId(),
-                        type: "tool",
-                        toolId: system.getAllTools().find(tool => tool.title === "Web Search Tool")?.id,
-                        input: "{query: task.description}"
-                    }
-                ]
-            });
-            system.updateNote(task);
-            systemLog.info(`Added web search step to task: ${task.title}`, 'PlanningRules');
+        llmAction: async (task: Note, system: SystemNote) => {
+            return async (task: Note, system: SystemNote) => {
+                systemLog.info(`[BEFORE - LLM] Adding web search step to task: ${task.title}`, 'PlanningRules');
+                // In a real implementation, this would modify the task's logic to include a web search tool step
+                task.logic = JSON.stringify({
+                    steps: [
+                        {
+                            id: idService.generateId(),
+                            type: "tool",
+                            toolId: system.getAllTools().find(tool => tool.title === "Web Search Tool")?.id,
+                            input: "{query: task.description}"
+                        }
+                    ]
+                });
+                system.updateNote(task);
+                systemLog.info(`Added web search step to task: ${task.title}`, 'PlanningRules');
+            };
         }
     },
     {
