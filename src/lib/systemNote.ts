@@ -18,6 +18,59 @@ let systemNoteData: Note | undefined = undefined;
 let noteStorage: NoteStorage = new InMemoryNoteStorage(); // Default to in-memory storage
 let hasMigratedData: boolean = false;
 
+// ToolRegistry class
+class ToolRegistry {
+    private tools: Map<string, Note>;
+    private toolImplementations: Map<string, Function>;
+
+    constructor() {
+        this.tools = new Map<string, Note>();
+        this.toolImplementations = new Map<string, Function>();
+    }
+
+    registerTool(toolDefinition: Note & { type: 'custom' | 'langchain' | 'api', implementation?: Function | any }) {
+        const toolNote = toolDefinition as Note;
+        this.tools.set(toolNote.id, toolNote);
+        if (toolDefinition.type === 'custom' && toolDefinition.implementation) {
+            this.toolImplementations.set(toolDefinition.id, toolDefinition.implementation);
+        }
+        systemLog.info(`🔨 Registered Tool ${toolNote.id}: ${toolNote.title}`, 'SystemNote');
+    }
+
+    getTool(id: string): Note | undefined {
+        return this.tools.get(id);
+    }
+
+    getToolImplementation(id: string): Function | undefined {
+        return this.toolImplementations.get(id);
+    }
+
+    getAllTools(): Note[] {
+        return Array.from(this.tools.values());
+    }
+}
+
+// Executor class (Basic Implementation)
+class Executor {
+    async executeTool(tool: Note, input: any, toolImplementation?: Function): Promise<any> {
+        systemLog.info(`Executing tool ${tool.id}: ${tool.title}`, 'Executor');
+
+        if (toolImplementation) {
+            try {
+                systemLog.debug(`Executing tool ${tool.id} with custom implementation.`, 'Executor');
+                return await toolImplementation(input);
+            } catch (error: any) {
+                systemLog.error(`Error executing custom implementation for tool ${tool.id}: ${error.message}`, 'Executor');
+                throw new Error(`Error executing custom implementation for tool ${tool.id}: ${error.message}`);
+            }
+        } else {
+            systemLog.warn(`No implementation found for tool ${tool.id}, using default executor.`, 'Executor');
+            // Default execution logic (e.g., calling an API)
+            return { result: `Tool ${tool.id} executed successfully (default executor).` };
+        }
+    }
+}
+
 // Initialize System Note - singleton pattern
 export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: boolean = false) => {
     if (systemNoteData) throw new Error('System Note already initialized');
@@ -40,8 +93,6 @@ export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: bool
             runningCount: 0,
             concurrencyLimit: 5,
             llm,
-            tools: new Map<string, Note>(), // Initialize tools Map
-            toolImplementations: new Map<string, Function>(), // Initialize tool implementations Map
         },
         status: 'active',
         priority: 100,
@@ -49,8 +100,20 @@ export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: bool
         updatedAt: null,
         references: [],
         description: 'The root note for the system.',
+        inputSchema: undefined,
+        outputSchema: undefined,
+        config: undefined,
+        logic: undefined
     };
     systemLog.info('System Note Initialized 🚀', 'SystemNote');
+
+    // Initialize ToolRegistry and Executor
+    const toolRegistry = new ToolRegistry();
+    const executor = new Executor();
+
+    // Store ToolRegistry and Executor in systemNoteData.content
+    systemNoteData.content.toolRegistry = toolRegistry;
+    systemNoteData.content.executor = executor;
 
     // Register initial tools here (after SystemNote is created)
     initializeInitialTools();
@@ -187,32 +250,31 @@ class SystemNote {
     }
 
     registerToolDefinition(toolDefinition: Note & { type: 'custom' | 'langchain' | 'api', implementation?: Function | any }) {
-        const toolNote = toolDefinition as Note;
-        this.data.content.tools.set(toolNote.id, toolNote);
-        if (toolDefinition.type === 'custom' && toolDefinition.implementation) {
-            this.data.content.toolImplementations.set(toolDefinition.id, toolDefinition.implementation);
-        }
+        const toolRegistry = this.data.content.toolRegistry as ToolRegistry;
+        toolRegistry.registerTool(toolDefinition);
         this.notify();
-        systemLog.info(`🔨 Registered Tool ${toolNote.id}: ${toolNote.title}`, 'SystemNote');
-
     }
 
     getTool(id: string): Note | undefined {
-        return this.data.content.tools.get(id);
+         const toolRegistry = this.data.content.toolRegistry as ToolRegistry;
+         return toolRegistry.getTool(id);
     }
 
     getAllTools(): Note[] {
-        return Array.from(this.data.content.tools.values());
+        const toolRegistry = this.data.content.toolRegistry as ToolRegistry;
+        return toolRegistry.getAllTools();
     }
 
     getToolImplementation(id: string): Function | undefined {
-        return this.data.content.toolImplementations.get(id);
+        const toolRegistry = this.data.content.toolRegistry as ToolRegistry;
+        return toolRegistry.getToolImplementation(id);
     }
 
     // Execute a tool
     async executeTool(toolId: string, input: any): Promise<any> {
         const tool = this.getTool(toolId);
         const toolImplementation = this.getToolImplementation(toolId);
+        const executor = this.data.content.executor as Executor;
 
         if (!tool) {
             systemLog.error(`Tool with id ${toolId} not found.`, 'SystemNote');
@@ -222,10 +284,7 @@ class SystemNote {
         try {
             switch (tool.type) {
                 case 'custom':
-                    if (!toolImplementation) {
-                        systemLog.warn(`No implementation found for tool ${toolId}, using default executor.`, 'SystemNote');
-                    }
-                    return await executeTool(tool, input, toolImplementation);
+                    return await executor.executeTool(tool, input, toolImplementation);
                 case 'langchain':
                     // Assuming the 'implementation' field holds the LangChain tool instance
                     if (!tool.implementation) {
