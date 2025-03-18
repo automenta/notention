@@ -48,9 +48,10 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
             JSON.parse(newToolOutputSchema);
             if (newToolType === 'api') {
                 JSON.parse(newApiHeaders); // Validate headers as JSON
+                new URL(newApiEndpoint); // Validate API Endpoint URL
             }
         } catch (e: any) {
-            setToolCreationError(`Invalid JSON in Tool definition: ${e.message}`);
+            setToolCreationError(`Invalid JSON or URL in Tool definition: ${e.message}`);
             return;
         }
 
@@ -183,8 +184,9 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
 
              try {
                 JSON.parse(newApiHeaders);
+                 new URL(newApiEndpoint); // Validate API Endpoint URL
             } catch (e: any) {
-                setToolCreationError(`Invalid JSON in API Headers: ${e.message}`);
+                setToolCreationError(`Invalid JSON or URL in API definition: ${e.message}`);
                 return;
             }
 
