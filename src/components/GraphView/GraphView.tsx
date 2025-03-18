@@ -1,5 +1,5 @@
 // src/components/GraphView/GraphView.tsx
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import {getSystemNote, onSystemNoteChange} from '../../lib/systemNote';
 import styles from './GraphView.module.css';
 
@@ -27,25 +27,35 @@ export const GraphView: React.FC = () => {
     const system = getSystemNote();
     const graphViewRef = useRef<HTMLDivElement>(null);
 
+    // Move the setGraphContainerSize update outside of the useEffect
     useEffect(() => {
-        const updateGraph = () => {
-            const notes = system.getAllNotes();
-
-            // Get container dimensions
+        const handleResize = () => {
             if (graphViewRef.current) {
                 setGraphContainerSize({
                     width: graphViewRef.current.clientWidth,
                     height: graphViewRef.current.clientHeight,
                 });
             }
+        };
 
-            const newNodes = notes.map(note => {
-                return {
-                    id: note.id,
-                    title: note.title,
-                    ...generateRandomPosition(graphContainerSize.width, graphContainerSize.height),
-                };
-            });
+        handleResize(); // Initial size calculation
+        window.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
+
+    const updateGraph = useCallback(() => {
+        const notes = system.getAllNotes();
+
+        const newNodes = notes.map(note => {
+            return {
+                id: note.id,
+                title: note.title,
+                ...generateRandomPosition(graphContainerSize.width, graphContainerSize.height),
+            };
+        });
 
             const newEdges = notes.flatMap(sourceNote =>
                 sourceNote.references.map(targetId => ({
@@ -55,24 +65,17 @@ export const GraphView: React.FC = () => {
             );
 
             setNodes(newNodes);
-            setEdges(newEdges);
-        };
+        setEdges(newEdges);
+    }, [system, graphContainerSize]);
 
+    useEffect(() => {
         updateGraph();
-
         const unsubscribe = onSystemNoteChange(updateGraph);
-
-        // Update graph on window resize
-        const handleResize = () => {
-            updateGraph();
-        };
-        window.addEventListener('resize', handleResize);
 
         return () => {
             unsubscribe();
-            window.removeEventListener('resize', handleResize);
         };
-    }, [system, graphContainerSize]);
+    }, [updateGraph]);
 
     return (
         <div className={styles.graphView} ref={graphViewRef}>
