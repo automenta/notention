@@ -211,7 +211,7 @@ const registerInitialTools = () => {
 
     // 1. Echo Tool Note Definition (JSON - in memory)
     const echoToolNoteData: Note = {
-        id: 'echo-tool',
+        id: idService.generateId(),
         type: 'Tool',
         title: 'Echo Tool',
         content: 'A simple tool that echoes back the input.',
@@ -259,7 +259,7 @@ const registerInitialTools = () => {
 
     // 2. Web Search Tool (SerpAPI)
     const webSearchToolData: Note = {
-        id: 'web-search-tool',
+        id: idService.generateId(),
         type: 'Tool',
         title: 'Web Search Tool',
         content: 'A tool to search the web using SerpAPI.',
@@ -301,7 +301,7 @@ const registerInitialTools = () => {
 
     // 3. File Operations Tool (Basic - READ/WRITE - SECURITY WARNING)
     const fileOperationsToolData: Note = {
-        id: 'file-operations-tool',
+        id: idService.generateId(),
         type: 'Tool',
         title: 'File Operations Tool',
         content: `A tool to read and write local files within the safe directory: ${SAFE_DIRECTORY} (SECURITY WARNING).`,
