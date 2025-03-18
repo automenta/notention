@@ -5,6 +5,7 @@ import { NoteImpl } from './note';
 import { z } from "zod";
 import * as fs from 'fs'; // Import the fs module
 import { executeTool } from './executor'; // Import the executeTool function
+import { SerpAPI } from "langchain/tools";
 
 type Listener = () => void;
 const listeners: Listener[] = [];
@@ -239,22 +240,18 @@ const registerInitialTools = () => {
     };
     systemNote.registerTool(echoToolNoteData, echoToolImplementation); // Register Echo Tool
 
-    // 2. Web Search Tool (Placeholder)
+    // 2. Web Search Tool (SerpAPI)
     const webSearchToolData: Note = {
         id: 'web-search-tool',
         type: 'Tool',
         title: 'Web Search Tool',
-        content: 'A tool to search the web (placeholder).',
+        content: 'A tool to search the web using SerpAPI.',
         logic: JSON.stringify({
             "steps": [
                 {
                     "id": "search",
-                    "type": "passthrough", // Placeholder
-                    "runnable": {
-                        "constructor": "RunnablePassthrough",
-                        "kwargs": {}
-                    },
-                    "input": "{query}" // Pass input through
+                    "type": "serpapi",
+                    "input": "{query}"
                 }
             ],
         }),
@@ -279,9 +276,9 @@ const registerInitialTools = () => {
     };
 
     const webSearchToolImplementation = async (input: any) => {
-        // Replace with actual web search logic using SerpAPI or similar
-        // This is just a placeholder
-        return { results: [`Search results for ${input.query}`] };
+        const serpAPI = new SerpAPI(process.env.SERPAPI_API_KEY);
+        const results = await serpAPI.call(input);
+        return { results: results };
     };
     systemNote.registerTool(webSearchToolData, webSearchToolImplementation);
 
