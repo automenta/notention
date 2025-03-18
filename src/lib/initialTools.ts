@@ -184,7 +184,7 @@ export const initializeInitialTools = () => {
     };
 
     const fileOperationsToolImplementation = async (input: any) => {
-        try {
+         try {
             if (!input || !input.filename || !input.action) {
                 throw new Error('Invalid input: Action and filename are required.');
             }
@@ -196,6 +196,13 @@ export const initializeInitialTools = () => {
             // More robust check to ensure the resolved path is within the safe directory
             if (!filename.startsWith(SAFE_DIRECTORY + path.sep)) {
                 throw new Error('Access denied: Filename is outside the safe directory.');
+            }
+
+             // Check if the file exists before attempting to read or delete it
+            if (action === 'read' || action === 'deleteFile') {
+                if (!fs.existsSync(filename)) {
+                    throw new Error('File not found.');
+                }
             }
 
             // Validate file extension
