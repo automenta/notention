@@ -7,17 +7,12 @@ import * as fs from 'fs';
 import path from 'path';
 import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, sanitizeFilename } from './initialTools';
 
-// Mock the ChatOpenAI class
-jest.mock('@langchain/openai', () => {
-    return {
-        ChatOpenAI: jest.fn().mockImplementation(() => {
-            return {
-                call: jest.fn().mockResolvedValue('Mock LLM Response'),
-                invoke: jest.fn().mockResolvedValue('Mock LLM Response'),
-            };
-        }),
-    };
-});
+jest.mock('@langchain/openai', () => ({
+    ChatOpenAI: jest.fn().mockImplementation(() => ({
+        call: jest.fn().mockResolvedValue('Mock LLM Response'),
+        invoke: jest.fn().mockResolvedValue('Mock LLM Response'),
+    })),
+}));
 
 describe('SystemNote Integration with InMemoryNoteStorage', () => {
     let systemNote: SystemNote;
@@ -25,10 +20,9 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
     let note1: Note;
 
     beforeEach(() => {
-        // Initialize SystemNote with InMemoryNoteStorage
-        initializeSystemNote({} as ChatOpenAI); // Provide a mock LLM
+        initializeSystemNote({} as ChatOpenAI);
         systemNote = getSystemNote();
-        inMemoryStorage = new InMemoryNoteStorage(); // Directly initialize InMemoryNoteStorage
+        inMemoryStorage = new InMemoryNoteStorage();
 
         note1 = {
             id: idService.generateId(),
@@ -78,7 +72,6 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
 
     describe('Tool Execution', () => {
         it('should execute a custom tool', async () => {
-            // Create a custom tool note
             const customTool: Note = {
                 id: idService.generateId(),
                 type: 'Tool',
@@ -97,24 +90,18 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                 logic: ''
             };
 
-            // Register the custom tool with the SystemNote
             systemNote.registerToolDefinition({
                 ...customTool,
                 type: 'custom',
-                implementation: async (input: any) => {
-                    return { result: `Custom tool executed with input: ${JSON.stringify(input)}` };
-                }
+                implementation: async (input: any) => ({ result: `Custom tool executed with input: ${JSON.stringify(input)}` })
             });
 
-            // Execute the custom tool
             const result = await systemNote.executeTool(customTool.id, { input: 'test' });
 
-            // Verify the result
             expect(result).toEqual({ result: 'Custom tool executed with input: {"input":"test"}' });
         });
 
         it('should execute a langchain tool', async () => {
-            // Create a langchain tool note
             const langchainTool: Note = {
                 id: idService.generateId(),
                 type: 'Tool',
@@ -133,28 +120,23 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                 logic: ''
             };
 
-            // Mock a Langchain tool
             const mockLangchainTool = {
                 call: jest.fn().mockResolvedValue('Mock Langchain Tool Response'),
             };
 
-            // Register the langchain tool with the SystemNote
             systemNote.registerToolDefinition({
                 ...langchainTool,
                 type: 'langchain',
                 implementation: mockLangchainTool,
             });
 
-            // Execute the langchain tool
             const result = await systemNote.executeTool(langchainTool.id, { input: 'test' });
 
-            // Verify the result
             expect(result).toEqual('Mock Langchain Tool Response');
             expect(mockLangchainTool.call).toHaveBeenCalledWith({ input: 'test' });
         });
 
         it('should execute an api tool', async () => {
-            // Create an api tool note
             const apiTool: Note = {
                 id: idService.generateId(),
                 type: 'Tool',
@@ -173,22 +155,18 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                     method: 'POST',
                     headers: JSON.stringify({ 'Content-Type': 'application/json' }),
                 },
-                logic: 'https://example.com/api', // Replace with a mock API endpoint
+                logic: 'https://example.com/api',
             };
 
-            // Mock the fetch function
             global.fetch = jest.fn().mockResolvedValue({
                 ok: true,
                 json: async () => ({ result: 'Mock API Response' }),
             }) as jest.Mock;
 
-            // Register the api tool with the SystemNote
             systemNote.registerToolDefinition(apiTool);
 
-            // Execute the api tool
             const result = await systemNote.executeTool(apiTool.id, { input: 'test' });
 
-            // Verify the result
             expect(result).toEqual({ result: 'Mock API Response' });
             expect(fetch).toHaveBeenCalledWith('https://example.com/api', {
                 method: 'POST',
@@ -199,112 +177,155 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
 
         describe('File Operations Tool', () => {
             const testFilePath = path.join(SAFE_DIRECTORY, 'test.txt');
+            const username = 'admin';
+            const password = 'password';
 
             afterEach(() => {
-                // Clean up test file after each test
                 if (fs.existsSync(testFilePath)) {
                     fs.unlinkSync(testFilePath);
                 }
             });
 
             it('should read a file within the safe directory', async () => {
-                // Create a test file
                 fs.writeFileSync(testFilePath, 'test content', 'utf-8');
 
-                // Execute the file operations tool to read the file
                 const result = await systemNote.executeTool('file-operations-tool', {
                     action: 'read',
                     filename: 'test.txt',
+                    username: username,
+                    password: password,
                 });
 
-                // Verify the result
                 expect(result).toEqual({ result: 'test content' });
             });
 
             it('should write to a file within the safe directory', async () => {
-                // Execute the file operations tool to write to the file
                 const result = await systemNote.executeTool('file-operations-tool', {
                     action: 'write',
                     filename: 'test.txt',
                     content: 'test content',
+                    username: username,
+                    password: password,
                 });
 
-                // Verify the result
                 expect(result).toEqual({ result: 'File written successfully' });
 
-                // Verify that the file was written to
                 const fileContent = fs.readFileSync(testFilePath, 'utf-8');
                 expect(fileContent).toBe('test content');
             });
 
             it('should not read a file outside the safe directory', async () => {
-                // Execute the file operations tool to read a file outside the safe directory
                 await expect(
                     systemNote.executeTool('file-operations-tool', {
                         action: 'read',
                         filename: '../outside.txt',
+                        username: username,
+                        password: password,
                     })
                 ).rejects.toThrow('Filename is outside the safe directory.');
             });
 
             it('should not write to a file outside the safe directory', async () => {
-                // Execute the file operations tool to write to a file outside the safe directory
                 await expect(
                     systemNote.executeTool('file-operations-tool', {
                         action: 'write',
                         filename: '../outside.txt',
                         content: 'test content',
+                        username: username,
+                        password: password,
                     })
                 ).rejects.toThrow('Filename is outside the safe directory.');
             });
 
             it('should not allow reading files with invalid extensions', async () => {
-                // Create a test file with an invalid extension
                 fs.writeFileSync(path.join(SAFE_DIRECTORY, 'test.exe'), 'test content', 'utf-8');
 
-                // Execute the file operations tool to read the file
                 await expect(
                     systemNote.executeTool('file-operations-tool', {
                         action: 'read',
                         filename: 'test.exe',
+                        username: username,
+                        password: password,
                     })
-                ).rejects.toThrow('Invalid file extension. Allowed extensions are: .txt, .md, .json, .js');
+                ).rejects.toThrow('Invalid file extension.');
             });
 
              it('should create a directory within the safe directory', async () => {
                 const testDirectoryPath = path.join(SAFE_DIRECTORY, 'test_directory');
 
-                // Execute the file operations tool to create the directory
                 const result = await systemNote.executeTool('file-operations-tool', {
                     action: 'createDirectory',
                     filename: 'test_directory',
+                    username: username,
+                    password: password,
                 });
 
-                // Verify the result
                 expect(result).toEqual({ result: 'Directory created successfully' });
 
-                // Verify that the directory was created
                 expect(fs.existsSync(testDirectoryPath)).toBe(true);
 
-                // Clean up the test directory after the test
                 fs.rmdirSync(testDirectoryPath);
             });
 
             it('should delete a file within the safe directory', async () => {
-                // Create a test file
                 fs.writeFileSync(testFilePath, 'test content', 'utf-8');
 
-                // Execute the file operations tool to delete the file
                 const result = await systemNote.executeTool('file-operations-tool', {
                     action: 'deleteFile',
                     filename: 'test.txt',
+                    username: username,
+                    password: password,
                 });
 
-                // Verify the result
                 expect(result).toEqual({ result: 'File deleted successfully' });
 
-                // Verify that the file was deleted
                 expect(fs.existsSync(testFilePath)).toBe(false);
+            });
+
+            it('should not allow access with invalid credentials', async () => {
+                await expect(
+                    systemNote.executeTool('file-operations-tool', {
+                        action: 'read',
+                        filename: 'test.txt',
+                        username: 'invalid',
+                        password: 'invalid',
+                    })
+                ).rejects.toThrow('Invalid username or password.');
+            });
+
+            it('should not allow writing content with script tags', async () => {
+                await expect(
+                    systemNote.executeTool('file-operations-tool', {
+                        action: 'write',
+                        filename: 'test.txt',
+                        content: '<script>alert("XSS")</script>',
+                        username: username,
+                        password: password,
+                    })
+                ).rejects.toThrow('Content contains potentially harmful code.');
+            });
+
+            it('should not allow writing content with iframe tags', async () => {
+                await expect(
+                    systemNote.executeTool('file-operations-tool', {
+                        action: 'write',
+                        filename: 'test.txt',
+                        content: '<iframe src="https://example.com"></iframe>',
+                        username: username,
+                        password: password,
+                    })
+                ).rejects.toThrow('Content contains potentially harmful code.');
+            });
+
+            it('should not allow actions that are not whitelisted', async () => {
+                await expect(
+                    systemNote.executeTool('file-operations-tool', {
+                        action: 'read',
+                        filename: 'test_directory',
+                        username: username,
+                        password: password,
+                    })
+                ).rejects.toThrow('Action "read" is not allowed for file "test_directory".');
             });
         });
     });
