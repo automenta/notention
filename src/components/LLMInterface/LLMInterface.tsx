@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { getSystemNote } from '../../lib/systemNote';
+import { useSystemNote } from '../../lib/systemNote';
 import { ChatOpenAI } from '@langchain/openai';
 import styles from './LLMInterface.module.css';
 
@@ -9,13 +9,15 @@ interface LLMInterfaceProps {
 const LLMInterface: React.FC<LLMInterfaceProps> = () => {
     const [llmPrompt, setLlmPrompt] = useState('');
     const [llmResponse, setLlmResponse] = useState('');
-    const systemNote = getSystemNote();
+    const systemNote = useSystemNote();
 
     const handleLlmPromptChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         setLlmPrompt(event.target.value);
     }, []);
 
     const handleLlmSubmit = useCallback(async () => {
+        if (!systemNote) return;
+
         try {
             const llm = systemNote.getLLM();
             if (!llm) {
