@@ -16,6 +16,9 @@ export const TaskList: React.FC<{
     const system = getSystemNote();
     const [showToolSelector, setShowToolSelector] = useState(false);
     const [availableTools, setAvailableTools] = useState<Note[]>([]);
+    const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+    const [availableTemplates, setAvailableTemplates] = useState<Note[]>([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
     useEffect(() => {
         const updateTasks = () => {
@@ -35,6 +38,7 @@ export const TaskList: React.FC<{
 
     useEffect(() => {
         setAvailableTools(system.getAllTools());
+        setAvailableTemplates(system.getAllNotes().filter(n => n.type === 'Template'));
     }, [system]);
 
     // Compute sorted and filtered tasks in render phase
@@ -112,6 +116,22 @@ export const TaskList: React.FC<{
         }
     }, [selectedId, system]);
 
+    const handleCreateFromTemplate = useCallback(() => {
+        setShowTemplateSelector(true);
+    }, []);
+
+    const handleSelectTemplate = useCallback((templateId: string) => {
+        setShowTemplateSelector(false);
+        setSelectedTemplateId(templateId);
+        const template = system.getNote(templateId);
+        if (template) {
+            NoteImpl.createTaskNote(template.title, template.content, template.priority).then(noteImpl => {
+                noteImpl.data.logic = template.logic;
+                system.addNote(noteImpl.data);
+            });
+        }
+    }, [system]);
+
     return (
         <div className={styles.taskList}>
             <h2>Tasks 🚀</h2>
@@ -147,6 +167,8 @@ export const TaskList: React.FC<{
                 </select>
             </div>
 
+            <button onClick={handleCreateFromTemplate}>Create from Template</button>
+
             <div className={styles.taskListItems}>
                 {sortedAndFilteredTasks.map(task => (
                     <TaskListItem
@@ -166,6 +188,19 @@ export const TaskList: React.FC<{
                         {availableTools.map(tool => (
                             <li key={tool.id} onClick={() => handleSelectTool(tool.id)}>
                                 {tool.title}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {showTemplateSelector && (
+                <div className={styles.templateSelector}>
+                    <h3>Select a Template</h3>
+                    <ul>
+                        {availableTemplates.map(template => (
+                            <li key={template.id} onClick={() => handleSelectTemplate(template.id)}>
+                                {template.title}
                             </li>
                         ))}
                     </ul>
