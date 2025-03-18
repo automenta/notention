@@ -19,7 +19,13 @@ if (!fs.existsSync(SAFE_DIRECTORY)) {
     fs.mkdirSync(SAFE_DIRECTORY);
 }
 
-export const initializeInitialTools = () () => {
+// Function to sanitize filenames to prevent path traversal attacks
+const sanitizeFilename = (filename: string): string => {
+    const sanitized = path.basename(filename); // Get the base filename
+    return sanitized.replace(/[^a-zA-Z0-9._-]/g, ''); // Remove any characters that are not alphanumeric, '.', '_', or '-'
+};
+
+export const initializeInitialTools = () => {
     const systemNote = getSystemNote();
 
     // 1. Echo Tool Note Definition (JSON - in memory)
@@ -165,7 +171,13 @@ export const initializeInitialTools = () () => {
 
     const fileOperationsToolImplementation = async (input: any) => {
         try {
-            const filename = path.resolve(SAFE_DIRECTORY, input.filename);
+            if (!input || !input.filename || !input.action) {
+                throw new Error('Invalid input: Action and filename are required.');
+            }
+
+            const action = input.action;
+            let filename = sanitizeFilename(input.filename); // Sanitize the filename
+            filename = path.resolve(SAFE_DIRECTORY, filename); // Resolve the full path
 
             // Check if the resolved path is within the safe directory
             if (!filename.startsWith(SAFE_DIRECTORY)) {
@@ -178,10 +190,13 @@ export const initializeInitialTools = () () => {
                 throw new Error(`Access denied: Invalid file extension. Allowed extensions are: ${ALLOWED_EXTENSIONS.join(', ')}`);
             }
 
-            if (input.action === 'read') {
+            if (action === 'read') {
                 const content = fs.readFileSync(filename, 'utf-8');
                 return { result: content };
-            } else if (input.action === 'write') {
+            } else if (action === 'write') {
+                if (!input.content) {
+                    throw new Error('Invalid input: Content is required for write action.');
+                }
                 fs.writeFileSync(filename, input.content, 'utf-8');
                 return { result: 'File written successfully' };
             } else {
