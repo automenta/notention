@@ -4,6 +4,7 @@ import {getSystemNote, onSystemNoteChange} from '../../lib/systemNote';
 import {Note} from '../../types';
 import styles from './TaskList.module.css';
 import {NoteImpl} from "../../lib/note";
+import {DragDropContext, Droppable, Draggable} from 'react-beautiful-dnd';
 
 export const TaskList: React.FC<{
     onTaskSelect: (id: string | null) => void;
@@ -131,6 +132,22 @@ export const TaskList: React.FC<{
         }
     }, [system]);
 
+    const onDragEnd = (result: any) => {
+        if (!result.destination) {
+            return;
+        }
+
+        const items = Array.from(sortedAndFilteredTasks);
+        const [reorderedItem] = items.splice(result.source.index, 1);
+        items.splice(result.destination.index, 0, reorderedItem);
+
+        // Update the tasks state with the new order
+        setTasks(items);
+
+        //TODO: Persist the new order in the system note (if needed)
+        //This will require updating the order of the tasks in the system.data.content.notes Map
+    };
+
     return (
         <div className={styles.taskList}>
             <h2>Tasks 🚀</h2>
@@ -168,17 +185,37 @@ export const TaskList: React.FC<{
 
             <button onClick={handleCreateFromTemplate}>Create from Template</button>
 
-            <div className={styles.taskListItems}>
-                {sortedAndFilteredTasks.map(task => (
-                    <TaskListItem
-                        key={task.id}
-                        task={task}
-                        onPriorityChange={handleChangePriority}
-                        onClick={handleSelectTask}
-                        isSelected={task.id === selectedId}
-                    />
-                ))}
-            </div>
+            <DragDropContext onDragEnd={onDragEnd}>
+                <Droppable droppableId="tasks">
+                    {(provided) => (
+                        <div
+                            className={styles.taskListItems}
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                        >
+                            {sortedAndFilteredTasks.map((task, index) => (
+                                <Draggable key={task.id} draggableId={task.id} index={index}>
+                                    {(provided) => (
+                                        <div
+                                            ref={provided.innerRef}
+                                            {...provided.draggableProps}
+                                            {...provided.dragHandleProps}
+                                        >
+                                            <TaskListItem
+                                                task={task}
+                                                onPriorityChange={handleChangePriority}
+                                                onClick={handleSelectTask}
+                                                isSelected={task.id === selectedId}
+                                            />
+                                        </div>
+                                    )}
+                                </Draggable>
+                            ))}
+                            {provided.placeholder}
+                        </div>
+                    )}
+                </Droppable>
+            </DragDropContext>
 
             {showToolSelector && (
                 <div className={styles.toolSelector}>
