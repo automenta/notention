@@ -139,7 +139,7 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
             setNewApiHeaders(tool.config?.headers || '{}');
         } catch (error: any) {
             systemLog.error(`Error editing API tool: ${error.message}`, 'ToolManager');
-            setToolCreationError(`Error editing API tool: ${error.message}`);
+            setToolCreationError(`Error editing tool: ${error.message}`);
         }
     }, [system]);
 
