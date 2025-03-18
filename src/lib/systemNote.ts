@@ -10,14 +10,25 @@ import path from 'path';
 import planningRules, { PlanningRule } from './planningRules';
 import { initializeInitialTools } from './initialTools';
 import idService from './idService'; // Import the IdService
+import { NoteStorage, InMemoryNoteStorage, GraphDBNoteStorage } from './noteStorage'; // Import NoteStorage
 
 type Listener = () => void;
 const listeners: Listener[] = [];
 let systemNoteData: Note | undefined = undefined;
+let noteStorage: NoteStorage = new InMemoryNoteStorage(); // Default to in-memory storage
 
 // Initialize System Note - singleton pattern
-export const initializeSystemNote = (llm: ChatOpenAI | any) => {
+export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: boolean = false) => {
     if (systemNoteData) throw new Error('System Note already initialized');
+
+    if (usePersistence) {
+        noteStorage = new GraphDBNoteStorage();
+        systemLog.info('Using GraphDBNoteStorage for persistence.', 'SystemNote');
+    } else {
+        noteStorage = new InMemoryNoteStorage();
+        systemLog.info('Using InMemoryNoteStorage (default).', 'SystemNote');
+    }
+
     systemNoteData = {
         id: 'system',
         type: 'System',
@@ -52,28 +63,36 @@ export const getSystemNote = () => {
         systemLog.warn('System Note was not initialized, bootstrapping with default. Ensure initializeSystemNote is called.', 'SystemNote');
         initializeSystemNote({} as ChatOpenAI); // Bootstrap if not initialized
     }
-    return new SystemNote(systemNoteData!);
+    return new SystemNote(systemNoteData!, noteStorage);
 };
 
 // SystemNote class - encapsulates system-level operations and state
 class SystemNote {
-    constructor(public data: Note) {
+    constructor(public data: Note, private noteStorage: NoteStorage) {
     }
 
     // CRUD operations for Notes
-    addNote = (note: Note) => {
-        this.data.content.notes.set(note.id, note);
+    addNote = async (note: Note) => {
+        await this.noteStorage.addNote(note);
+        this.data.content.notes.set(note.id, note); //Keep in memory for now
         this.notify();
         systemLog.info(`📝 Added Note ${note.id}: ${note.title}`, 'SystemNote');
     };
-    getNote = (id: string) => this.data.content.notes.get(id);
-    getAllNotes = () => [...this.data.content.notes.values()];
-    updateNote = (note: Note) => {
-        this.data.content.notes.set(note.id, note);
+    getNote = async (id: string) => {
+        const note = await this.noteStorage.getNote(id);
+        return note;
+    }
+    getAllNotes = async () => {
+        return await this.noteStorage.getAllNotes();
+    }
+    updateNote = async (note: Note) => {
+        await this.noteStorage.updateNote(note);
+        this.data.content.notes.set(note.id, note); //Keep in memory for now
         this.notify();
         systemLog.info(`🔄 Updated Note ${note.id}: ${note.title}`, 'SystemNote');
     };
-    deleteNote = (id: string) => {
+    deleteNote = async (id: string) => {
+        await this.noteStorage.deleteNote(id);
         this.data.content.notes.delete(id);
         this.data.content.activeQueue = this.data.content.activeQueue.filter(n => n !== id);
         this.notify();
@@ -140,7 +159,7 @@ class SystemNote {
 
     // Run a specific note
     runNote = async (noteId: string) => {
-        const note = this.getNote(noteId);
+        const note = await this.getNote(noteId);
         if (note) {
             // Apply 'before' planning rules
             await this.applyPlanningRules(note, 'before');

@@ -1,7 +1,8 @@
 import React, {useState, useEffect} from 'react';
 import styles from './SettingsView.module.css';
-import {getSystemNote} from '../../lib/systemNote';
-import {UIView} from '../UI/UI';
+import {getSystemNote, initializeSystemNote} from '../../lib/systemNote';
+import {UIView} from '../../components/UI/UI';
+import { ChatOpenAI } from 'langchain/chat_models/openai';
 
 // Define a type for the settings
 interface Settings {
@@ -10,6 +11,7 @@ interface Settings {
     theme: string;
     modelName: string;
     temperature: number;
+    usePersistence: boolean;
 }
 
 export const SettingsView: React.FC = () => {
@@ -22,6 +24,7 @@ export const SettingsView: React.FC = () => {
         theme: localStorage.getItem('theme') || 'light',
         modelName: localStorage.getItem('modelName') || 'gpt-3.5-turbo',
         temperature: parseFloat(localStorage.getItem('temperature') || '0.7'),
+        usePersistence: localStorage.getItem('usePersistence') === 'true' || false, // Default to false
     });
 
     // Load settings from localStorage on component mount
@@ -32,26 +35,28 @@ export const SettingsView: React.FC = () => {
             theme: localStorage.getItem('theme') || 'light',
             modelName: localStorage.getItem('modelName') || 'gpt-3.5-turbo',
             temperature: parseFloat(localStorage.getItem('temperature') || '0.7'),
+            usePersistence: localStorage.getItem('usePersistence') === 'true' || false,
         });
     }, [system]);
 
     // Generic handler for input changes
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const {name, value} = e.target;
-        const newSettings = {...settings, [name]: value};
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const {name, value, type, checked} = e.target;
+        const newValue = type === 'checkbox' ? checked : value;
+        const newSettings = {...settings, [name]: newValue};
         setSettings(newSettings);
 
         // Save to localStorage
-        localStorage.setItem(name, value);
+        localStorage.setItem(name, String(newValue));
 
         // Apply changes to system where applicable
         if (name === 'concurrency') {
-            system.data.content.concurrencyLimit = parseInt(value);
+            system.data.content.concurrencyLimit = parseInt(String(newValue));
         }
 
         //Theme handling
         if (name === 'theme') {
-            document.documentElement.setAttribute('data-theme', value);
+            document.documentElement.setAttribute('data-theme', String(newValue));
         }
     };
 
@@ -67,6 +72,23 @@ export const SettingsView: React.FC = () => {
 
         // Save theme to localStorage
         localStorage.setItem('theme', settings.theme);
+
+        // Save persistence setting to localStorage
+        localStorage.setItem('usePersistence', String(settings.usePersistence));
+
+        //Reinitialize system note if persistence changes
+        const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
+        if (apiKey) {
+            const llm = new ChatOpenAI({
+                openAIApiKey: apiKey,
+                modelName: settings.modelName,
+                temperature: settings.temperature
+            });
+            initializeSystemNote(llm, settings.usePersistence); // Re-initialize SystemNote with LLM
+        } else {
+            console.warn("No OpenAI API key found. The system will run without LLM functionality.");
+            initializeSystemNote({} as any, settings.usePersistence); // Initialize SystemNote without LLM
+        }
 
         // Apply theme
         document.documentElement.setAttribute('data-theme', settings.theme);
@@ -132,6 +154,15 @@ export const SettingsView: React.FC = () => {
                         <option value="light">Light</option>
                         <option value="dark">Dark</option>
                     </select>
+                </label>
+                 <label>
+                    Enable Persistence:
+                    <input
+                        type="checkbox"
+                        name="usePersistence"
+                        checked={settings.usePersistence}
+                        onChange={handleInputChange}
+                    />
                 </label>
 
                 <button onClick={handleSaveSettings}>Save Settings</button>
