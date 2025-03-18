@@ -4,6 +4,7 @@ import { systemLog } from './systemLog';
 import { NoteImpl } from './note';
 import { z } from "zod";
 import * as fs from 'fs'; // Import the fs module
+import { executeTool } from './executor'; // Import the executeTool function
 
 type Listener = () => void;
 const listeners: Listener[] = [];
@@ -138,9 +139,11 @@ class SystemNote {
         systemLog.info('System Loop Started 🔄', 'SystemNote');
     };
 
-    registerTool(toolNote: Note, toolImplementation: Function) {
+    registerTool(toolNote: Note, toolImplementation?: Function) {
         this.data.content.tools.set(toolNote.id, toolNote);
-        this.data.content.toolImplementations.set(toolNote.id, toolImplementation);
+        if (toolImplementation) {
+            this.data.content.toolImplementations.set(toolNote.id, toolImplementation);
+        }
         this.notify();
         systemLog.info(`🔨 Registered Tool ${toolNote.id}: ${toolNote.title}`, 'SystemNote');
     }
@@ -155,6 +158,28 @@ class SystemNote {
 
     getToolImplementation(id: string): Function | undefined {
         return this.data.content.toolImplementations.get(id);
+    }
+
+    // Execute a tool
+    async executeTool(toolId: string, input: any): Promise<any> {
+        const tool = this.getTool(toolId);
+        const toolImplementation = this.getToolImplementation(toolId);
+
+        if (!tool) {
+            systemLog.error(`Tool with id ${toolId} not found.`, 'SystemNote');
+            throw new Error(`Tool with id ${toolId} not found.`);
+        }
+
+        if (!toolImplementation) {
+            systemLog.warn(`No implementation found for tool ${toolId}, using default executor.`, 'SystemNote');
+        }
+
+        try {
+            return await executeTool(tool, input, toolImplementation);
+        } catch (error: any) {
+            systemLog.error(`Error executing tool ${toolId}: ${error.message}`, 'SystemNote');
+            throw error;
+        }
     }
 
     // Notification system for UI updates
