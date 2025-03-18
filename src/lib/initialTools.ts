@@ -214,7 +214,7 @@ export const initializeInitialTools = () => {
                 const content = fs.readFileSync(filename, 'utf-8');
                 return { result: content };
             } else if (action === 'write') {
-                if (!input.content) {
+                 if (input.content === undefined || input.content === null) {
                     throw new Error('Invalid input: Content is required for write action.');
                 }
                 // Ensure the content is a string before writing
