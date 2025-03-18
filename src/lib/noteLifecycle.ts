@@ -13,7 +13,6 @@ export const reflect = async (note: Note, executionResult: any) => {
 
         // Example: Create a sub-note if the result suggests further action
         if (executionResult.output && typeof executionResult.output === 'string' && executionResult.output.includes('create sub-task')) {
-            //const { NoteImpl } = await import('./note');
             const subNote = await NoteImpl.createTaskNote(
                 `Sub-task of ${note.title}`,
                 'Details: ' + executionResult.output,
