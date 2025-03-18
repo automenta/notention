@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import styles from './GraphView.module.css';
 import { Note } from '../../types';
-import { getSystemNote, onSystemNoteChange } from '../../lib/systemNote';
+import { useSystemNote } from '../../lib/systemNote';
 
 interface Node {
     id: string;
@@ -17,47 +17,40 @@ interface Edge {
     target: string;
 }
 
-const GraphView: React.FC<{ selectedNoteId: string | null }> = ({selectedNoteId}) => {
+const GraphView: React.FC<{ selectedNoteId: string | null }> = ({ selectedNoteId }) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const container = useRef<HTMLDivElement>(null);
     const zoom = useRef<any>(null);
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
-    const [systemNote, setSystemNote] = useState(getSystemNote());
+    const systemNote = useSystemNote();
 
+    const updateGraph = useCallback(async () => {
+        if (!systemNote) return;
+
+        const allNotes = await systemNote.getAllNotes();
+        const graphNodes: Node[] = allNotes.map(note => ({
+            id: note.id,
+            title: note.title,
+            type: note.type,
+            x: Math.random() * 300,
+            y: Math.random() * 300,
+        }));
+
+        const graphEdges: Edge[] = allNotes.flatMap(note =>
+            note.references.map(target => ({
+                source: note.id,
+                target: target,
+            }))
+        );
+
+        setNodes(graphNodes);
+        setEdges(graphEdges);
+    }, [systemNote]);
 
     useEffect(() => {
-        const fetchNotes = async () => {
-            const allNotes = await systemNote.getAllNotes();
-            const graphNodes: Node[] = allNotes.map(note => ({
-                id: note.id,
-                title: note.title,
-                type: note.type,
-                x: Math.random() * 300,
-                y: Math.random() * 300,
-            }));
-
-            const graphEdges: Edge[] = allNotes.flatMap(note =>
-                note.references.map(target => ({
-                    source: note.id,
-                    target: target,
-                }))
-            );
-
-            setNodes(graphNodes);
-            setEdges(graphEdges);
-        };
-
-        fetchNotes();
-        setSystemNote(getSystemNote());
-
-        const unsubscribe = onSystemNoteChange(() => {
-            fetchNotes();
-            setSystemNote(getSystemNote());
-        });
-
-        return () => unsubscribe();
-    }, []);
+        updateGraph();
+    }, [updateGraph]);
 
     useEffect(() => {
         if (!nodes.length || !edges.length || !svgRef.current) return;
@@ -173,7 +166,7 @@ const GraphView: React.FC<{ selectedNoteId: string | null }> = ({selectedNoteId}
             function dragended(event: any, d: any) {
                 if (!event.active) simulation.alphaTarget(0);
                 d.fx = null;
-                d.fy = null;
+                d.fy = d.y;
             }
 
         } catch (e) {
