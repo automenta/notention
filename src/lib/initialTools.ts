@@ -205,6 +205,7 @@ export const initializeInitialTools = () => {
 
             // Validate file extension
             const ext = path.extname(filename).toLowerCase();
+	    //console.log(`action=${action} filename=${filename} ext=${ext} ALLOWED_EXTENSIONS=${ALLOWED_EXTENSIONS}`)
             if (action !== 'createDirectory' && !ALLOWED_EXTENSIONS.includes(ext)) {
                 throw new Error(`Access denied: Invalid file extension. Allowed extensions are: ${ALLOWED_EXTENSIONS.join(', ')}`);
             }
