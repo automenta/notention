@@ -134,7 +134,7 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
         setAddingTool(true); // Show the input form
     }, []);
 
-    const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, inputName: string) => {
+    const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>, inputName: string) => {
         setToolInputValues({
             ...toolInputValues,
             [inputName]: event.target.value,
@@ -332,7 +332,25 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
                             {Object.entries(JSON.parse(selectedToolData.inputSchema).properties).map(([inputName, inputDetails]: [string, any]) => (
                                 <div key={inputName} className={styles.inputGroup}>
                                     <label htmlFor={inputName}>{inputDetails.description || inputName}:</label>
-                                    {inputDetails.type === 'string' && (
+                                    {inputDetails.inputType === 'textarea' && (
+                                        <textarea
+                                            id={inputName}
+                                            value={toolInputValues[inputName] || ''}
+                                            onChange={(e) => handleInputChange(e, inputName)}
+                                        />
+                                    )}
+                                    {inputDetails.inputType === 'select' && (
+                                        <select
+                                            id={inputName}
+                                            value={toolInputValues[inputName] || ''}
+                                            onChange={(e) => handleInputChange(e, inputName)}
+                                        >
+                                            {inputDetails.options && inputDetails.options.map((option: string) => (
+                                                <option key={option} value={option}>{option}</option>
+                                            ))}
+                                        </select>
+                                    )}
+                                    {inputDetails.type === 'string' && !inputDetails.inputType && (
                                         <input
                                             type="text"
                                             id={inputName}
@@ -358,7 +376,8 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
                                     )}
                                     {/* Add more input types as needed */}
                                 </div>
-                            ))}
+                            ))
+                            }
                             <button onClick={handleAddSelectedTool}>Add Tool</button>
                             <button onClick={handleCancelAddTool}>Cancel</button>
                         </div>
@@ -394,7 +413,25 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
                                 Object.entries(JSON.parse(selectedToolData.inputSchema).properties).map(([inputName, inputDetails]: [string, any]) => (
                                     <div key={inputName} className={styles.inputGroup}>
                                         <label htmlFor={inputName}>{inputDetails.description || inputName}:</label>
-                                        {inputDetails.type === 'string' && (
+                                        {inputDetails.inputType === 'textarea' && (
+                                            <textarea
+                                                id={inputName}
+                                                value={toolInputValues[inputName] || ''}
+                                                onChange={(e) => handleInputChange(e, inputName)}
+                                            />
+                                        )}
+                                        {inputDetails.inputType === 'select' && (
+                                            <select
+                                                id={inputName}
+                                                value={toolInputValues[inputName] || ''}
+                                                onChange={(e) => handleInputChange(e, inputName)}
+                                            >
+                                                {inputDetails.options && inputDetails.options.map((option: string) => (
+                                                    <option key={option} value={option}>{option}</option>
+                                                ))}
+                                            </select>
+                                        )}
+                                        {inputDetails.type === 'string' && !inputDetails.inputType && (
                                             <input
                                                 type="text"
                                                 id={inputName}
