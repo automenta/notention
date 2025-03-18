@@ -34,6 +34,8 @@ export const SettingsView: React.FC = () => {
         return storedSettings ? JSON.parse(storedSettings) : defaultSettings;
     });
 
+    const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
     // Load settings from localStorage on component mount
     useEffect(() => {
         const storedSettings = localStorage.getItem('settings');
@@ -48,9 +50,33 @@ export const SettingsView: React.FC = () => {
         const newValue = type === 'checkbox' ? checked : value;
         const newSettings = { ...settings, [name]: newValue };
         setSettings(newSettings);
+        setErrors(prevErrors => ({ ...prevErrors, [name]: '' })); // Clear any previous error for this field
     };
 
+    const validateSettings = (): boolean => {
+        let isValid = true;
+        const newErrors: { [key: string]: string } = {};
+
+        if (settings.concurrency < 1 || settings.concurrency > 10) {
+            newErrors.concurrency = 'Concurrency must be between 1 and 10';
+            isValid = false;
+        }
+
+        if (settings.temperature < 0 || settings.temperature > 1) {
+            newErrors.temperature = 'Temperature must be between 0 and 1';
+            isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
+    };
+
+
     const handleSaveSettings = () => {
+        if (!validateSettings()) {
+            return;
+        }
+
         // Save settings to localStorage as a single JSON object
         localStorage.setItem('settings', JSON.stringify(settings));
 
@@ -91,6 +117,7 @@ export const SettingsView: React.FC = () => {
                         value={settings.concurrency}
                         onChange={handleInputChange}
                     />
+                    {errors.concurrency && <div className={styles.error}>{errors.concurrency}</div>}
                 </label>
 
                 <label>
@@ -101,6 +128,7 @@ export const SettingsView: React.FC = () => {
                         value={settings.apiKey}
                         onChange={handleInputChange}
                     />
+                     {errors.apiKey && <div className={styles.error}>{errors.apiKey}</div>}
                 </label>
 
                 <label>
@@ -111,6 +139,7 @@ export const SettingsView: React.FC = () => {
                         value={settings.serpApiKey}
                         onChange={handleInputChange}
                     />
+                     {errors.serpApiKey && <div className={styles.error}>{errors.serpApiKey}</div>}
                 </label>
 
                 <label>
@@ -123,6 +152,7 @@ export const SettingsView: React.FC = () => {
                         <option value="gpt-3.5-turbo">GPT 3.5 Turbo</option>
                         <option value="gpt-4">GPT 4</option>
                     </select>
+                     {errors.modelName && <div className={styles.error}>{errors.modelName}</div>}
                 </label>
 
                 <label>
@@ -136,6 +166,7 @@ export const SettingsView: React.FC = () => {
                         min="0"
                         max="1"
                     />
+                     {errors.temperature && <div className={styles.error}>{errors.temperature}</div>}
                 </label>
 
                 <label>
@@ -148,6 +179,7 @@ export const SettingsView: React.FC = () => {
                         <option value="light">Light</option>
                         <option value="dark">Dark</option>
                     </select>
+                     {errors.theme && <div className={styles.error}>{errors.theme}</div>}
                 </label>
                 <label>
                     Enable Persistence:
@@ -157,6 +189,7 @@ export const SettingsView: React.FC = () => {
                         checked={settings.usePersistence}
                         onChange={handleInputChange}
                     />
+                     {errors.usePersistence && <div className={styles.error}>{errors.usePersistence}</div>}
                 </label>
 
                 <button onClick={handleSaveSettings}>Save Settings</button>
