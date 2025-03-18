@@ -14,6 +14,7 @@ import { SettingsService } from './settingsService';
 import React from 'react';
 import { ToolRegistry } from './toolRegistry';
 import { executeTool } from './executor';
+import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS } from './fileUtils';
 
 type Listener = () => void;
 const listeners: Listener[] = [];
@@ -269,10 +270,6 @@ export const onSystemNoteChange = (listener: Listener) => {
     listeners.push(listener);
     return () => listeners.splice(listeners.indexOf(listener), 1);
 };
-
-const SAFE_DIRECTORY = path.resolve('./safe_files');
-
-const ALLOWED_EXTENSIONS = ['.txt', '.md', '.json', '.js'];
 
 if (!fs.existsSync(SAFE_DIRECTORY)) {
     fs.mkdirSync(SAFE_DIRECTORY);
