@@ -37,7 +37,7 @@ export const registerFileOperationsTool = (systemNote: SystemNote): void => {
         createdAt: new Date().toISOString(),
         updatedAt: null,
         references: [],
-        inputSchema: JSON.stringify({
+        inputSchema: {
             type: 'object',
             properties: {
                 action: {
@@ -50,13 +50,13 @@ export const registerFileOperationsTool = (systemNote: SystemNote): void => {
 		        content: { type: 'string', description: 'Content to write', inputType: 'textarea' }
             },
             required: ['action', 'filename', 'content']
-        }),
-        outputSchema: JSON.stringify({
+        },
+        outputSchema: {
             type: 'object',
             properties: {
                 result: { type: 'string', description: 'Result of the operation' }
             }
-        }),
+        },
         description: 'Reads and writes local files within a safe directory (SECURITY WARNING).',
     };
 

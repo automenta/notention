@@ -30,7 +30,7 @@ export const registerEchoTool = (systemNote: SystemNote) => {
         createdAt: new Date().toISOString(),
         updatedAt: null,
         references: [],
-        inputSchema: JSON.stringify({ //Basic input schema for the tool
+        inputSchema: { //Basic input schema for the tool
             type: 'object',
             properties: {
                 input: {
@@ -40,14 +40,14 @@ export const registerEchoTool = (systemNote: SystemNote) => {
                 }
             },
             required: ['input']
-        }),
-        outputSchema: JSON.stringify({  //Basic output schema for the tool
+        },
+        outputSchema: {  //Basic output schema for the tool
             type: 'object',
             properties: {
                 output: { type: 'string', description: 'Echoed text' }
             },
             required: ['output']
-        }),
+        },
         description: 'Echoes the input text.',
     };
     const echoToolImplementation = async (input: any) => {
