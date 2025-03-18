@@ -11,7 +11,7 @@ import idService from './idService';
 import { NoteStorage, InMemoryNoteStorage, GraphDBNoteStorage } from './noteStorage';
 import { migrateDataToGraphDB } from './dataMigration';
 import { SettingsService } from './settingsService';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { ToolRegistry } from './toolRegistry';
 import { executeTool } from './executor';
 import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, ensureSafeDirectoryExists } from './fileUtils';
@@ -81,6 +81,10 @@ const updateLLM = () => {
 export const useSystemNote = () => {
     const [systemNote, setSystemNote] = React.useState<SystemNote | null>(null);
 
+    const memoizedUpdateLLM = useCallback(() => {
+        updateLLM();
+    }, []);
+
     React.useEffect(() => {
         initialize();
 
@@ -92,35 +96,22 @@ export const useSystemNote = () => {
         });
 
         // Subscribe to settings changes to update the LLM
-        const settingsSubscription = SettingsService.subscribe(updateLLM);
+        const settingsSubscription = SettingsService.subscribe(memoizedUpdateLLM);
 
         return () => {
             unsubscribe();
             settingsSubscription(); // Unsubscribe from settings changes
         };
-    }, []);
+    }, [memoizedUpdateLLM]);
 
     return systemNote;
-};
-
-export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: boolean = false) => {
-    if (systemNoteData) throw new Error('System Note already initialized');
-
-    if (usePersistence) {
-        noteStorage = new GraphDBNoteStorage();
-        systemLog.info('Using GraphDBNoteStorage for persistence.', 'SystemNote');
-    } else {
-        noteStorage = new InMemoryNoteStorage();
-        systemLog.info('Using InMemoryNoteStorage (default).', 'SystemNote');
-    }
-
-    initialize();
 };
 
 export const getSystemNote = () => {
     if (!systemNoteData) {
         systemLog.warn('System Note was not initialized, bootstrapping with default. Ensure initializeSystemNote is called.', 'SystemNote');
-        initializeSystemNote({} as ChatOpenAI);
+        systemNoteData = initializeSystemNoteData();
+        initialize();
     }
 
     if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
