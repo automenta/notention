@@ -4,6 +4,7 @@ import './index.css';
 import App from './App';
 import {initializeSystemNote} from './lib/systemNote';
 import { ChatOpenAI } from "langchain/chat_models/openai";
+import { systemLog } from './lib/systemLog';
 
 const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
 const usePersistence = localStorage.getItem('usePersistence') === 'true' || false;
@@ -11,6 +12,13 @@ const usePersistence = localStorage.getItem('usePersistence') === 'true' || fals
 if (!apiKey) {
     console.error("OpenAI API key not found in environment variables.  Please set REACT_APP_OPENAI_API_KEY.");
 }
+
+// Global error handler
+window.onerror = (message, source, lineno, colno, error) => {
+    systemLog.error(`Unhandled exception: ${message} at ${source}:${lineno}:${colno}. Stack: ${error?.stack}`, 'GlobalErrorHandler');
+    alert(`An unexpected error occurred: ${message}. See the system log for details.`);
+    return false; // Prevent default error handling
+};
 
 const root = ReactDOM.createRoot(
     document.getElementById('root') as HTMLElement
