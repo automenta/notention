@@ -3,8 +3,11 @@ import idService from '../idService';
 import { SystemNote, getSystemNote } from '../systemNote';
 import { systemLog } from '../systemLog';
 
+/**
+ * Registers the user interaction tool with the system.
+ * @param {SystemNote} systemNote - The system note instance.
+ */
 export const registerUserInteractionTool = (systemNote: SystemNote) => {
-    // 7. User Interaction Tool
     const userInteractionToolData: Note = {
         id: idService.generateId(),
         type: 'Tool',
@@ -49,7 +52,6 @@ export const registerUserInteractionTool = (systemNote: SystemNote) => {
     };
 
     const userInteractionToolImplementation = async (input: any) => {
-        // Use window.prompt to get user input
         const userInput = window.prompt(input.prompt);
         return { userInput: userInput || '' };
     };
