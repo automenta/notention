@@ -169,8 +169,7 @@ export const initializeInitialTools = () => {
                     inputType: 'select', // Specify inputType as select
                     options: ['read', 'write', 'createDirectory', 'deleteFile'] // Add options for the select input
                 },
-                filename: { type: 'string', description: 'Filename' },
-                content: { type: 'string', description: 'Content to write (for write action)' }
+                filename: { type: 'string', description: 'Filename' }
             },
             required: ['action', 'filename']
         }),
