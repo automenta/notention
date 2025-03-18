@@ -243,7 +243,7 @@ export const GraphView: React.FC = () => {
 
             function dragged(event: any, d: any) {
                 d.fx = event.x;
-                d.fy = event.y;
+                d.fy = d.y;
             }
 
             function dragended(event: any, d: any) {
