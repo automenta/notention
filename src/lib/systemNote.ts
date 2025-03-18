@@ -3,22 +3,22 @@ import { ChatOpenAI } from '@langchain/openai';
 import { systemLog } from './systemLog';
 import { NoteImpl } from './note';
 import * as z from 'zod';
-import * as fs from 'fs'; // Import the fs module
-import { executeTool } from './executor'; // Import the executeTool function
+import * as fs from 'fs';
+import { executeTool } from './executor';
 import path from 'path';
 import planningRules, { PlanningRule } from './planningRules';
 import { initializeInitialTools } from './initialTools';
-import idService from './idService'; // Import the IdService
-import { NoteStorage, InMemoryNoteStorage, GraphDBNoteStorage } from './noteStorage'; // Import NoteStorage
+import idService from './idService';
+import { NoteStorage, InMemoryNoteStorage, GraphDBNoteStorage } from './noteStorage';
 import { migrateDataToGraphDB } from './dataMigration';
+import { SettingsService } from './settingsService';
 
 type Listener = () => void;
 const listeners: Listener[] = [];
 let systemNoteData: Note | undefined = undefined;
-let noteStorage: NoteStorage = new InMemoryNoteStorage(); // Default to in-memory storage
+let noteStorage: NoteStorage = new InMemoryNoteStorage();
 let hasMigratedData: boolean = false;
 
-// ToolRegistry class
 class ToolRegistry {
     private tools: Map<string, Note>;
     private toolImplementations: Map<string, Function>;
@@ -50,7 +50,6 @@ class ToolRegistry {
     }
 }
 
-// Executor class (Basic Implementation)
 class Executor {
     async executeTool(tool: Note, input: any, toolImplementation?: Function): Promise<any> {
         systemLog.info(`Executing tool ${tool.id}: ${tool.title}`, 'Executor');
@@ -65,13 +64,11 @@ class Executor {
             }
         } else {
             systemLog.warn(`No implementation found for tool ${tool.id}, using default executor.`, 'Executor');
-            // Default execution logic (e.g., calling an API)
             return { result: `Tool ${tool.id} executed successfully (default executor).` };
         }
     }
 }
 
-// Initialize System Note - singleton pattern
 export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: boolean = false) => {
     if (systemNoteData) throw new Error('System Note already initialized');
 
@@ -83,6 +80,20 @@ export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: bool
         systemLog.info('Using InMemoryNoteStorage (default).', 'SystemNote');
     }
 
+    let defaultLLM: ChatOpenAI | any;
+    try {
+        const settings = SettingsService.getSettings();
+        defaultLLM = new ChatOpenAI({
+            apiKey: settings.apiKey,
+            modelName: settings.modelName,
+            temperature: settings.temperature,
+        });
+        systemLog.info(`LLM Initialized with model ${settings.modelName}`, 'SystemNote');
+    } catch (error: any) {
+        systemLog.error(`Error initializing LLM: ${error.message}.  Ensure you have an OPENAI_API_KEY set.`, 'SystemNote');
+        defaultLLM = null;
+    }
+
     systemNoteData = {
         id: 'system',
         type: 'System',
@@ -92,7 +103,7 @@ export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: bool
             activeQueue: [],
             runningCount: 0,
             concurrencyLimit: 5,
-            llm,
+            llm: llm || defaultLLM,
         },
         status: 'active',
         priority: 100,
@@ -107,43 +118,36 @@ export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: bool
     };
     systemLog.info('System Note Initialized 🚀', 'SystemNote');
 
-    // Initialize ToolRegistry and Executor
     const toolRegistry = new ToolRegistry();
     const executor = new Executor();
 
-    // Store ToolRegistry and Executor in systemNoteData.content
     systemNoteData.content.toolRegistry = toolRegistry;
     systemNoteData.content.executor = executor;
 
-    // Register initial tools here (after SystemNote is created)
     initializeInitialTools();
 };
 
-// Accessor for the System Note instance
 export const getSystemNote = () => {
     if (!systemNoteData) {
         systemLog.warn('System Note was not initialized, bootstrapping with default. Ensure initializeSystemNote is called.', 'SystemNote');
-        initializeSystemNote({} as ChatOpenAI); // Bootstrap if not initialized
+        initializeSystemNote({} as ChatOpenAI);
     }
 
-    // Perform data migration if persistence is enabled and data hasn't been migrated yet
     if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
         migrateDataToGraphDB();
-        hasMigratedData = true; // Ensure migration only runs once
+        hasMigratedData = true;
     }
 
     return new SystemNote(systemNoteData!, noteStorage);
 };
 
-// SystemNote class - encapsulates system-level operations and state
 class SystemNote {
     constructor(public data: Note, private noteStorage: NoteStorage) {
     }
 
-    // CRUD operations for Notes
     addNote = async (note: Note) => {
         await this.noteStorage.addNote(note);
-        this.data.content.notes.set(note.id, note); //Keep in memory for now
+        this.data.content.notes.set(note.id, note);
         this.notify();
         systemLog.info(`📝 Added Note ${note.id}: ${note.title}`, 'SystemNote');
     };
@@ -156,7 +160,7 @@ class SystemNote {
     }
     updateNote = async (note: Note) => {
         await this.noteStorage.updateNote(note);
-        this.data.content.notes.set(note.id, note); //Keep in memory for now
+        this.data.content.notes.set(note.id, note);
         this.notify();
         systemLog.info(`🔄 Updated Note ${note.id}: ${note.title}`, 'SystemNote');
     };
@@ -168,7 +172,6 @@ class SystemNote {
         systemLog.info(`🗑️ Deleted Note ${id}`, 'SystemNote');
     };
 
-    // Task queue management
     enqueueNote = (id: string) => {
         if (!this.data.content.activeQueue.includes(id)) {
             this.data.content.activeQueue.push(id);
@@ -188,10 +191,8 @@ class SystemNote {
         return noteId;
     };
 
-    // LLM access
     getLLM = () => this.data.content.llm as ChatOpenAI;
 
-    // Concurrency management
     incrementRunning = () => {
         this.data.content.runningCount++;
         this.notify();
@@ -203,7 +204,6 @@ class SystemNote {
     };
     canRun = () => this.data.content.runningCount < this.data.content.concurrencyLimit;
 
-    // Apply planning rules
     private async applyPlanningRules(note: Note, order: 'before' | 'after') {
         for (const rule of planningRules) {
             if (rule.order === order) {
@@ -226,17 +226,14 @@ class SystemNote {
         }
     }
 
-    // Run a specific note
     runNote = async (noteId: string) => {
         const note = await this.getNote(noteId);
         if (note) {
-            // Apply 'before' planning rules
             await this.applyPlanningRules(note, 'before');
 
             const noteImpl = new NoteImpl(note);
             await noteImpl.run();
 
-            // Apply 'after' planning rules
             await this.applyPlanningRules(note, 'after');
         } else {
             systemLog.error(`🔥 Note with ID ${noteId} not found, cannot run.`, 'SystemNote');
@@ -244,7 +241,6 @@ class SystemNote {
     };
 
     registerTool(toolNote: Note, toolImplementation?: Function) {
-        // Deprecated: old way of registering tools
         systemLog.warn('Deprecated: registerTool with toolImplementation.  Use registerTool with a tool definition instead.', 'SystemNote');
         this.registerToolDefinition({ ...toolNote, type: 'custom', implementation: toolImplementation });
     }
@@ -270,7 +266,6 @@ class SystemNote {
         return toolRegistry.getToolImplementation(id);
     }
 
-    // Execute a tool
     async executeTool(toolId: string, input: any): Promise<any> {
         const tool = this.getTool(toolId);
         const toolImplementation = this.getToolImplementation(toolId);
@@ -282,7 +277,6 @@ class SystemNote {
         }
 
         try {
-            // Use the Executor for all tool types
             return await executor.executeTool(tool, input, toolImplementation);
         } catch (error: any) {
             systemLog.error(`Error executing tool ${toolId}: ${error.message}`, 'SystemNote');
@@ -290,23 +284,18 @@ class SystemNote {
         }
     }
 
-    // Notification system for UI updates
     private notify = () => listeners.forEach(l => l());
 }
 
-// Hook for subscribing to SystemNote changes
 export const onSystemNoteChange = (listener: Listener) => {
     listeners.push(listener);
     return () => listeners.splice(listeners.indexOf(listener), 1);
 };
 
-// Define the safe directory
 const SAFE_DIRECTORY = path.resolve('./safe_files');
 
-// Allowed file extensions
 const ALLOWED_EXTENSIONS = ['.txt', '.md', '.json', '.js'];
 
-// Ensure the safe directory exists
 if (!fs.existsSync(SAFE_DIRECTORY)) {
     fs.mkdirSync(SAFE_DIRECTORY);
 }
