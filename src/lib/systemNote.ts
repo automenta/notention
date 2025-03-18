@@ -260,6 +260,11 @@ class SystemNote {
                             throw new Error(`Invalid API headers JSON: ${headersError.message}`);
                         }
 
+                        // Add API Key if authType is apiKey
+                        if (tool.config?.authType === 'apiKey' && tool.config?.apiKeyHeader && tool.config?.apiKeyValue) {
+                            headers[tool.config.apiKeyHeader] = tool.config.apiKeyValue;
+                        }
+
                         const response = await fetch(tool.logic, { // Assuming tool.logic contains the API endpoint
                             method: method,
                             headers: headers,
