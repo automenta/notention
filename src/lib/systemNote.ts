@@ -10,6 +10,7 @@ import planningRules, { PlanningRule } from './planningRules';
 import { initializeInitialTools } from './initialTools';
 import idService from './idService'; // Import the IdService
 import { NoteStorage, InMemoryNoteStorage, GraphDBNoteStorage } from './noteStorage'; // Import NoteStorage
+import { migrateDataToGraphDB } from './dataMigration';
 
 type Listener = () => void;
 const listeners: Listener[] = [];
@@ -50,8 +51,6 @@ export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: bool
         description: 'The root note for the system.',
     };
     systemLog.info('System Note Initialized 🚀', 'SystemNote');
-    // Start the system loop after initialization
-    //getSystemNote().runSystemLoop();
 
     // Register initial tools here (after SystemNote is created)
     initializeInitialTools();
@@ -297,8 +296,6 @@ class SystemNote {
         }
     }
 
-
-
     // Notification system for UI updates
     private notify = () => listeners.forEach(l => l());
 }
@@ -307,28 +304,6 @@ class SystemNote {
 export const onSystemNoteChange = (listener: Listener) => {
     listeners.push(listener);
     return () => listeners.splice(listeners.indexOf(listener), 1);
-};
-
-// Function to migrate data from InMemoryNoteStorage to GraphDBNoteStorage
-const migrateDataToGraphDB = async () => {
-    systemLog.info('Starting data migration to GraphDBNoteStorage...', 'SystemNote');
-
-    try {
-        const inMemoryStorage = new InMemoryNoteStorage();
-        const graphDBStorage = new GraphDBNoteStorage();
-
-        // Get all notes from InMemoryNoteStorage
-        const notes = await inMemoryStorage.getAllNotes();
-
-        // Add each note to GraphDBNoteStorage
-        for (const note of notes) {
-            await graphDBStorage.addNote(note);
-        }
-
-        systemLog.info(`Successfully migrated ${notes.length} notes to GraphDBNoteStorage.`, 'SystemNote');
-    } catch (error: any) {
-        systemLog.error(`Error migrating data to GraphDBNoteStorage: ${error.message}`, 'SystemNote');
-    }
 };
 
 // Define the safe directory
