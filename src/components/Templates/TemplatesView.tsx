@@ -200,18 +200,24 @@ export const TemplatesView: React.FC = () => {
             <div className={styles.templatesContainer}>
                 {/* Section for creating new templates */}
                 <h3>Create New Template</h3>
+                <label htmlFor="newTemplateTitle">Template Title:</label>
                 <input
                     type="text"
+                    id="newTemplateTitle"
                     placeholder="Template Title"
                     value={newTemplateTitle}
                     onChange={(e) => setNewTemplateTitle(e.target.value)}
                 />
+                <label htmlFor="newTemplateContent">Template Content:</label>
                 <textarea
+                    id="newTemplateContent"
                     placeholder="Template Content"
                     value={newTemplateContent}
                     onChange={(e) => setNewTemplateContent(e.target.value)}
                 />
+                <label htmlFor="newTemplateLogic">Template Logic (JSON):</label>
                 <textarea
+                    id="newTemplateLogic"
                     placeholder="Template Logic (JSON)"
                     value={newTemplateLogic}
                     onChange={(e) => setNewTemplateLogic(e.target.value)}
@@ -250,23 +256,31 @@ export const TemplatesView: React.FC = () => {
             {/* Section for creating new tools */}
             <div className={styles.toolCreationContainer}>
                 <h3>Create New Tool</h3>
+                <label htmlFor="newToolTitle">Tool Title:</label>
                 <input
                     type="text"
+                    id="newToolTitle"
                     placeholder="Tool Title"
                     value={newToolTitle}
                     onChange={(e) => setNewToolTitle(e.target.value)}
                 />
+                <label htmlFor="newToolLogic">Tool Logic (JSON):</label>
                 <textarea
+                    id="newToolLogic"
                     placeholder="Tool Logic (JSON)"
                     value={newToolLogic}
                     onChange={(e) => setNewToolLogic(e.target.value)}
                 />
+                <label htmlFor="newToolInputSchema">Tool Input Schema (JSON):</label>
                 <textarea
+                    id="newToolInputSchema"
                     placeholder="Tool Input Schema (JSON)"
                     value={newToolInputSchema}
                     onChange={(e) => setNewToolInputSchema(e.target.value)}
                 />
+                <label htmlFor="newToolOutputSchema">Tool Output Schema (JSON):</label>
                 <textarea
+                    id="newToolOutputSchema"
                     placeholder="Tool Output Schema (JSON)"
                     value={newToolOutputSchema}
                     onChange={(e) => setNewToolOutputSchema(e.target.value)}
