@@ -1,7 +1,7 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './SettingsView.module.css';
-import {getSystemNote, initializeSystemNote} from '../../lib/systemNote';
-import {UIView} from '../../components/UI/UI';
+import { getSystemNote, initializeSystemNote } from '../../lib/systemNote';
+import { UIView } from '../../components/UI/UI';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
 
 // Define a type for the settings
@@ -12,6 +12,7 @@ interface Settings {
     modelName: string;
     temperature: number;
     usePersistence: boolean;
+    serpApiKey: string;
 }
 
 export const SettingsView: React.FC = () => {
@@ -25,6 +26,7 @@ export const SettingsView: React.FC = () => {
         modelName: localStorage.getItem('modelName') || 'gpt-3.5-turbo',
         temperature: parseFloat(localStorage.getItem('temperature') || '0.7'),
         usePersistence: localStorage.getItem('usePersistence') === 'true' || false, // Default to false
+        serpApiKey: localStorage.getItem('serpApiKey') || '',
     });
 
     // Load settings from localStorage on component mount
@@ -36,14 +38,15 @@ export const SettingsView: React.FC = () => {
             modelName: localStorage.getItem('modelName') || 'gpt-3.5-turbo',
             temperature: parseFloat(localStorage.getItem('temperature') || '0.7'),
             usePersistence: localStorage.getItem('usePersistence') === 'true' || false,
+            serpApiKey: localStorage.getItem('serpApiKey') || '',
         });
     }, [system]);
 
     // Generic handler for input changes
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const {name, value, type, checked} = e.target;
+        const { name, value, type, checked } = e.target;
         const newValue = type === 'checkbox' ? checked : value;
-        const newSettings = {...settings, [name]: newValue};
+        const newSettings = { ...settings, [name]: newValue };
         setSettings(newSettings);
 
         // Save to localStorage
@@ -72,6 +75,9 @@ export const SettingsView: React.FC = () => {
 
         // Save theme to localStorage
         localStorage.setItem('theme', settings.theme);
+
+        //  Save SerpAPI key to localStorage
+        localStorage.setItem('serpApiKey', settings.serpApiKey);
 
         // Save persistence setting to localStorage
         localStorage.setItem('usePersistence', String(settings.usePersistence));
@@ -120,6 +126,16 @@ export const SettingsView: React.FC = () => {
                 </label>
 
                 <label>
+                    SerpAPI API Key:
+                    <input
+                        type="text"
+                        name="serpApiKey"
+                        value={settings.serpApiKey}
+                        onChange={handleInputChange}
+                    />
+                </label>
+
+                <label>
                     LLM Model:
                     <select
                         name="modelName"
@@ -155,7 +171,7 @@ export const SettingsView: React.FC = () => {
                         <option value="dark">Dark</option>
                     </select>
                 </label>
-                 <label>
+                <label>
                     Enable Persistence:
                     <input
                         type="checkbox"

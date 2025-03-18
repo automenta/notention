@@ -88,7 +88,7 @@ export const initializeInitialTools = () => {
                 {
                     "id": "search",
                     "type": "serpapi",
-                    "input": "{query, apiKey}"
+                    "input": "{query}"
                 }
             ],
         }),
@@ -100,10 +100,9 @@ export const initializeInitialTools = () => {
         inputSchema: JSON.stringify({
             type: 'object',
             properties: {
-                query: { type: 'string', description: 'Search query' },
-                apiKey: { type: 'string', description: 'SerpAPI API Key' }
+                query: { type: 'string', description: 'Search query' }
             },
-            required: ['query', 'apiKey']
+            required: ['query']
         }),
         outputSchema: JSON.stringify({
             type: 'object',
@@ -115,7 +114,14 @@ export const initializeInitialTools = () => {
     };
 
     const webSearchToolImplementation = async (input: any) => {
-        const serpAPI = new SerpAPI(input.apiKey);
+        const serpApiKey = localStorage.getItem('serpApiKey');
+
+        if (!serpApiKey) {
+            systemLog.error('SerpAPI key not found in settings.', 'WebSearchTool');
+            throw new Error('SerpAPI key not found in settings. Please configure it in the settings.');
+        }
+
+        const serpAPI = new SerpAPI(serpApiKey);
         const results = await serpAPI.call(input.query);
         return { results: results };
     };
@@ -180,8 +186,8 @@ export const initializeInitialTools = () => {
             let filename = sanitizeFilename(input.filename); // Sanitize the filename
             filename = path.resolve(SAFE_DIRECTORY, filename); // Resolve the full path
 
-            // Check if the resolved path is within the safe directory
-            if (!filename.startsWith(SAFE_DIRECTORY)) {
+            // More robust check to ensure the resolved path is within the safe directory
+            if (!filename.startsWith(SAFE_DIRECTORY + path.sep)) {
                 throw new Error('Access denied: Filename is outside the safe directory.');
             }
 
@@ -269,8 +275,8 @@ export const initializeInitialTools = () => {
     };
     systemNote.registerToolDefinition({ ...generateTaskLogicToolData, implementation: generateTaskLogicToolImplementation, type: 'langchain' });
 
-     // 5. Example API Tool (Simple GET Request)
-     const apiToolData: Note = {
+    // 5. Example API Tool (Simple GET Request)
+    const apiToolData: Note = {
         id: idService.generateId(),
         type: 'Tool',
         title: 'Joke API Tool',
@@ -293,6 +299,68 @@ export const initializeInitialTools = () => {
         description: 'Fetches a random joke from the Joke API.',
     };
     systemNote.registerToolDefinition({ ...apiToolData, type: 'api' });
+
+    // 6. Summarization Tool
+    const summarizationToolData: Note = {
+        id: idService.generateId(),
+        type: 'Tool',
+        title: 'Summarization Tool',
+        content: 'A tool to summarize text using the LLM.',
+        logic: JSON.stringify({
+            "steps": [
+                {
+                    "id": "summarize",
+                    "type": "llm",
+                    "input": "{text}"
+                }
+            ],
+        }),
+        status: 'active',
+        priority: 50,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+        references: [],
+        inputSchema: JSON.stringify({
+            type: 'object',
+            properties: {
+                text: {
+                    type: 'string',
+                    description: 'Text to summarize',
+                    inputType: 'textarea'
+                }
+            },
+            required: ['text']
+        }),
+        outputSchema: JSON.stringify({
+            type: 'object',
+            properties: {
+                summary: {
+                    type: 'string',
+                    description: 'Summary of the text'
+                }
+            },
+            required: ['summary']
+        }),
+        description: 'Summarizes text using the LLM.',
+    };
+
+    const summarizationToolImplementation = async (input: any) => {
+        const llm = systemNote.getLLM();
+        if (!llm) {
+            systemLog.warn('LLM not initialized, cannot summarize.', 'SummarizationTool');
+            throw new Error('LLM not initialized.');
+        }
+
+        const prompt = `Summarize the following text: ${input.text}`;
+        try {
+            const summary = await llm.invoke(prompt);
+            return { summary: summary };
+        } catch (error: any) {
+            systemLog.error(`Error summarizing text: ${error.message}`, 'SummarizationTool');
+            throw error;
+        }
+    };
+    systemNote.registerToolDefinition({ ...summarizationToolData, implementation: summarizationToolImplementation, type: 'langchain' });
 
     systemLog.info('Initial tools registered.', 'SystemNote');
 };
