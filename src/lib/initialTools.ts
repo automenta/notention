@@ -223,6 +223,10 @@ export const initializeInitialTools = () => {
                 fs.writeFileSync(filename, contentToWrite, 'utf-8');
                 return { result: 'File written successfully' };
             } else if (action === 'createDirectory') {
+	         // Check if the directory already exists
+                if (fs.existsSync(filename)) {
+                    throw new Error('Directory already exists.');
+                }
                 fs.mkdirSync(filename, { recursive: true });
                 return { result: 'Directory created successfully' };
             } else if (action === 'deleteFile') {
