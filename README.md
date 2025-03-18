@@ -53,7 +53,7 @@ Netention’s architecture revolves around a unified, self-evolving structure an
 - **Tools:** Modular, extensible functionalities (e.g., web search, file operations) that Agents use to interact with the world. Tools are managed in a **Tool Registry**.
     - **Tool Registry:** A central component for managing and accessing tools. Implemented with `ToolRegistry` class.
 - **Executor:** A unified interface for executing tools, handling both synchronous and asynchronous operations.
-    - **Executor:** A central component for executing tools. Implemented with `Executor` class.
+    - **Executor:** A function that executes tools.
 - **Memory Manager:** Oversees each Note’s memory, implementing summarization and archiving to manage resources.
 - **Graph Database:** Stores all data (Notes, Plans, Tools, Memory) in a LevelGraph structure, optimized for relationships and queries.
     - **Note Storage:** Abstraction for storing notes. Implemented with `InMemoryNoteStorage` and `GraphDBNoteStorage` classes.
@@ -164,7 +164,7 @@ Netention evolves through stages, leveraging its self-building capabilities to m
 - Generate core schemas and classes (Note, Plan, Agent, Executor).
 - Implement initial tools and basic plan execution.
 - Integrate LevelGraph and establish self-reflection.
-    - Implemented `ToolRegistry` and `Executor` classes.
+    - Implemented `ToolRegistry` class.
     - Implemented `InMemoryNoteStorage` and `GraphDBNoteStorage` classes.
     - Added tests for `ToolRegistry`, `Executor`, `InMemoryNoteStorage`, and `GraphDBNoteStorage`.
 
