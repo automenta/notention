@@ -8,6 +8,7 @@ interface ToolStepEditorProps {
     onChange: (inputName: string, value: any) => void;
     onSave: () => void;
     onCancel: () => void;
+    onGenerate?: () => void;
 }
 
 export const ToolStepEditor: React.FC<ToolStepEditorProps> = ({
@@ -16,6 +17,7 @@ export const ToolStepEditor: React.FC<ToolStepEditorProps> = ({
     onChange,
     onSave,
     onCancel,
+    onGenerate,
 }) => {
     const system = getSystemNote();
     const tool = system.getTool(toolId);
@@ -84,6 +86,7 @@ export const ToolStepEditor: React.FC<ToolStepEditorProps> = ({
             ))}
             <button onClick={onSave}>Save</button>
             <button onClick={onCancel}>Cancel</button>
+            {onGenerate && <button onClick={onGenerate}>Generate Inputs</button>}
         </div>
     );
 };
