@@ -24,9 +24,16 @@ export const ToolStepEditor: React.FC<ToolStepEditorProps> = ({
 
     const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>, inputName: string) => {
         // Update the inputValues within the note's logic
-        const updatedLogic = { ...JSON.parse(note.logic || '{}') };
+        if (!note.logic) {
+            console.warn("Note logic is undefined.  Cannot update input.");
+            return;
+        }
+        const updatedLogic = { ...JSON.parse(note.logic) };
         if (updatedLogic.steps && updatedLogic.steps.length > 0) {
             updatedLogic.steps[0].input = { ...updatedLogic.steps[0].input, [inputName]: event.target.value };
+        } else {
+            console.warn("Note logic does not contain any steps. Cannot update input.");
+            return;
         }
         const updatedNote = { ...note, logic: JSON.stringify(updatedLogic) };
         onChange(updatedNote);
@@ -53,8 +60,20 @@ export const ToolStepEditor: React.FC<ToolStepEditorProps> = ({
         return <div>Tool or input schema not found.</div>;
     }
 
-    const inputSchema = JSON.parse(tool.inputSchema);
-    const inputValues = JSON.parse(note.logic || '{}')?.steps?.[0]?.input || {};
+    let inputSchema;
+    try {
+        inputSchema = JSON.parse(tool.inputSchema);
+    } catch (e) {
+        console.error("Failed to parse input schema", tool.inputSchema, e);
+        return <div>Failed to parse input schema. Check console for details.</div>
+    }
+
+    let inputValues = {};
+    try {
+        inputValues = JSON.parse(note.logic || '{}')?.steps?.[0]?.input || {};
+    } catch (e) {
+        console.error("Failed to parse note logic", note.logic, e);
+    }
 
     return (
         <div className={styles.toolInputForm}>
