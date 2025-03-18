@@ -31,6 +31,8 @@ const TaskListItem: React.FC<TaskListItemProps> = ({task, onPriorityChange, onCl
                 return styles.bypassed;
             case 'pendingRefinement':
                 return styles.pendingRefinement;
+            case 'running':
+                return styles.running;
             default:
                 return styles.unknown;
         }
