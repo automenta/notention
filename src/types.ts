@@ -4,7 +4,7 @@ export const NoteSchema = z.object({
     id: z.string().uuid(),
     type: z.enum([
         "Root", "Task", "Plan", "Step", "Tool", "Memory",
-        "System", "Data", "Prompt", "Config"
+        "System", "Data", "Prompt", "Config", "custom", "langchain", "api"
     ]).default("Task"),
     title: z.string().default("Untitled Note"),
     content: z.any().optional(),
