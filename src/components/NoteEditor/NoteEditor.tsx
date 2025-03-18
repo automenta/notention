@@ -1,8 +1,8 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from './NoteEditor.module.css';
-import {getSystemNote} from '../../lib/systemNote';
-import MonacoEditor from 'react-monaco-editor';
-import {Note} from '../../types';
+import { Note, NoteSchema } from '../../types';
+import { getSystemNote } from '../../lib/systemNote';
+import { NoteImpl } from '../../lib/note';
 
 interface NoteEditorProps {
     noteId: string;
@@ -10,106 +10,69 @@ interface NoteEditorProps {
     onSave: (note: Note) => void;
 }
 
-export const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose, onSave}) => {
-    const [note, setNote] = useState<Note | undefined>(undefined);
-    const [title, setTitle] = useState<string>('');
-    const [content, setContent] = useState<string>('');
-    const [logic, setLogic] = useState<any>('');
-    const [validationError, setValidationError] = React.useState<string | null>(null);
-    const system = getSystemNote();
+const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose, onSave}) => {
+    const [note, setNote] = useState<Note | null>(null);
+    const [title, setTitle] = useState('');
+    const [content, setContent] = useState<any>('');
+    const systemNote = getSystemNote();
 
     useEffect(() => {
-        const currentNote = system.getNote(noteId);
-        if (currentNote) {
-            setNote(currentNote);
-            setTitle(currentNote.title || '');
-            setContent(currentNote.content || '');
-            setLogic(currentNote.logic || '');
-        }
-    }, [noteId, system]);
+        const fetchNote = async () => {
+            const fetchedNote = await systemNote.getNote(noteId);
+            if (fetchedNote) {
+                setNote(fetchedNote);
+                setTitle(fetchedNote.title);
+                setContent(fetchedNote.content);
+            }
+        };
 
-    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setTitle(e.target.value);
-    };
+        fetchNote();
+    }, [noteId, systemNote]);
 
-    const handleContentChange = (value: string) => {
-        setContent(value);
-    };
+    const handleTitleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        setTitle(event.target.value);
+    }, [title]);
 
-    const handleLogicChange = (value: string) => {
-        setLogic(value);
-    };
+    const handleContentChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setContent(event.target.value);
+    }, [content]);
 
     const handleSave = () => {
-        if (!note) {
-            alert('Note not found!');
-            return;
-        }
-
-        // Basic validation to ensure logic is valid JSON
-        try {
-            JSON.parse(logic);
-            setValidationError(null);
-        } catch (e: any) {
-            setValidationError(`JSON Parse Error: ${e.message}`);
-            return;
-        }
+        if (!note) return;
 
         const updatedNote: Note = {
             ...note,
             title: title,
             content: content,
-            logic: logic,
         };
 
-        onSave(updatedNote);
-    };
-
-    const editorOptions = {
-        selectOnLineNumbers: true,
-        roundedSelection: false,
-        readOnly: false,
-        cursorStyle: 'line',
-        automaticLayout: true,
+        systemNote.updateNote(updatedNote).then(() => {
+            onSave(updatedNote); // Notify parent component that save is complete
+        });
     };
 
     return (
         <div className={styles.noteEditor}>
-            <h3>Title</h3>
+            <h2>Note Editor</h2>
+            <label htmlFor="title">Title:</label>
             <input
                 type="text"
+                id="title"
                 value={title}
                 onChange={handleTitleChange}
             />
-
-            <h3>Content</h3>
-            <MonacoEditor
-                width="800"
-                height="200"
-                language="markdown"
-                theme="vs-dark"
+            <label htmlFor="content">Content:</label>
+            <textarea
+                id="content"
                 value={content}
-                options={editorOptions}
                 onChange={handleContentChange}
             />
-
-            <h3>Logic (JSON)</h3>
-            <MonacoEditor
-                width="800"
-                height="400"
-                language="json"
-                theme="vs-dark"
-                value={logic}
-                options={editorOptions}
-                onChange={handleLogicChange}
-            />
-
-            {validationError &&
-            <div className={styles.validationError}>⚠️ {validationError}</div>}
-            <div className={styles.editorActions}>
+            <div className={styles.buttons}>
                 <button onClick={handleSave}>Save</button>
-                <button onClick={onClose}>Cancel</button>
+                <button onClick={onClose}>Close</button>
             </div>
         </div>
     );
 };
+
+export default NoteEditor;

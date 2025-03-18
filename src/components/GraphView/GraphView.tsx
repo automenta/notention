@@ -1,10 +1,8 @@
-// src/components/GraphView/GraphView.tsx
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { getSystemNote, onSystemNoteChange } from '../../lib/systemNote';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import * as d3 from 'd3';
 import styles from './GraphView.module.css';
-import * as d3 from 'd3';  // Import D3.js
-import { NoteEditor } from '../NoteEditor/NoteEditor'; // Import NoteEditor
-import { Note } from '../../types'; // Import Note type
+import { Note } from '../../types';
+import { getSystemNote, onSystemNoteChange } from '../../lib/systemNote';
 
 interface Node {
     id: string;
@@ -19,149 +17,48 @@ interface Edge {
     target: string;
 }
 
-const generateRandomPosition = (width: number, height: number) => ({
-    x: Math.random() * width,
-    y: Math.random() * height,
-});
-
-export const GraphView: React.FC = () => {
+const GraphView: React.FC<{ selectedNoteId: string | null }> = ({selectedNoteId}) => {
+    const svgRef = useRef<SVGSVGElement>(null);
+    const container = useRef<HTMLDivElement>(null);
+    const zoom = useRef<any>(null);
     const [nodes, setNodes] = useState<Node[]>([]);
     const [edges, setEdges] = useState<Edge[]>([]);
-    const [graphContainerSize, setGraphContainerSize] = useState({ width: 0, height: 0 });
-    const system = getSystemNote();
-    const graphViewRef = useRef<HTMLDivElement>(null);
-    const svgRef = useRef<SVGSVGElement>(null);  // Ref for the SVG element
-    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
-    const [editingNodeId, setEditingNodeId] = useState<string | null>(null); // State for editing a node
-    const [graphError, setGraphError] = useState<string | null>(null);
-    const zoom = useRef(d3.zoom().scaleExtent([0.1, 3])); // Ref for zoom behavior
-    const container = useRef<d3.Selection<SVGGElement, unknown, null, undefined>>(); // Ref for the container
-    const [showConfirmation, setShowConfirmation] = useState(false);
-    const [nodeToDelete, setNodeToDelete] = useState<string | null>(null);
+    const [systemNote, setSystemNote] = useState(getSystemNote());
 
-    // Move the setGraphContainerSize update outside of the useEffect
+
     useEffect(() => {
-        const handleResize = () => {
-            if (graphViewRef.current) {
-                setGraphContainerSize({
-                    width: graphViewRef.current.clientWidth,
-                    height: graphViewRef.current.clientHeight,
-                });
-            }
-        };
+        const fetchNotes = async () => {
+            const allNotes = await systemNote.getAllNotes();
+            const graphNodes: Node[] = allNotes.map(note => ({
+                id: note.id,
+                title: note.title,
+                type: note.type,
+                x: Math.random() * 300,
+                y: Math.random() * 300,
+            }));
 
-        handleResize(); // Initial size calculation
-        window.addEventListener('resize', handleResize);
-
-        return () => {
-            window.removeEventListener('resize', handleResize);
-        };
-    }, []);
-
-    const updateGraph = useCallback(() => {
-        try {
-            const notes = system.getAllNotes();
-
-            const newNodes = notes.map(note => {
-                return {
-                    id: note.id,
-                    title: note.title,
-                    type: note.type, // Include the note type
-                    x: 0,
-                    y: 0,
-                    //...generateRandomPosition(graphContainerSize.width, graphContainerSize.height),
-                };
-            });
-
-            const newEdges = notes.flatMap(sourceNote =>
-                sourceNote.references.map(targetId => ({
-                    source: sourceNote.id,
-                    target: targetId,
+            const graphEdges: Edge[] = allNotes.flatMap(note =>
+                note.references.map(target => ({
+                    source: note.id,
+                    target: target,
                 }))
             );
 
-            setNodes(newNodes);
-            setEdges(newEdges);
-            setGraphError(null); // Clear any previous errors
-        } catch (error: any) {
-            console.error("Error updating graph:", error);
-            setGraphError(`Error updating graph: ${error.message}`);
-        }
-    }, [system, graphContainerSize]);
-
-    useEffect(() => {
-        const throttledUpdateGraph = () => {
-            setTimeout(() => {
-                updateGraph();
-            }, 500); // Adjust the delay (in milliseconds) as needed
+            setNodes(graphNodes);
+            setEdges(graphEdges);
         };
 
-        throttledUpdateGraph();
-        const unsubscribe = onSystemNoteChange(throttledUpdateGraph);
+        fetchNotes();
+        setSystemNote(getSystemNote());
 
-        return () => {
-            unsubscribe();
-        };
-    }, [updateGraph]);
-
-    const handleNodeClick = useCallback((event: any, d: any) => {
-        event.preventDefault();
-        setContextMenu({
-            x: event.clientX,
-            y: event.clientY,
-            nodeId: d.id
+        const unsubscribe = onSystemNoteChange(() => {
+            fetchNotes();
+            setSystemNote(getSystemNote());
         });
+
+        return () => unsubscribe();
     }, []);
 
-    const handleContextMenuClose = useCallback(() => {
-        setContextMenu(null);
-    }, []);
-
-    const handleEditNode = useCallback((nodeId: string) => {
-        setEditingNodeId(nodeId); // Open the inline note editor
-        handleContextMenuClose();
-    }, [handleContextMenuClose]);
-
-    const handleRunNode = useCallback((nodeId: string) => {
-        system.runNote(nodeId);
-        handleContextMenuClose();
-    }, [system, handleContextMenuClose]);
-
-    const handleDeleteNode = useCallback((nodeId: string) => {
-        setNodeToDelete(nodeId);
-        setShowConfirmation(true);
-        handleContextMenuClose();
-    }, [handleContextMenuClose]);
-
-    const confirmDelete = useCallback(() => {
-        if (nodeToDelete) {
-            system.deleteNote(nodeToDelete);
-            setNodeToDelete(null);
-        }
-        setShowConfirmation(false);
-    }, [system, nodeToDelete]);
-
-    const cancelDelete = useCallback(() => {
-        setShowConfirmation(false);
-        setNodeToDelete(null);
-    }, []);
-
-    const handleCloseEditor = useCallback(() => {
-        setEditingNodeId(null);
-    }, []);
-
-    const handleSaveNote = useCallback((updatedNote: Note) => {
-        try {
-            system.updateNote(updatedNote);
-            setEditingNodeId(null);
-            setGraphError(null);
-        } catch (error: any) {
-            console.error("Error saving note:", error);
-            setGraphError(`Error saving note: ${error.message}`);
-        }
-    }, [system]);
-
-    // D3.js graph rendering
     useEffect(() => {
         if (!nodes.length || !edges.length || !svgRef.current) return;
 
@@ -176,68 +73,78 @@ export const GraphView: React.FC = () => {
                     container.current!.attr("transform", event.transform);
                 });
 
-            // Apply zoom behavior to the SVG
-            svg.call(zoom.current as any);
+            svg.call(zoom.current);
 
-            // Create a container group for the graph elements
+            // Create a container for the graph elements
             container.current = svg.append("g");
 
-            // Create force simulation
+            // Initialize the simulation
             const simulation = d3.forceSimulation(nodes as any)
-                .force("link", d3.forceLink(edges).id((d: any) => d.id).distance(80))
-                .force("charge", d3.forceManyBody().strength(-150)) // Reduced charge strength for less repulsion
-                .force("center", d3.forceCenter(graphContainerSize.width / 2, graphContainerSize.height / 2))
-                .force("collide", d3.forceCollide().radius(22)); // Reduced collision radius
+                .force("link", d3.forceLink(edges).id((d: any) => d.id))
+                .force("charge", d3.forceManyBody().strength(-50))
+                .force("center", d3.forceCenter(svgRef.current.clientWidth / 2, svgRef.current.clientHeight / 2));
+
             // Create links
-            const links = container.current.append("g")
-                .attr("class", "links")
+            const link = container.current!.append("g")
+                .attr("stroke", "#999")
+                .attr("stroke-opacity", 0.6)
                 .selectAll("line")
                 .data(edges)
-                .enter()
-                .append("line")
-                .attr("class", styles.edge);
+                .join("line")
+                .attr("marker-end", "url(#arrowhead)");
+
+            // Define arrowhead marker
+            svg.append("defs").append("marker")
+                .attr("id", "arrowhead")
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 15)
+                .attr("refY", 0)
+                .attr("orient", "auto")
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("xoverflow", "visible")
+                .append("path")
+                .attr("d", "M0,-5L10,0L0,5")
+                .attr("fill", "#999");
 
             // Create nodes
-            const node = container.current.append("g")
-                .attr("class", "nodes")
+            const node = container.current!.append("g")
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 1.5)
                 .selectAll("circle")
                 .data(nodes)
-                .enter()
-                .append("circle")
-                .attr("r", 28)
-                .attr("class", (d: any) => {
+                .join("circle")
+                .attr("r", 10)
+                .attr("fill", (d: any) => {
                     switch (d.type) {
-                        case 'Task': return styles.nodeTask;
-                        case 'Template': return styles.nodeTemplate;
-                        case 'Tool': return styles.nodeTool;
-                        default: return styles.node;
+                        case 'Task':
+                            return "#69b3a2";
+                        case 'Tool':
+                            return "#4287f5";
+                        case 'System':
+                            return "#f00";
+                        default:
+                            return "#ccc";
                     }
                 })
                 .call(d3.drag()
                     .on("start", dragstarted)
                     .on("drag", dragged)
-                    .on("end", dragended) as any)
-                .on("contextmenu", (event: any, d: any) => {
-                    handleNodeClick(event, d);
-                });
+                    .on("end", dragended) as any);
 
-            node.append("title")
-                .text((d: any) => d.title);
-
-            // Add labels to nodes
-            const labels = container.current.append("g")
-                .attr("class", "labels")
+            // Add labels to the nodes
+            const labels = container.current!.append("g")
                 .selectAll("text")
                 .data(nodes)
-                .enter()
-                .append("text")
-                .attr("class", styles.nodeLabel)
-                .attr("text-anchor", "middle")
-                .attr("y", 5)
-                .text((d: any) => d.title);
+                .join("text")
+                .text((d: any) => d.title)
+                .style("text-anchor", "middle")
+                .style("font-size", "10px")
+                .style("fill", "black")
+                .attr("dy", 15); // Position the labels below the nodes
 
             simulation.on("tick", () => {
-                links
+                link
                     .attr("x1", (d: any) => d.source.x)
                     .attr("y1", (d: any) => d.source.y)
                     .attr("x2", (d: any) => d.target.x)
@@ -249,7 +156,7 @@ export const GraphView: React.FC = () => {
 
                 labels
                     .attr("x", (d: any) => d.x)
-                    .attr("y", (d: any) => d.y + 5);
+                    .attr("y", (d: any) => d.y);
             });
 
             function dragstarted(event: any, d: any) {
@@ -268,61 +175,17 @@ export const GraphView: React.FC = () => {
                 d.fx = null;
                 d.fy = null;
             }
-            setGraphError(null);
-        } catch (error: any) {
-            console.error("Error rendering graph:", error);
-            setGraphError(`Error rendering graph: ${error.message}`);
+
+        } catch (e) {
+            console.error('error in graph', e);
         }
 
-
-    }, [nodes, edges, graphContainerSize, handleNodeClick]);
-
-    const handleClearError = () => {
-        setGraphError(null);
-    };
+    }, [nodes, edges]);
 
     return (
-        <div className={styles.graphView} ref={graphViewRef}>
-            <h2>Note Graph Visualization 🕸️</h2>
-            {graphError && (
-                <div className={styles.errorMessage}>
-                    {graphError.length > 60 ? graphError.substring(0, 60) + "..." : graphError}
-                    <button onClick={handleClearError}>✖</button>
-                </div>
-            )}
-            <svg width="100%" height="600px" ref={svgRef}></svg>
-
-            {contextMenu && (
-                <div
-                    className={styles.contextMenu}
-                    style={{ left: contextMenu.x, top: contextMenu.y }}
-                    onClick={handleContextMenuClose}
-                >
-                    <button onClick={() => handleEditNode(contextMenu.nodeId)}>Edit</button>
-                    <button onClick={() => handleRunNode(contextMenu.nodeId)}>Run</button>
-                    <button onClick={() => handleDeleteNode(contextMenu.nodeId)}>Delete</button>
-                </div>
-            )}
-
-            {editingNodeId && (
-                <div className={styles.noteEditorOverlay}>
-                    {editingNodeId && <NoteEditor
-                        noteId={editingNodeId}
-                        onClose={handleCloseEditor}
-                        onSave={handleSaveNote}
-                    />}
-                </div>
-            )}
-
-            {showConfirmation && (
-                <div className={styles.confirmationOverlay}>
-                    <div className={styles.confirmationDialog}>
-                        <p>Are you sure you want to delete this note?</p>
-                        <button onClick={confirmDelete}>Yes</button>
-                        <button onClick={cancelDelete}>No</button>
-                    </div>
-                </div>
-            )}
+        <div className={styles.graphView}>
+            <h2>Task Graph</h2>
+            <svg ref={svgRef} width="100%" height="600px"></svg>
         </div>
     );
 };
