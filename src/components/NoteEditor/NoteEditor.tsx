@@ -16,6 +16,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose, onSave }) => {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState<any>('');
     const [error, setError] = useState<string | null>(null);
+    const [toolResult, setToolResult] = useState<any>(null); // New state for tool result
     const systemNote = getSystemNote();
 
     useEffect(() => {
@@ -101,6 +102,17 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose, onSave }) => {
                 <button onClick={handleRun}>Run</button>
                 <button onClick={onClose}>Close</button>
             </div>
+             {toolResult && (
+                <div className={styles.toolResult}>
+                    <h3>Tool Result:</h3>
+                    <textarea
+                        value={toolResult}
+                        readOnly
+                        rows={4}
+                        cols={50}
+                    />
+                </div>
+            )}
         </div>
     );
 };
