@@ -16,6 +16,7 @@ type Listener = () => void;
 const listeners: Listener[] = [];
 let systemNoteData: Note | undefined = undefined;
 let noteStorage: NoteStorage = new InMemoryNoteStorage(); // Default to in-memory storage
+let hasMigratedData: boolean = false;
 
 // Initialize System Note - singleton pattern
 export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: boolean = false) => {
@@ -63,6 +64,13 @@ export const getSystemNote = () => {
         systemLog.warn('System Note was not initialized, bootstrapping with default. Ensure initializeSystemNote is called.', 'SystemNote');
         initializeSystemNote({} as ChatOpenAI); // Bootstrap if not initialized
     }
+
+    // Perform data migration if persistence is enabled and data hasn't been migrated yet
+    if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
+        migrateDataToGraphDB();
+        hasMigratedData = true; // Ensure migration only runs once
+    }
+
     return new SystemNote(systemNoteData!, noteStorage);
 };
 
@@ -249,6 +257,28 @@ class SystemNote {
 export const onSystemNoteChange = (listener: Listener) => {
     listeners.push(listener);
     return () => listeners.splice(listeners.indexOf(listener), 1);
+};
+
+// Function to migrate data from InMemoryNoteStorage to GraphDBNoteStorage
+const migrateDataToGraphDB = async () => {
+    systemLog.info('Starting data migration to GraphDBNoteStorage...', 'SystemNote');
+
+    try {
+        const inMemoryStorage = new InMemoryNoteStorage();
+        const graphDBStorage = new GraphDBNoteStorage();
+
+        // Get all notes from InMemoryNoteStorage
+        const notes = await inMemoryStorage.getAllNotes();
+
+        // Add each note to GraphDBNoteStorage
+        for (const note of notes) {
+            await graphDBStorage.addNote(note);
+        }
+
+        systemLog.info(`Successfully migrated ${notes.length} notes to GraphDBNoteStorage.`, 'SystemNote');
+    } catch (error: any) {
+        systemLog.error(`Error migrating data to GraphDBNoteStorage: ${error.message}`, 'SystemNote');
+    }
 };
 
 // Define the safe directory
