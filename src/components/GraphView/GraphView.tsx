@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { getSystemNote, onSystemNoteChange } from '../../lib/systemNote';
 import styles from './GraphView.module.css';
 import * as d3 from 'd3';  // Import D3.js
+import { NoteEditor } from '../NoteEditor/NoteEditor'; // Import NoteEditor
 
 interface Node {
     id: string;
@@ -29,6 +30,7 @@ export const GraphView: React.FC = () => {
     const graphViewRef = useRef<HTMLDivElement>(null);
     const svgRef = useRef<SVGSVGElement>(null);  // Ref for the SVG element
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
+    const [editingNodeId, setEditingNodeId] = useState<string | null>(null); // State for editing a node
 
     // Move the setGraphContainerSize update outside of the useEffect
     useEffect(() => {
@@ -102,22 +104,30 @@ export const GraphView: React.FC = () => {
     }, []);
 
     const handleEditNode = useCallback((nodeId: string) => {
-        console.log(`Edit node ${nodeId}`);
+        setEditingNodeId(nodeId); // Open the inline note editor
         handleContextMenuClose();
-        // Implement edit logic here
     }, [handleContextMenuClose]);
 
     const handleRunNode = useCallback((nodeId: string) => {
-        console.log(`Run node ${nodeId}`);
+        system.runNote(nodeId);
         handleContextMenuClose();
-        // Implement run logic here
-    }, [handleContextMenuClose]);
+    }, [system, handleContextMenuClose]);
 
     const handleDeleteNode = useCallback((nodeId: string) => {
-        console.log(`Delete node ${nodeId}`);
+        if (window.confirm(`Delete Note ${nodeId}?`)) {
+            system.deleteNote(nodeId);
+        }
         handleContextMenuClose();
-        // Implement delete logic here
-    }, [handleContextMenuClose]);
+    }, [system, handleContextMenuClose]);
+
+    const handleCloseEditor = useCallback(() => {
+        setEditingNodeId(null);
+    }, []);
+
+    const handleSaveNote = useCallback((updatedNote: any) => {
+        system.updateNote(updatedNote);
+        setEditingNodeId(null);
+    }, [system]);
 
     // D3.js graph rendering
     useEffect(() => {
@@ -222,6 +232,16 @@ export const GraphView: React.FC = () => {
                     <button onClick={() => handleEditNode(contextMenu.nodeId)}>Edit</button>
                     <button onClick={() => handleRunNode(contextMenu.nodeId)}>Run</button>
                     <button onClick={() => handleDeleteNode(contextMenu.nodeId)}>Delete</button>
+                </div>
+            )}
+
+            {editingNodeId && (
+                <div className={styles.noteEditorOverlay}>
+                    <NoteEditor
+                        noteId={editingNodeId}
+                        onClose={handleCloseEditor}
+                        onSave={handleSaveNote}
+                    />
                 </div>
             )}
         </div>
