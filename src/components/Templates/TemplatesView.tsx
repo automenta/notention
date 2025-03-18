@@ -4,13 +4,16 @@ import {getSystemNote} from '../../lib/systemNote';
 import {Note} from '../../types';
 import {NoteImpl} from '../../lib/note';
 import {UIView} from '../UI/UI';
+import MonacoEditor from 'react-monaco-editor';
 
 export const TemplatesView: React.FC = () => {
     const system = getSystemNote();
     const [templates, setTemplates] = useState<Note[]>([]);
     const [newTemplateTitle, setNewTemplateTitle] = useState('');
     const [newTemplateContent, setNewTemplateContent] = useState('');
-    const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null); // Track selected template for creation
+    const [newTemplateLogic, setNewTemplateLogic] = useState(''); // State for new template logic
+    const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
+    const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null); // Track which template is being edited
 
     // Tool Creation State
     const [newToolTitle, setNewToolTitle] = useState('');
@@ -37,6 +40,7 @@ export const TemplatesView: React.FC = () => {
                 type: 'Template',
                 title: newTemplateTitle,
                 content: newTemplateContent,
+                logic: newTemplateLogic, // Save the new template logic
                 status: 'active',
                 priority: 0,
                 createdAt: new Date().toISOString(),
@@ -46,6 +50,7 @@ export const TemplatesView: React.FC = () => {
             system.addNote(newTemplate);
             setNewTemplateTitle('');
             setNewTemplateContent('');
+            setNewTemplateLogic(''); // Clear the logic input
         }
     };
 
@@ -93,6 +98,31 @@ export const TemplatesView: React.FC = () => {
         }
     };
 
+    const handleEditTemplate = (templateId: string) => {
+        setEditingTemplateId(templateId);
+    };
+
+    const handleSaveTemplate = (templateId: string, newLogic: string) => {
+        const template = system.getNote(templateId);
+        if (template) {
+            template.logic = newLogic;
+            system.updateNote(template);
+            setEditingTemplateId(null); // Close the editor
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditingTemplateId(null);
+    };
+
+    const editorOptions = {
+        selectOnLineNumbers: true,
+        roundedSelection: false,
+        readOnly: false,
+        cursorStyle: 'line',
+        automaticLayout: true,
+    };
+
     return (
         <UIView title="Templates 📄">
             <div className={styles.templatesContainer}>
@@ -108,6 +138,11 @@ export const TemplatesView: React.FC = () => {
                     value={newTemplateContent}
                     onChange={(e) => setNewTemplateContent(e.target.value)}
                 />
+                <textarea
+                    placeholder="Template Logic (JSON)"
+                    value={newTemplateLogic}
+                    onChange={(e) => setNewTemplateLogic(e.target.value)}
+                />
                 <button onClick={handleCreateTemplate}>Create Template</button>
 
                 <h3>Existing Templates</h3>
@@ -115,6 +150,27 @@ export const TemplatesView: React.FC = () => {
                     {templates.map(template => (
                         <li key={template.id}>
                             {template.title} - {template.content}
+                            <button onClick={() => createTaskFromTemplate(template.id)}>Create Task</button>
+                            <button onClick={() => handleEditTemplate(template.id)}>Edit Logic</button>
+                            {editingTemplateId === template.id && (
+                                <div className={styles.templateEditor}>
+                                    <MonacoEditor
+                                        width="600"
+                                        height="300"
+                                        language="json"
+                                        theme="vs-dark"
+                                        value={template.logic || ''}
+                                        options={editorOptions}
+                                        onChange={(value) => setNewTemplateLogic(value)}
+                                    />
+                                    <button onClick={() => handleSaveTemplate(template.id, newTemplateLogic)}>Save</button>
+                                    <button onClick={handleCancelEdit}>Cancel</button>
+                                </div>
+                            )}
+                            <div>
+                                <h4>Logic:</h4>
+                                <pre>{template.logic}</pre>
+                            </div>
                         </li>
                     ))}
                 </ul>
