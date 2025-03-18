@@ -3,6 +3,9 @@ import { Note } from '../types';
 import idService from './idService';
 import { SystemNote, initializeSystemNote, getSystemNote } from './systemNote';
 import { ChatOpenAI } from '@langchain/openai';
+import * as fs from 'fs';
+import path from 'path';
+import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, sanitizeFilename } from './initialTools';
 
 // Mock the ChatOpenAI class
 jest.mock('@langchain/openai', () => {
@@ -191,6 +194,117 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ input: 'test' }),
+            });
+        });
+
+        describe('File Operations Tool', () => {
+            const testFilePath = path.join(SAFE_DIRECTORY, 'test.txt');
+
+            afterEach(() => {
+                // Clean up test file after each test
+                if (fs.existsSync(testFilePath)) {
+                    fs.unlinkSync(testFilePath);
+                }
+            });
+
+            it('should read a file within the safe directory', async () => {
+                // Create a test file
+                fs.writeFileSync(testFilePath, 'test content', 'utf-8');
+
+                // Execute the file operations tool to read the file
+                const result = await systemNote.executeTool('file-operations-tool', {
+                    action: 'read',
+                    filename: 'test.txt',
+                });
+
+                // Verify the result
+                expect(result).toEqual({ result: 'test content' });
+            });
+
+            it('should write to a file within the safe directory', async () => {
+                // Execute the file operations tool to write to the file
+                const result = await systemNote.executeTool('file-operations-tool', {
+                    action: 'write',
+                    filename: 'test.txt',
+                    content: 'test content',
+                });
+
+                // Verify the result
+                expect(result).toEqual({ result: 'File written successfully' });
+
+                // Verify that the file was written to
+                const fileContent = fs.readFileSync(testFilePath, 'utf-8');
+                expect(fileContent).toBe('test content');
+            });
+
+            it('should not read a file outside the safe directory', async () => {
+                // Execute the file operations tool to read a file outside the safe directory
+                await expect(
+                    systemNote.executeTool('file-operations-tool', {
+                        action: 'read',
+                        filename: '../outside.txt',
+                    })
+                ).rejects.toThrow('Filename is outside the safe directory.');
+            });
+
+            it('should not write to a file outside the safe directory', async () => {
+                // Execute the file operations tool to write to a file outside the safe directory
+                await expect(
+                    systemNote.executeTool('file-operations-tool', {
+                        action: 'write',
+                        filename: '../outside.txt',
+                        content: 'test content',
+                    })
+                ).rejects.toThrow('Filename is outside the safe directory.');
+            });
+
+            it('should not allow reading files with invalid extensions', async () => {
+                // Create a test file with an invalid extension
+                fs.writeFileSync(path.join(SAFE_DIRECTORY, 'test.exe'), 'test content', 'utf-8');
+
+                // Execute the file operations tool to read the file
+                await expect(
+                    systemNote.executeTool('file-operations-tool', {
+                        action: 'read',
+                        filename: 'test.exe',
+                    })
+                ).rejects.toThrow('Invalid file extension. Allowed extensions are: .txt, .md, .json, .js');
+            });
+
+             it('should create a directory within the safe directory', async () => {
+                const testDirectoryPath = path.join(SAFE_DIRECTORY, 'test_directory');
+
+                // Execute the file operations tool to create the directory
+                const result = await systemNote.executeTool('file-operations-tool', {
+                    action: 'createDirectory',
+                    filename: 'test_directory',
+                });
+
+                // Verify the result
+                expect(result).toEqual({ result: 'Directory created successfully' });
+
+                // Verify that the directory was created
+                expect(fs.existsSync(testDirectoryPath)).toBe(true);
+
+                // Clean up the test directory after the test
+                fs.rmdirSync(testDirectoryPath);
+            });
+
+            it('should delete a file within the safe directory', async () => {
+                // Create a test file
+                fs.writeFileSync(testFilePath, 'test content', 'utf-8');
+
+                // Execute the file operations tool to delete the file
+                const result = await systemNote.executeTool('file-operations-tool', {
+                    action: 'deleteFile',
+                    filename: 'test.txt',
+                });
+
+                // Verify the result
+                expect(result).toEqual({ result: 'File deleted successfully' });
+
+                // Verify that the file was deleted
+                expect(fs.existsSync(testFilePath)).toBe(false);
             });
         });
     });
