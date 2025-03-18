@@ -7,8 +7,12 @@ import {UIView} from '../UI/UI';
 import MonacoEditor from 'react-monaco-editor';
 import {systemLog} from "../../lib/systemLog";
 
+// Functional component for the Templates View
 export const TemplatesView: React.FC = () => {
+    // Access the system note for managing notes and tools
     const system = getSystemNote();
+
+    // State variables for managing templates
     const [templates, setTemplates] = useState<Note[]>([]);
     const [newTemplateTitle, setNewTemplateTitle] = useState('');
     const [newTemplateContent, setNewTemplateContent] = useState('');
@@ -17,14 +21,16 @@ export const TemplatesView: React.FC = () => {
     const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
     const [templateError, setTemplateError] = useState<string | null>(null);
 
+    // State variables for managing tools
     const [newToolTitle, setNewToolTitle] = useState('');
     const [newToolLogic, setNewToolLogic] = useState('');
     const [newToolInputSchema, setNewToolInputSchema] = useState('');
     const [newToolOutputSchema, setNewToolOutputSchema] = useState('');
 
+    // Fetch templates from the system note
     const fetchTemplates = useCallback(async () => {
         try {
-            const allTemplates = system.getAllNotes().filter(n => n.type === 'Template');
+            const allTemplates = system.getAllNotes().filter(note => note.type === 'Template');
             setTemplates(allTemplates);
             setTemplateError(null);
         } catch (error: any) {
@@ -33,9 +39,11 @@ export const TemplatesView: React.FC = () => {
         }
     }, [system]);
 
+    // Fetch templates on component mount and subscribe to system note changes
     useEffect(() => {
         fetchTemplates();
 
+        // Unsubscribe from system note changes
         const unsubscribe = () => {
             system.getAllNotes();
         };
@@ -43,6 +51,7 @@ export const TemplatesView: React.FC = () => {
 
     }, [fetchTemplates, system]);
 
+    // Handle the creation of a new template
     const handleCreateTemplate = useCallback(async () => {
         if (!newTemplateTitle || !newTemplateContent) {
             setTemplateError('Template title and content are required.');
@@ -73,6 +82,7 @@ export const TemplatesView: React.FC = () => {
         }
     }, [newTemplateContent, newTemplateLogic, newTemplateTitle, system]);
 
+    // Handle the creation of a new task from a template
     const handleCreateTaskFromTemplate = useCallback(async (templateId: string) => {
         try {
             const template = system.getNote(templateId);
@@ -91,6 +101,7 @@ export const TemplatesView: React.FC = () => {
         }
     }, [system]);
 
+    // Handle the creation of a new tool
     const handleCreateTool = useCallback(async () => {
         if (!newToolTitle || !newToolLogic || !newToolInputSchema || !newToolOutputSchema) {
             setTemplateError('All tool fields are required.');
@@ -127,6 +138,7 @@ export const TemplatesView: React.FC = () => {
         setNewToolOutputSchema('');
     }, [newToolInputSchema, newToolLogic, newToolOutputSchema, newToolTitle, system]);
 
+    // Handle editing an existing template
     const handleEditTemplate = useCallback((templateId: string) => {
         try {
             setEditingTemplateId(templateId);
@@ -142,6 +154,7 @@ export const TemplatesView: React.FC = () => {
         }
     }, [system]);
 
+    // Handle saving an edited template
     const handleSaveTemplate = useCallback((templateId: string, newLogic: string) => {
         try {
             const template = system.getNote(templateId);
@@ -160,10 +173,12 @@ export const TemplatesView: React.FC = () => {
         }
     }, [system]);
 
+    // Handle canceling the editing of a template
     const handleCancelEdit = useCallback(() => {
         setEditingTemplateId(null);
     }, []);
 
+    // Monaco Editor options
     const editorOptions = {
         selectOnLineNumbers: true,
         roundedSelection: false,
@@ -172,9 +187,11 @@ export const TemplatesView: React.FC = () => {
         automaticLayout: true,
     };
 
+    // JSX for the Templates View
     return (
         <UIView title="Templates 📄">
             <div className={styles.templatesContainer}>
+                {/* Section for creating new templates */}
                 <h3>Create New Template</h3>
                 <input
                     type="text"
@@ -194,8 +211,9 @@ export const TemplatesView: React.FC = () => {
                 />
                 <button onClick={handleCreateTemplate}>Create Template</button>
                 {templateError && <div className={styles.errorMessage}>Error: {templateError}</div>}
-                <h3>Existing Templates</h3>
 
+                {/* Section for displaying existing templates */}
+                <h3>Existing Templates</h3>
                 <ul>
                     {templates.map(template => (
                         <li key={template.id}>
@@ -222,6 +240,7 @@ export const TemplatesView: React.FC = () => {
                 </ul>
             </div>
 
+            {/* Section for creating new tools */}
             <div className={styles.toolCreationContainer}>
                 <h3>Create New Tool</h3>
                 <input
