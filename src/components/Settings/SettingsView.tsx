@@ -72,6 +72,11 @@ export const SettingsView: React.FC = () => {
             isValid = false;
         }
 
+        if (!settings.serpApiKey) {
+            newErrors.serpApiKey = 'SerpAPI Key is required';
+            isValid = false;
+        }
+
         setErrors(newErrors);
         return isValid;
     };
