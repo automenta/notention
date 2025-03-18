@@ -73,6 +73,12 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose, onSave }) => {
         onClose();
     };
 
+    const handleRun = async () => {
+        if (note) {
+            systemNote.runNote(note.id);
+        }
+    };
+
     return (
         <div className={styles.noteEditor}>
             <h2>Note Editor</h2>
@@ -92,6 +98,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose, onSave }) => {
             />
             <div className={styles.buttons}>
                 <button onClick={handleSave}>Save</button>
+                <button onClick={handleRun}>Run</button>
                 <button onClick={onClose}>Close</button>
             </div>
         </div>
