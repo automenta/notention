@@ -299,6 +299,45 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
         }
     }, []);
 
+    const handleGenerateToolInputs = useCallback(async () => {
+        if (!selectedTaskId || !selectedTool) {
+            systemLog.warn('Cannot generate tool inputs: no task or tool selected.', 'ChatView');
+            return;
+        }
+
+        const task = system.getNote(selectedTaskId);
+        if (!task) {
+            systemLog.error(`Task with ID ${selectedTaskId} not found.`, 'ChatView');
+            return;
+        }
+
+        const selectedToolData = system.getTool(selectedTool);
+        if (!selectedToolData || !selectedToolData.inputSchema) {
+            systemLog.warn('Cannot generate tool inputs: no input schema found.', 'ChatView');
+            return;
+        }
+
+        const llm = system.getLLM();
+        if (!llm) {
+            systemLog.warn('LLM not initialized, cannot generate logic.', 'ChatView');
+            return;
+        }
+
+        const inputSchema = JSON.parse(selectedToolData.inputSchema);
+        const conversationHistory = messages.map(msg => `${msg.type}: ${msg.content}`).join('\n');
+        const prompt = `Generate input values (JSON format) for the "${selectedToolData.title}" tool, based on the following task description: ${task.description}. The input schema is: ${selectedToolData.inputSchema}. Here's the conversation history: ${conversationHistory}`;
+
+        try {
+            const generatedInputs = await llm.invoke(prompt);
+            // Parse the generated inputs and set them as toolInputValues
+            const parsedInputs = JSON.parse(generatedInputs);
+            setToolInputValues(parsedInputs);
+            systemLog.info(`LLM generated tool inputs: ${generatedInputs}`, 'ChatView');
+        } catch (error: any) {
+            systemLog.error(`Error generating tool inputs: ${error.message}`, 'ChatView');
+        }
+    }, [selectedTaskId, selectedTool, system, messages]);
+
     return (
         <div className={styles.chatView}>
             <div className={styles.chatHeader}>
