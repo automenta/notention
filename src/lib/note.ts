@@ -212,7 +212,7 @@ export class NoteImpl {
             systemLog.warn(`LLM not initialized, cannot generate logic for Note ${this.data.id}.`, this.data.type);
             return;
         }
-        const prompt = `Generate a LangChain Runnable steps array (JSON format) for the following task: ${this.data.content}`;
+        const prompt = `Generate a LangChain Runnable steps array (JSON format) for the following task: ${this.data.content.messages.map(m => m.content).join('\n')}. Include a step to use the "web-search-tool" if appropriate.`;
         try {
             const logic = await llm.invoke(prompt);
             this.data.logic = logic;
