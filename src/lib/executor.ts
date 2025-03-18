@@ -1,5 +1,6 @@
 import { Note } from '../types';
 import { systemLog } from './systemLog';
+import { RunnablePassthrough } from "langchain/runnables/passthrough";
 
 export async function executeTool(tool: Note, input: any, toolImplementation?: Function): Promise<any> {
     systemLog.info(`Executing tool ${tool.id}: ${tool.title}`, 'Executor');
@@ -24,8 +25,12 @@ export async function executeTool(tool: Note, input: any, toolImplementation?: F
             let currentInput = input;
             for (const step of logic.steps) {
                 systemLog.debug(`Running step ${step.id} of tool ${tool.id}.`, 'Executor');
-                //Basic passthrough
-                currentInput = input[step.input.replace(/[{}]/g, '')];
+                if (step.type === 'passthrough') {
+                    const runnable = new RunnablePassthrough();
+                    currentInput = await runnable.invoke(input[step.input.replace(/[{}]/g, '')]);
+                } else {
+                    systemLog.warn(`Unknown step type: ${step.type} in tool ${tool.id}. Skipping step.`, 'Executor');
+                }
             }
             return { output: currentInput };
         } catch (error: any) {
