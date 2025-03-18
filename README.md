@@ -208,6 +208,23 @@ Contributions are welcome! Please see the [contributing guidelines](CONTRIBUTING
 
 ---
 
+## Code Guidelines
+
+- **Clarity:** Write clear, self-documenting ES6+ object-oriented code, anticipating code re-use, expansion, and design changes.
+- **Comments:** Explain complex logic or design decisions.
+- **Modern JavaScript:** Use the latest JavaScript language features and APIs.
+- **DRY (Don't Repeat Yourself):** Deduplicate and unify redundant declarations.
+
+## UI Design Principles
+
+- **Progressive Disclosure:** Hide complexity until it's needed for a clean and intuitive UI.
+- **Consistency and Familiarity:** Use established UI patterns and common icons for ease of learning and use.
+- **Visual Hierarchy:** Use whitespace, font sizes, and visual cues to guide the user's eye and create a clear structure.
+- **Minimize Cognitive Load:** Reduce clutter, simplify interactions, and provide clear feedback for a fluent user experience.
+- **Emojis** - fun, visual mnemonics
+
+----
+
 ## License
 
-[MIT](LICENSE)
+[AGPL](LICENSE)
