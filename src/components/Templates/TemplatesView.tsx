@@ -26,6 +26,7 @@ export const TemplatesView: React.FC = () => {
     const [newToolLogic, setNewToolLogic] = useState('');
     const [newToolInputSchema, setNewToolInputSchema] = useState('');
     const [newToolOutputSchema, setNewToolOutputSchema] = useState('');
+    const [toolCreationError, setToolCreationError] = useState<string | null>(null);
 
     // Fetch templates from the system note
     const fetchTemplates = useCallback(async () => {
@@ -104,7 +105,7 @@ export const TemplatesView: React.FC = () => {
     // Handle the creation of a new tool
     const handleCreateTool = useCallback(async () => {
         if (!newToolTitle || !newToolLogic || !newToolInputSchema || !newToolOutputSchema) {
-            setTemplateError('All tool fields are required.');
+            setToolCreationError('All tool fields are required.');
             return;
         }
 
@@ -112,30 +113,36 @@ export const TemplatesView: React.FC = () => {
             JSON.parse(newToolLogic);
             JSON.parse(newToolInputSchema);
             JSON.parse(newToolOutputSchema);
-        } catch (e) {
-            alert('Invalid JSON in Tool definition.');
+        } catch (e: any) {
+            setToolCreationError(`Invalid JSON in Tool definition: ${e.message}`);
             return;
         }
 
-        const newTool: Note = {
-            id: `tool-${Date.now()}`,
-            type: 'Tool',
-            title: newToolTitle,
-            content: `Tool: ${newToolTitle}`,
-            logic: newToolLogic,
-            inputSchema: newToolInputSchema,
-            outputSchema: newToolOutputSchema,
-            status: 'active',
-            priority: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: null,
-            references: [],
-        };
-        system.registerTool(newTool);
-        setNewToolTitle('');
-        setNewToolLogic('');
-        setNewToolInputSchema('');
-        setNewToolOutputSchema('');
+        try {
+            const newTool: Note = {
+                id: `tool-${Date.now()}`,
+                type: 'Tool',
+                title: newToolTitle,
+                content: `Tool: ${newToolTitle}`,
+                logic: newToolLogic,
+                inputSchema: newToolInputSchema,
+                outputSchema: newToolOutputSchema,
+                status: 'active',
+                priority: 0,
+                createdAt: new Date().toISOString(),
+                updatedAt: null,
+                references: [],
+            };
+            system.registerTool(newTool);
+            setNewToolTitle('');
+            setNewToolLogic('');
+            setNewToolInputSchema('');
+            setNewToolOutputSchema('');
+            setToolCreationError(null);
+        } catch (error: any) {
+            systemLog.error(`Error creating tool: ${error.message}`, 'TemplatesView');
+            setToolCreationError(`Error creating tool: ${error.message}`);
+        }
     }, [newToolInputSchema, newToolLogic, newToolOutputSchema, newToolTitle, system]);
 
     // Handle editing an existing template
@@ -265,6 +272,7 @@ export const TemplatesView: React.FC = () => {
                     onChange={(e) => setNewToolOutputSchema(e.target.value)}
                 />
                 <button onClick={handleCreateTool}>Create Tool</button>
+                {toolCreationError && <div className={styles.errorMessage}>Error: {toolCreationError}</div>}
             </div>
         </UIView>
     );
