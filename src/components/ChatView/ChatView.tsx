@@ -133,7 +133,7 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
 
             {editingNote && selectedTaskId ? (
                 <div className={styles.noteEditorInline}>
-                    <h3>Inline Note Editor 📝</h3>
+                    <h3>Edit Note: {system.getNote(selectedTaskId)?.title} 📝</h3>
                     <NoteEditor
                         noteId={selectedTaskId}
                         onClose={handleCancelInlineNote}
