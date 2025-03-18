@@ -96,6 +96,27 @@ export const TaskList: React.FC<{
         //This will require updating the order of the tasks in the system.data.content.notes Map
     };
 
+    // Stubbed functions
+    const handleRunTask = useCallback(() => {
+        console.log('Run Task clicked');
+    }, []);
+
+    const handleArchiveTask = useCallback(() => {
+        console.log('Archive Task clicked');
+    }, []);
+
+    const handleDeleteTask = useCallback(() => {
+        console.log('Delete Task clicked');
+    }, []);
+
+    const handleAddToolStep = useCallback(() => {
+        console.log('Add Tool Step clicked');
+    }, []);
+
+    const handleSelectTool = useCallback((toolId: string) => {
+        console.log('Selected tool:', toolId);
+    }, []);
+
     return (
         <div className={styles.taskList}>
             <h2>Tasks 🚀</h2>

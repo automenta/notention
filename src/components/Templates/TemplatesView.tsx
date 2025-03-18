@@ -166,6 +166,12 @@ export const TemplatesView: React.FC = () => {
     const handleEditContentTemplate = useCallback((templateId: string) => {
         try {
             setEditingContentTemplateId(templateId);
+            const template = system.getNote(templateId);
+            if (!template) {
+                setTemplateError(`Template with id ${templateId} not found.`);
+                return;
+            }
+            setNewTemplateContent(template.content || ''); // Set the content for editing
         } catch (error: any) {
             systemLog.error(`Error editing template: ${error.message}`, 'TemplatesView');
             setTemplateError(`Error editing template: ${error.message}`);
