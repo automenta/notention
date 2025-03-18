@@ -1,9 +1,9 @@
-import React, {useState, useCallback, useMemo} from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styles from './TemplatesView.module.css';
-import {getSystemNote} from '../../lib/systemNote';
-import {Note} from '../../types';
+import { getSystemNote } from '../../lib/systemNote';
+import { Note } from '../../types';
 import MonacoEditor from 'react-monaco-editor';
-import {systemLog} from "../../lib/systemLog";
+import { systemLog } from "../../lib/systemLog";
 import idService from "../../lib/idService";
 
 interface ToolManagerProps {
@@ -36,6 +36,10 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
     const fetchTools = useCallback(async () => {
         setTools(system.getAllTools());
     }, [system]);
+
+    useEffect(() => {
+        fetchTools();
+    }, [fetchTools, system]);
 
     /**
      * Handles the creation of a new tool.
@@ -122,7 +126,7 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
      * Handles editing an existing API tool's configuration.
      * @param {string} toolId - The ID of the API tool to edit.
      */
-     const handleEditApiTool = useCallback((toolId: string) => {
+    const handleEditApiTool = useCallback((toolId: string) => {
         try {
             setEditingApiToolId(toolId);
             const tool = system.getTool(toolId);
@@ -209,16 +213,16 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
      * @param {string} newApiHeaders - The new API headers (JSON format).
      */
     const handleSaveApiTool = useCallback((toolId: string, newApiEndpoint: string, newApiMethod: string, newApiHeaders: string) => {
-         try {
+        try {
             const tool = system.getTool(toolId);
             if (!tool) {
                 setToolCreationError(`Tool with id ${toolId} not found.`);
                 return;
             }
 
-             try {
+            try {
                 JSON.parse(newApiHeaders);
-                 new URL(newApiEndpoint); // Validate API Endpoint URL
+                new URL(newApiEndpoint); // Validate API Endpoint URL
             } catch (e: any) {
                 setToolCreationError(`Invalid JSON or URL in API definition: ${e.message}`);
                 return;
@@ -297,7 +301,7 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
     /**
      * Handles canceling the editing of an API tool's configuration.
      */
-     const handleCancelEditApiTool = useCallback(() => {
+    const handleCancelEditApiTool = useCallback(() => {
         setEditingApiToolId(null);
     }, []);
 
@@ -327,14 +331,14 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
     }), []);
 
     return (
-        <div className={styles.toolCreationContainer}>
-            {/* Section for creating new tools */}
-            <h3>Create New Tool</h3>
-            <label htmlFor="newToolTitle">Tool Title:</label>
+        <div className={styles.templatesContainer}>
+            {/* Section for creating new templates */}
+            <h3>Create New Template</h3>
+            <label htmlFor="newTemplateTitle">Template Title:</label>
             <input
                 type="text"
-                id="newToolTitle"
-                placeholder="Tool Title"
+                id="newTemplateTitle"
+                placeholder="Template Title"
                 value={newToolTitle}
                 onChange={(e) => setNewToolTitle(e.target.value)}
             />
@@ -343,14 +347,27 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
             <select
                 id="newToolType"
                 value={newToolType}
-                onChange={(e) => {
-                    setNewToolType(e.target.value as 'custom' | 'langchain' | 'api');
-                }}
+                onChange={(e) => setNewToolType(e.target.value as 'custom' | 'langchain' | 'api')}
             >
                 <option value="custom">Custom</option>
                 <option value="langchain">LangChain</option>
                 <option value="api">API</option>
             </select>
+
+            {newToolType === 'custom' && (
+                <>
+                    <label htmlFor="newTemplateContent">Template Content:</label>
+                    <MonacoEditor
+                        width="600"
+                        height="300"
+                        language="json"
+                        theme="vs-dark"
+                        value={newToolLogic}
+                        options={editorOptions}
+                        onChange={(value) => setNewToolLogic(value)}
+                    />
+                </>
+            )}
 
             {newToolType === 'api' && (
                 <>
@@ -362,80 +379,20 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                         value={newApiEndpoint}
                         onChange={(e) => setNewApiEndpoint(e.target.value)}
                     />
-
-                    <label htmlFor="newApiMethod">API Method:</label>
-                    <select
-                        id="newApiMethod"
-                        value={newApiMethod}
-                        onChange={(e) => setNewApiMethod(e.target.value as 'GET' | 'POST' | 'PUT' | 'DELETE')}
-                    >
-                        <option value="GET">GET</option>
-                        <option value="POST">POST</option>
-                        <option value="PUT">PUT</option>
-                        <option value="DELETE">DELETE</option>
-                    </select>
-
-                    <label htmlFor="newApiHeaders">API Headers (JSON):</label>
-                    <MonacoEditor
-                        width="600"
-                        height="200"
-                        language="json"
-                        theme="vs-dark"
-                        value={newApiHeaders}
-                        options={editorOptions}
-                        onChange={(value) => setNewApiHeaders(value)}
-                    />
                 </>
             )}
 
-            {newToolType !== 'api' && (
-                <label htmlFor="newToolLogic">Tool Logic (JSON):</label>
-            )}
-            {newToolType !== 'api' && (
-                <MonacoEditor
-                    width="600"
-                    height="300"
-                    language="json"
-                    theme="vs-dark"
-                    value={newToolLogic}
-                    options={editorOptions}
-                    onChange={(value) => setNewToolLogic(value)}
-                />
-            )}
+            <button onClick={handleCreateTool}>Create Template</button>
 
-            <label htmlFor="newToolInputSchema">Tool Input Schema (JSON):</label>
-            <MonacoEditor
-                width="600"
-                height="300"
-                language="json"
-                theme="vs-dark"
-                value={newToolInputSchema}
-                options={editorOptions}
-                onChange={(value) => setNewToolInputSchema(value)}
-            />
-            <label htmlFor="newToolOutputSchema">Tool Output Schema (JSON):</label>
-            <MonacoEditor
-                width="600"
-                height="300"
-                language="json"
-                theme="vs-dark"
-                value={newToolOutputSchema}
-                options={editorOptions}
-                onChange={(value) => setNewToolOutputSchema(value)}
-            />
-            <button onClick={handleCreateTool}>Create Tool</button>
-            {toolCreationError && <div className={styles.errorMessage}>Error: {toolCreationError}</div>}
-
-            {/* Section for displaying existing tools */}
-            <h3>Existing Tools</h3>
+            {/* Section for displaying existing templates */}
+            <h3>Existing Templates</h3>
             <ul>
-                {system.getAllTools().map(tool => (
+                {tools.map(tool => (
                     <li key={tool.id}>
                         {tool.title}
-                        {tool.type !== 'api' && (
+                        {tool.type === 'custom' && (
                             <button onClick={() => {
                                 handleEditTool(tool.id);
-                                setNewToolLogic(tool.logic || '');
                             }}>Edit Logic</button>
                         )}
                         {tool.type === 'api' && (
@@ -443,14 +400,6 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                                 handleEditApiTool(tool.id);
                             }}>Edit API Config</button>
                         )}
-                        <button onClick={() => {
-                            handleEditToolInputSchema(tool.id);
-                            setNewToolInputSchema(tool.inputSchema || '');
-                        }}>Edit Input Schema</button>
-                        <button onClick={() => {
-                            handleEditToolOutputSchema(tool.id);
-                            setNewToolOutputSchema(tool.outputSchema || '');
-                        }}>Edit Output Schema</button>
 
                         {editingToolId === tool.id && (
                             <div className={styles.templateEditor}>
@@ -470,71 +419,16 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
 
                         {editingApiToolId === tool.id && (
                             <div className={styles.templateEditor}>
-                                 <label htmlFor={`apiEndpoint-${tool.id}`}>API Endpoint:</label>
-                                    <input
-                                        type="text"
-                                        id={`apiEndpoint-${tool.id}`}
-                                        placeholder="API Endpoint URL"
-                                        value={newApiEndpoint}
-                                        onChange={(e) => setNewApiEndpoint(e.target.value)}
-                                    />
-
-                                    <label htmlFor={`apiMethod-${tool.id}`}>API Method:</label>
-                                    <select
-                                        id={`apiMethod-${tool.id}`}
-                                        value={newApiMethod}
-                                        onChange={(e) => setNewApiMethod(e.target.value as 'GET' | 'POST' | 'PUT' | 'DELETE')}
-                                    >
-                                        <option value="GET">GET</option>
-                                        <option value="POST">POST</option>
-                                        <option value="PUT">PUT</option>
-                                        <option value="DELETE">DELETE</option>
-                                    </select>
-
-                                    <label htmlFor={`apiHeaders-${tool.id}`}>API Headers (JSON):</label>
-                                    <MonacoEditor
-                                        width="600"
-                                        height="200"
-                                        language="json"
-                                        theme="vs-dark"
-                                        value={newApiHeaders}
-                                        options={editorOptions}
-                                        onChange={(value) => setNewApiHeaders(value)}
-                                    />
-                                <button onClick={() => handleSaveApiTool(tool.id, newApiEndpoint, newApiMethod, newApiHeaders)}>Save</button>
+                                <label htmlFor={`apiEndpoint-${tool.id}`}>API Endpoint:</label>
+                                <input
+                                    type="text"
+                                    id={`apiEndpoint-${tool.id}`}
+                                    placeholder="API Endpoint URL"
+                                    value={newApiEndpoint}
+                                    onChange={(e) => setNewApiEndpoint(e.target.value)}
+                                />
+                                <button onClick={() => handleSaveApiTool(tool.id, newApiEndpoint)}>Save</button>
                                 <button onClick={handleCancelEditApiTool}>Cancel</button>
-                            </div>
-                        )}
-
-                        {editingToolInputSchemaId === tool.id && (
-                            <div className={styles.templateEditor}>
-                                <MonacoEditor
-                                    width="600"
-                                    height="300"
-                                    language="json"
-                                    theme="vs-dark"
-                                    value={newToolInputSchema}
-                                    options={editorOptions}
-                                    onChange={(value) => setNewToolInputSchema(value)}
-                                />
-                                <button onClick={() => handleSaveToolInputSchema(tool.id, newInputSchema)}>Save</button>
-                                <button onClick={handleCancelEditToolInputSchema}>Cancel</button>
-                            </div>
-                        )}
-
-                        {editingToolOutputSchemaId === tool.id && (
-                            <div className={styles.templateEditor}>
-                                <MonacoEditor
-                                    width="600"
-                                    height="300"
-                                    language="json"
-                                    theme="vs-dark"
-                                    value={newToolOutputSchema}
-                                    options={editorOptions}
-                                    onChange={(value) => setNewToolOutputSchema(value)}
-                                />
-                                <button onClick={() => handleSaveToolOutputSchema(tool.id, newOutputSchema)}>Save</button>
-                                <button onClick={handleCancelEditToolOutputSchema}>Cancel</button>
                             </div>
                         )}
                     </li>
