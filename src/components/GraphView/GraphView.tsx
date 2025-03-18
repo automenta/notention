@@ -1,5 +1,5 @@
 // src/components/GraphView/GraphView.tsx
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useRef} from 'react';
 import {getSystemNote, onSystemNoteChange} from '../../lib/systemNote';
 import styles from './GraphView.module.css';
 
