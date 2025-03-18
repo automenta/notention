@@ -9,15 +9,27 @@ interface Settings {
     serpApiKey: string;
 }
 
-export const getSettings = (): Settings | null => {
-    try {
-        const settingsString = localStorage.getItem('settings');
-        if (settingsString) {
-            return JSON.parse(settingsString) as Settings;
+const defaultSettings: Settings = {
+    concurrency: 5,
+    apiKey: '',
+    theme: '',
+    modelName: 'gpt-3.5-turbo',
+    temperature: 0.7,
+    usePersistence: false,
+    serpApiKey: '',
+};
+
+export const SettingsService = {
+    getSettings: (): Settings => {
+        try {
+            const settingsString = localStorage.getItem('settings');
+            if (settingsString) {
+                return JSON.parse(settingsString) as Settings;
+            }
+            return defaultSettings;
+        } catch (error) {
+            console.error("Error getting settings from local storage:", error);
+            return defaultSettings;
         }
-        return null;
-    } catch (error) {
-        console.error("Error getting settings from local storage:", error);
-        return null;
-    }
+    },
 };

@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import styles from './SettingsView.module.css';
 import { Settings, validateSettings } from './settingsValidation';
 import { SettingsService } from '../../lib/settingsService';
+import { getSystemNote } from '../../lib/systemNote';
 
 interface SettingsViewProps {
     onClose: () => void;
@@ -37,6 +38,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onClose }) => {
             setErrors(validationResult.errors);
         } else {
             localStorage.setItem('settings', JSON.stringify(settings)); // Save settings to local storage
+            const systemNote = getSystemNote();
+            systemNote.data.content.llm.apiKey = settings.apiKey;
+            systemNote.data.content.llm.modelName = settings.modelName;
+            systemNote.data.content.llm.temperature = settings.temperature;
+            localStorage.setItem('usePersistence', JSON.stringify(settings.usePersistence));
             onClose();
         }
     }, [settings, onClose]);
