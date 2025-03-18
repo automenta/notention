@@ -118,8 +118,22 @@ export const TaskList: React.FC<{
         // Update the tasks state with the new order
         setTasks(items);
 
-        //TODO: Persist the new order in the system note (if needed)
-        //This will require updating the order of the tasks in the system.data.content.notes Map
+        // Persist the new order in the system note
+        const newNotesMap = new Map<string, Note>();
+        items.forEach(task => {
+            newNotesMap.set(task.id, task);
+        });
+
+        // Get all existing notes that are not tasks
+        const nonTaskNotes = Array.from(system.data.content.notes.values()).filter(note => note.type !== 'Task');
+
+        // Add the non-task notes back to the new map
+        nonTaskNotes.forEach(note => {
+            newNotesMap.set(note.id, note);
+        });
+
+        system.data.content.notes = newNotesMap;
+        system.notify();
     };
 
     const handleRunTask = useCallback(() => {
