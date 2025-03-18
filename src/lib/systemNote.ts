@@ -112,10 +112,18 @@ export const useSystemNote = () => {
 };
 
 export const getSystemNote = () => {
-    if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
-        migrateDataToGraphDB();
-        hasMigratedData = true;
+    const usePersistence = localStorage.getItem('usePersistence') === 'true';
+    const dataMigrationComplete = localStorage.getItem('dataMigrationComplete') === 'true';
+
+    if (usePersistence && !dataMigrationComplete) {
+        systemLog.info('Migrating data to GraphDBNoteStorage.');
+        migrateDataToGraphDB().then(() => {
+            localStorage.setItem('dataMigrationComplete', 'true');
+            systemLog.info('Data migration complete.');
+        });
     }
+
+    ensureSystemNote();
 
     return new SystemNote(systemNoteData!, noteStorage);
 };
