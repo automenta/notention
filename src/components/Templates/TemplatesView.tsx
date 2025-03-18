@@ -28,6 +28,9 @@ export const TemplatesView: React.FC = () => {
     const [newToolInputSchema, setNewToolInputSchema] = useState('');
     const [newToolOutputSchema, setNewToolOutputSchema] = useState('');
     const [toolCreationError, setToolCreationError] = useState<string | null>(null);
+    const [editingToolId, setEditingToolId] = useState<string | null>(null);
+    const [editingToolInputSchemaId, setEditingToolInputSchemaId] = useState<string | null>(null);
+    const [editingToolOutputSchemaId, setEditingToolOutputSchemaId] = useState<string | null>(null);
 
     // Fetch templates from the system note
     const fetchTemplates = useCallback(async () => {
@@ -224,6 +227,120 @@ export const TemplatesView: React.FC = () => {
         setEditingContentTemplateId(null);
     }, []);
 
+    // Handle editing an existing tool
+    const handleEditTool = useCallback((toolId: string) => {
+        try {
+            setEditingToolId(toolId);
+            const tool = system.getTool(toolId);
+            if (!tool) {
+                setToolCreationError(`Tool with id ${toolId} not found.`);
+                return;
+            }
+            setNewToolLogic(tool.logic || '');
+        } catch (error: any) {
+            systemLog.error(`Error editing tool: ${error.message}`, 'TemplatesView');
+            setToolCreationError(`Error editing tool: ${error.message}`);
+        }
+    }, [system]);
+
+    const handleEditToolInputSchema = useCallback((toolId: string) => {
+        try {
+            setEditingToolInputSchemaId(toolId);
+            const tool = system.getTool(toolId);
+            if (!tool) {
+                setToolCreationError(`Tool with id ${toolId} not found.`);
+                return;
+            }
+            setNewToolInputSchema(tool.inputSchema || '');
+        } catch (error: any) {
+            systemLog.error(`Error editing tool input schema: ${error.message}`, 'TemplatesView');
+            setToolCreationError(`Error editing tool input schema: ${error.message}`);
+        }
+    }, [system]);
+
+    const handleEditToolOutputSchema = useCallback((toolId: string) => {
+        try {
+            setEditingToolOutputSchemaId(toolId);
+            const tool = system.getTool(toolId);
+            if (!tool) {
+                setToolCreationError(`Tool with id ${toolId} not found.`);
+                return;
+            }
+            setNewToolOutputSchema(tool.outputSchema || '');
+        } catch (error: any) {
+            systemLog.error(`Error editing tool output schema: ${error.message}`, 'TemplatesView');
+            setToolCreationError(`Error editing tool output schema: ${error.message}`);
+        }
+    }, [system]);
+
+    // Handle saving an edited tool
+    const handleSaveTool = useCallback((toolId: string, newLogic: string) => {
+        try {
+            const tool = system.getTool(toolId);
+            if (!tool) {
+                setToolCreationError(`Tool with id ${toolId} not found.`);
+                return;
+            }
+
+            tool.logic = newLogic;
+            system.updateNote(tool);
+            setEditingToolId(null);
+            setToolCreationError(null);
+        } catch (error: any) {
+            systemLog.error(`Error saving tool: ${error.message}`, 'TemplatesView');
+            setToolCreationError(`Error saving tool: ${error.message}`);
+        }
+    }, [system]);
+
+    const handleSaveToolInputSchema = useCallback((toolId: string, newInputSchema: string) => {
+        try {
+            const tool = system.getTool(toolId);
+            if (!tool) {
+                setToolCreationError(`Tool with id ${toolId} not found.`);
+                return;
+            }
+
+            tool.inputSchema = newInputSchema;
+            system.updateNote(tool);
+            setEditingToolInputSchemaId(null);
+            setToolCreationError(null);
+        } catch (error: any) {
+            systemLog.error(`Error saving tool input schema: ${error.message}`, 'TemplatesView');
+            setToolCreationError(`Error saving tool input schema: ${error.message}`);
+        }
+    }, [system]);
+
+    const handleSaveToolOutputSchema = useCallback((toolId: string, newOutputSchema: string) => {
+        try {
+            const tool = system.getTool(toolId);
+            if (!tool) {
+                setToolCreationError(`Tool with id ${toolId} not found.`);
+                return;
+            }
+
+            tool.outputSchema = newOutputSchema;
+            system.updateNote(tool);
+            setEditingToolOutputSchemaId(null);
+            setToolCreationError(null);
+        } catch (error: any) {
+            systemLog.error(`Error saving tool output schema: ${error.message}`, 'TemplatesView');
+            setToolCreationError(`Error saving tool output schema: ${error.message}`);
+        }
+    }, [system]);
+
+    // Handle canceling the editing of a tool
+    const handleCancelEditTool = useCallback(() => {
+        setEditingToolId(null);
+    }, []);
+
+    const handleCancelEditToolInputSchema = useCallback(() => {
+        setEditingToolInputSchemaId(null);
+    }, []);
+
+    const handleCancelEditToolOutputSchema = useCallback(() => {
+        setEditingToolOutputSchemaId(null);
+    }, []);
+
     // Monaco Editor options
     const editorOptions = useMemo(() => ({
         selectOnLineNumbers: true,
@@ -349,6 +466,76 @@ export const TemplatesView: React.FC = () => {
                 <button onClick={handleCreateTool}>Create Tool</button>
                 {toolCreationError && <div className={styles.errorMessage}>Error: {toolCreationError}</div>}
             </div>
+
+            {/* Section for displaying existing tools */}
+            <h3>Existing Tools</h3>
+            <ul>
+                {system.getAllTools().map(tool => (
+                    <li key={tool.id}>
+                        {tool.title}
+                        <button onClick={() => {
+                            handleEditTool(tool.id);
+                            setNewToolLogic(tool.logic || '');
+                        }}>Edit Logic</button>
+                        <button onClick={() => {
+                            handleEditToolInputSchema(tool.id);
+                            setNewToolInputSchema(tool.inputSchema || '');
+                        }}>Edit Input Schema</button>
+                        <button onClick={() => {
+                            handleEditToolOutputSchema(tool.id);
+                            setNewToolOutputSchema(tool.outputSchema || '');
+                        }}>Edit Output Schema</button>
+
+                        {editingToolId === tool.id && (
+                            <div className={styles.templateEditor}>
+                                <MonacoEditor
+                                    width="600"
+                                    height="300"
+                                    language="json"
+                                    theme="vs-dark"
+                                    value={newToolLogic}
+                                    options={editorOptions}
+                                    onChange={(value) => setNewToolLogic(value)}
+                                />
+                                <button onClick={() => handleSaveTool(tool.id, newToolLogic)}>Save</button>
+                                <button onClick={handleCancelEditTool}>Cancel</button>
+                            </div>
+                        )}
+
+                        {editingToolInputSchemaId === tool.id && (
+                            <div className={styles.templateEditor}>
+                                <MonacoEditor
+                                    width="600"
+                                    height="300"
+                                    language="json"
+                                    theme="vs-dark"
+                                    value={newToolInputSchema}
+                                    options={editorOptions}
+                                    onChange={(value) => setNewToolInputSchema(value)}
+                                />
+                                <button onClick={() => handleSaveToolInputSchema(tool.id, newToolInputSchema)}>Save</button>
+                                <button onClick={handleCancelEditToolInputSchema}>Cancel</button>
+                            </div>
+                        )}
+
+                        {editingToolOutputSchemaId === tool.id && (
+                            <div className={styles.templateEditor}>
+                                <MonacoEditor
+                                    width="600"
+                                    height="300"
+                                    language="json"
+                                    theme="vs-dark"
+                                    value={newToolOutputSchema}
+                                    options={editorOptions}
+                                    onChange={(value) => setNewToolOutputSchema(value)}
+                                />
+                                <button onClick={() => handleSaveToolOutputSchema(tool.id, newToolOutputSchema)}>Save</button>
+                                <button onClick={handleCancelEditToolOutputSchema}>Cancel</button>
+                            </div>
+                        )}
+                    </li>
+                ))}
+            </ul>
         </UIView>
     );
 };
