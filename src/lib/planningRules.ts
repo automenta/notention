@@ -8,7 +8,7 @@ export interface PlanningRule {
     name: string;
     order: 'before' | 'after'; // Specify when the rule should be applied
     condition?: (task: Note, system: SystemNote) => boolean; // Optional synchronous condition
-    llmCondition?: (task: Note, system: SystemNote) => Promise<boolean>; // Optional LLM-powered condition
+    llmCondition?: (task: Note, system: SystemNote) => Promise<{ result: boolean, confidence: number }>; // Optional LLM-powered condition
     action?: (task: Note, system: SystemNote) => Promise<void>; // Optional synchronous action
     llmAction?: (task: Note, system: SystemNote) => Promise<(task: Note, system: SystemNote) => Promise<void>>; // Optional LLM-powered action generator
 }
@@ -48,17 +48,27 @@ const planningRules: PlanningRule[] = [
             const llm = system.getLLM();
             if (!llm) {
                 systemLog.warn('LLM not initialized, cannot use LLM-powered condition.', 'PlanningRules');
-                return false;
+                return { result: false, confidence: 0 };
             }
 
-            const prompt = `Does the following task description require a web search to be completed? Answer "yes" or "no".\n\n${task.description}`;
+            const prompt = `Analyze the following task description and determine if it requires a web search to be completed. 
+            Respond with a JSON object containing "result" (true or false) and "confidence" (a number between 0 and 1 representing your certainty).
+            Task Description: ${task.description}`;
             try {
                 const response = await llm.invoke(prompt);
-                const answer = response.toLowerCase().trim();
-                return answer.includes('yes');
+                const jsonResponse = JSON.parse(response);
+                const result = jsonResponse.result === true;
+                const confidence = parseFloat(jsonResponse.confidence);
+
+                if (isNaN(confidence) || confidence < 0 || confidence > 1) {
+                    systemLog.warn(`Invalid confidence value received: ${jsonResponse.confidence}`, 'PlanningRules');
+                    return { result: false, confidence: 0 };
+                }
+
+                return { result, confidence };
             } catch (error: any) {
                 systemLog.error(`Error during LLM call: ${error.message}`, 'PlanningRules');
-                return false;
+                return { result: false, confidence: 0 };
             }
         },
         llmAction: async (task: Note, system: SystemNote) => {

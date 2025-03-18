@@ -126,7 +126,13 @@ class SystemNote {
                     }
                     if (rule.llmCondition) {
                         try {
-                            conditionMet = await rule.llmCondition(note, this);
+                            const llmResponse = await rule.llmCondition(note, this);
+                            conditionMet = llmResponse.result;
+                            const confidenceThreshold = 0.75; // Adjust this value as needed
+                            if (llmResponse.confidence < confidenceThreshold) {
+                                systemLog.info(`LLM confidence below threshold (${confidenceThreshold}), skipping rule.`, 'SystemNote');
+                                conditionMet = false;
+                            }
                         } catch (error: any) {
                             systemLog.error(`Error during LLM condition check: ${error.message}`, 'SystemNote');
                             conditionMet = false; // Treat LLM errors as condition not met
