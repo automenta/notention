@@ -282,73 +282,8 @@ class SystemNote {
         }
 
         try {
-            switch (tool.type) {
-                case 'custom':
-                    return await executor.executeTool(tool, input, toolImplementation);
-                case 'langchain':
-                    // Assuming the 'implementation' field holds the LangChain tool instance
-                    if (!tool.implementation) {
-                        throw new Error(`LangChain tool implementation missing for tool ${toolId}`);
-                    }
-                    try {
-                        return await tool.implementation.call(input); // Or however you call the LangChain tool
-                    } catch (error: any) {
-                        systemLog.error(`Error executing LangChain tool ${toolId}: ${error.message}`, 'SystemNote');
-                        throw new Error(`Error executing LangChain tool ${toolId}: ${error.message}`);
-                    }
-                case 'api':
-                    // Implement API call logic here (e.g., using fetch)
-                    systemLog.info(`Executing API Tool ${toolId}`, 'SystemNote');
-                    try {
-                        // Validate API endpoint URL
-                        try {
-                            new URL(tool.logic);
-                        } catch (urlError: any) {
-                            systemLog.error(`Invalid API endpoint URL for tool ${toolId}: ${tool.logic}`, 'SystemNote');
-                            throw new Error(`Invalid API endpoint URL: ${tool.logic} - ${urlError.message}`);
-                        }
-
-                        const method = tool.config?.method || 'POST';
-                        let headers = {};
-                        try {
-                            headers = tool.config?.headers ? JSON.parse(tool.config.headers) : { 'Content-Type': 'application/json' };
-                        } catch (headersError: any) {
-                            systemLog.error(`Invalid API headers JSON for tool ${toolId}: ${tool.config?.headers}`, 'SystemNote');
-                            throw new Error(`Invalid API headers JSON: ${headersError.message}`);
-                        }
-
-                        // Add API Key if authType is apiKey
-                        if (tool.config?.authType === 'apiKey' && tool.config?.apiKeyHeader && tool.config?.apiKeyValue) {
-                            headers[tool.config.apiKeyHeader] = tool.config.apiKeyValue;
-                        }
-
-                        const response = await fetch(tool.logic, { // Assuming tool.logic contains the API endpoint
-                            method: method,
-                            headers: headers,
-                            body: JSON.stringify(input), // Send the input as JSON
-                        });
-
-                        if (!response.ok) {
-                            let errorBody = '';
-                            try {
-                                errorBody = JSON.stringify(await response.json());
-                            } catch (e) {
-                                errorBody = response.statusText;
-                            }
-                            systemLog.error(`API call failed for tool ${toolId}: ${response.status} ${response.statusText} - ${errorBody}`, 'SystemNote');
-                            throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorBody}`);
-                        }
-
-                        const data = await response.json();
-                        systemLog.info(`API call successful for tool ${toolId}`, 'SystemNote');
-                        return data;
-                    } catch (error: any) {
-                        systemLog.error(`Error executing API tool ${toolId}: ${error.message}`, 'SystemNote');
-                        return { error: `API call failed: ${error.message}` }; // Return error in a structured format
-                    }
-                default:
-                    throw new Error(`Unknown tool type: ${tool.type}`);
-            }
+            // Use the Executor for all tool types
+            return await executor.executeTool(tool, input, toolImplementation);
         } catch (error: any) {
             systemLog.error(`Error executing tool ${toolId}: ${error.message}`, 'SystemNote');
             throw error;
