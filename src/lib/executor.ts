@@ -17,6 +17,13 @@ class InvalidToolLogicError extends Error {
     }
 }
 
+class ToolNotFoundError extends Error {
+    constructor(message: string, public toolId: string) {
+        super(message);
+        this.name = 'ToolNotFoundError';
+    }
+}
+
 export async function executeTool(tool: Note, input: any, llm: ChatOpenAI, toolImplementation?: Function): Promise<any> {
     systemLog.info(`Executing tool ${tool.id}: ${tool.title}`, 'Executor');
 
