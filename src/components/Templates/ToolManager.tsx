@@ -17,6 +17,9 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
     const [newToolInputSchema, setNewToolInputSchema] = useState('');
     const [newToolOutputSchema, setNewToolOutputSchema] = useState('');
     const [newToolType, setNewToolType] = useState<'custom' | 'langchain' | 'api'>('custom'); // Default to 'custom'
+    const [newApiEndpoint, setNewApiEndpoint] = useState('');
+    const [newApiMethod, setNewApiMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE'>('POST'); // Default to 'POST'
+    const [newApiHeaders, setNewApiHeaders] = useState('{}'); // Default to empty JSON object
     const [toolCreationError, setToolCreationError] = useState<string | null>(null);
     const [editingToolId, setEditingToolId] = useState<string | null>(null);
     const [editingToolInputSchemaId, setEditingToolInputSchemaId] = useState<string | null>(null);
@@ -29,15 +32,22 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
 
     // Handle the creation of a new tool
     const handleCreateTool = useCallback(async () => {
-        if (!newToolTitle || !newToolLogic || !newToolInputSchema || !newToolOutputSchema) {
-            setToolCreationError('All tool fields are required.');
+        if (!newToolTitle || !newToolInputSchema || !newToolOutputSchema) {
+            setToolCreationError('Tool Title, Input Schema, and Output Schema are required.');
+            return;
+        }
+
+        if (newToolType === 'api' && (!newApiEndpoint || !newApiMethod)) {
+            setToolCreationError('API Endpoint and Method are required for API tools.');
             return;
         }
 
         try {
-            JSON.parse(newToolLogic);
             JSON.parse(newToolInputSchema);
             JSON.parse(newToolOutputSchema);
+            if (newToolType === 'api') {
+                JSON.parse(newApiHeaders); // Validate headers as JSON
+            }
         } catch (e: any) {
             setToolCreationError(`Invalid JSON in Tool definition: ${e.message}`);
             return;
@@ -49,7 +59,7 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                 type: newToolType, // Use the selected tool type
                 title: newToolTitle,
                 content: `Tool: ${newToolTitle}`,
-                logic: newToolLogic,
+                logic: newToolType === 'api' ? newApiEndpoint : newToolLogic, // Store API endpoint in logic for API tools
                 inputSchema: newToolInputSchema,
                 outputSchema: newToolOutputSchema,
                 status: 'active',
@@ -57,6 +67,10 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                 createdAt: new Date().toISOString(),
                 updatedAt: null,
                 references: [],
+                config: newToolType === 'api' ? {
+                    method: newApiMethod,
+                    headers: newApiHeaders,
+                } : undefined,
             };
             system.registerToolDefinition(newTool);
             setNewToolTitle('');
@@ -64,13 +78,16 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
             setNewToolInputSchema('');
             setNewToolOutputSchema('');
             setNewToolType('custom'); // Reset to default
+            setNewApiEndpoint('');
+            setNewApiMethod('POST');
+            setNewApiHeaders('{}');
             setToolCreationError(null);
             fetchTools();
         } catch (error: any) {
             systemLog.error(`Error creating tool: ${error.message}`, 'ToolManager');
             setToolCreationError(`Error creating tool: ${error.message}`);
         }
-    }, [newToolInputSchema, newToolLogic, newToolOutputSchema, newToolTitle, newToolType, system, fetchTools]);
+    }, [newToolInputSchema, newToolLogic, newToolOutputSchema, newToolTitle, newToolType, system, fetchTools, newApiEndpoint, newApiMethod, newApiHeaders]);
 
     // Handle editing an existing tool
     const handleEditTool = useCallback((toolId: string) => {
@@ -215,20 +232,60 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
             <select
                 id="newToolType"
                 value={newToolType}
-                onChange={(e) => setNewToolType(e.target.value as 'custom' | 'langchain' | 'api')}
+                onChange={(e) => {
+                    setNewToolType(e.target.value as 'custom' | 'langchain' | 'api');
+                }}
             >
                 <option value="custom">Custom</option>
                 <option value="langchain">LangChain</option>
                 <option value="api">API</option>
             </select>
 
-            <label htmlFor="newToolLogic">Tool Logic (JSON):</label>
-            <textarea
-                id="newToolLogic"
-                placeholder="Tool Logic (JSON)"
-                value={newToolLogic}
-                onChange={(e) => setNewToolLogic(e.target.value)}
-            />
+            {newToolType === 'api' && (
+                <>
+                    <label htmlFor="newApiEndpoint">API Endpoint:</label>
+                    <input
+                        type="text"
+                        id="newApiEndpoint"
+                        placeholder="API Endpoint URL"
+                        value={newApiEndpoint}
+                        onChange={(e) => setNewApiEndpoint(e.target.value)}
+                    />
+
+                    <label htmlFor="newApiMethod">API Method:</label>
+                    <select
+                        id="newApiMethod"
+                        value={newApiMethod}
+                        onChange={(e) => setNewApiMethod(e.target.value as 'GET' | 'POST' | 'PUT' | 'DELETE')}
+                    >
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+
+                    <label htmlFor="newApiHeaders">API Headers (JSON):</label>
+                    <textarea
+                        id="newApiHeaders"
+                        placeholder="API Headers (JSON)"
+                        value={newApiHeaders}
+                        onChange={(e) => setNewApiHeaders(e.target.value)}
+                    />
+                </>
+            )}
+
+            {newToolType !== 'api' && (
+                <label htmlFor="newToolLogic">Tool Logic (JSON):</label>
+            )}
+            {newToolType !== 'api' && (
+                <textarea
+                    id="newToolLogic"
+                    placeholder="Tool Logic (JSON)"
+                    value={newToolLogic}
+                    onChange={(e) => setNewToolLogic(e.target.value)}
+                />
+            )}
+
             <label htmlFor="newToolInputSchema">Tool Input Schema (JSON):</label>
             <textarea
                 id="newToolInputSchema"
