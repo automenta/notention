@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useMemo} from 'react';
 import styles from './TemplatesView.module.css';
 import {getSystemNote} from '../../lib/systemNote';
 import {Note} from '../../types';
@@ -179,13 +179,13 @@ export const TemplatesView: React.FC = () => {
     }, []);
 
     // Monaco Editor options
-    const editorOptions = {
+    const editorOptions = useMemo(() => ({
         selectOnLineNumbers: true,
         roundedSelection: false,
         readOnly: false,
         cursorStyle: 'line',
         automaticLayout: true,
-    };
+    }), []);
 
     // JSX for the Templates View
     return (
