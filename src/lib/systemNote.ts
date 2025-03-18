@@ -13,7 +13,7 @@ import { migrateDataToGraphDB } from './dataMigration';
 import { SettingsService } from './settingsService';
 import React from 'react';
 import { ToolRegistry } from './toolRegistry';
-import { Executor } from './executor';
+import { executeTool } from './executor';
 
 type Listener = () => void;
 const listeners: Listener[] = [];
@@ -21,52 +21,57 @@ let systemNoteData: Note | undefined = undefined;
 let noteStorage: NoteStorage = new InMemoryNoteStorage();
 let hasMigratedData: boolean = false;
 
+const initializeSystemNoteData = (llm: ChatOpenAI | any): Note => {
+    let defaultLLM: ChatOpenAI | any;
+    try {
+        const settings = SettingsService.getSettings();
+        defaultLLM = new ChatOpenAI({
+            apiKey: settings.apiKey,
+            modelName: settings.modelName,
+            temperature: settings.temperature,
+        });
+        systemLog.info(`LLM Initialized with model ${settings.modelName}`, 'SystemNote');
+    } catch (error: any) {
+        systemLog.error(`Error initializing LLM: ${error.message}.  Ensure you have an OPENAI_API_KEY set.`, 'SystemNote');
+        defaultLLM = null;
+    }
+
+    const newSystemNoteData: Note = {
+        id: 'system',
+        type: 'System',
+        title: 'Netention System',
+        content: {
+            notes: new Map<string, Note>(),
+            activeQueue: [],
+            runningCount: 0,
+            concurrencyLimit: 5,
+            llm: llm || defaultLLM,
+            toolRegistry: new ToolRegistry(),
+            // executor: new Executor(), //Executor is now a function
+        },
+        status: 'active',
+        priority: 100,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+        references: [],
+        description: 'The root note for the system.',
+        inputSchema: undefined,
+        outputSchema: undefined,
+        config: undefined,
+        logic: undefined
+    };
+    systemLog.info('System Note Initialized 🚀', 'SystemNote');
+    initializeInitialTools();
+    return newSystemNoteData;
+};
+
 // Centralized system note initialization
 export const useSystemNote = () => {
     const [systemNote, setSystemNote] = React.useState<SystemNote | null>(null);
 
     React.useEffect(() => {
-        let defaultLLM: ChatOpenAI | any;
-        try {
-            const settings = SettingsService.getSettings();
-            defaultLLM = new ChatOpenAI({
-                apiKey: settings.apiKey,
-                modelName: settings.modelName,
-                temperature: settings.temperature,
-            });
-            systemLog.info(`LLM Initialized with model ${settings.modelName}`, 'SystemNote');
-        } catch (error: any) {
-            systemLog.error(`Error initializing LLM: ${error.message}.  Ensure you have an OPENAI_API_KEY set.`, 'SystemNote');
-            defaultLLM = null;
-        }
-
         if (!systemNoteData) {
-            systemNoteData = {
-                id: 'system',
-                type: 'System',
-                title: 'Netention System',
-                content: {
-                    notes: new Map<string, Note>(),
-                    activeQueue: [],
-                    runningCount: 0,
-                    concurrencyLimit: 5,
-                    llm: defaultLLM,
-                    toolRegistry: new ToolRegistry(),
-                    executor: new Executor(),
-                },
-                status: 'active',
-                priority: 100,
-                createdAt: new Date().toISOString(),
-                updatedAt: null,
-                references: [],
-                description: 'The root note for the system.',
-                inputSchema: undefined,
-                outputSchema: undefined,
-                config: undefined,
-                logic: undefined
-            };
-            systemLog.info('System Note Initialized 🚀', 'SystemNote');
-            initializeInitialTools();
+            systemNoteData = initializeSystemNoteData({} as ChatOpenAI);
         }
 
         if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
@@ -98,47 +103,7 @@ export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: bool
         systemLog.info('Using InMemoryNoteStorage (default).', 'SystemNote');
     }
 
-    let defaultLLM: ChatOpenAI | any;
-    try {
-        const settings = SettingsService.getSettings();
-        defaultLLM = new ChatOpenAI({
-            apiKey: settings.apiKey,
-            modelName: settings.modelName,
-            temperature: settings.temperature,
-        });
-        systemLog.info(`LLM Initialized with model ${settings.modelName}`, 'SystemNote');
-    } catch (error: any) {
-        systemLog.error(`Error initializing LLM: ${error.message}.  Ensure you have an OPENAI_API_KEY set.`, 'SystemNote');
-        defaultLLM = null;
-    }
-
-    systemNoteData = {
-        id: 'system',
-        type: 'System',
-        title: 'Netention System',
-        content: {
-            notes: new Map<string, Note>(),
-            activeQueue: [],
-            runningCount: 0,
-            concurrencyLimit: 5,
-            llm: llm || defaultLLM,
-            toolRegistry: new ToolRegistry(),
-            executor: new Executor(),
-        },
-        status: 'active',
-        priority: 100,
-        createdAt: new Date().toISOString(),
-        updatedAt: null,
-        references: [],
-        description: 'The root note for the system.',
-        inputSchema: undefined,
-        outputSchema: undefined,
-        config: undefined,
-        logic: undefined
-    };
-    systemLog.info('System Note Initialized 🚀', 'SystemNote');
-
-    initializeInitialTools();
+    systemNoteData = initializeSystemNoteData(llm);
 };
 
 export const getSystemNote = () => {
@@ -283,7 +248,6 @@ class SystemNote {
     async executeTool(toolId: string, input: any): Promise<any> {
         const tool = this.getTool(toolId);
         const toolImplementation = this.getToolImplementation(toolId);
-        const executor = this.data.content.executor as Executor;
 
         if (!tool) {
             systemLog.error(`Tool with id ${toolId} not found.`, 'SystemNote');
@@ -291,7 +255,7 @@ class SystemNote {
         }
 
         try {
-            return await executor.executeTool(tool, input, toolImplementation);
+            return await executeTool(tool, input, toolImplementation);
         } catch (error: any) {
             systemLog.error(`Error executing tool ${toolId}: ${error.message}`, 'SystemNote');
             throw error;
