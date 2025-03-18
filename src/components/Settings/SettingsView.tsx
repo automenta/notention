@@ -1,30 +1,77 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import styles from './SettingsView.module.css';
 import {getSystemNote} from '../../lib/systemNote';
 import {UIView} from '../UI/UI';
 
+// Define a type for the settings
+interface Settings {
+    concurrency: number;
+    apiKey: string;
+    theme: string;
+    modelName: string;
+    temperature: number;
+}
+
 export const SettingsView: React.FC = () => {
     const system = getSystemNote();
-    const [concurrency, setConcurrency] = useState(system.data.content.concurrencyLimit);
-    const [apiKey, setApiKey] = useState(''); // State for API Key
-    const [theme, setTheme] = useState('light'); // State for theme
 
-    const handleConcurrencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = parseInt(e.target.value);
-        setConcurrency(val);
-        system.data.content.concurrencyLimit = val;
+    // Initialize settings state
+    const [settings, setSettings] = useState<Settings>({
+        concurrency: system.data.content.concurrencyLimit,
+        apiKey: localStorage.getItem('apiKey') || '',
+        theme: localStorage.getItem('theme') || 'light',
+        modelName: localStorage.getItem('modelName') || 'gpt-3.5-turbo',
+        temperature: parseFloat(localStorage.getItem('temperature') || '0.7'),
+    });
+
+    // Load settings from localStorage on component mount
+    useEffect(() => {
+        setSettings({
+            concurrency: system.data.content.concurrencyLimit,
+            apiKey: localStorage.getItem('apiKey') || '',
+            theme: localStorage.getItem('theme') || 'light',
+            modelName: localStorage.getItem('modelName') || 'gpt-3.5-turbo',
+            temperature: parseFloat(localStorage.getItem('temperature') || '0.7'),
+        });
+    }, [system]);
+
+    // Generic handler for input changes
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const {name, value} = e.target;
+        const newSettings = {...settings, [name]: value};
+        setSettings(newSettings);
+
+        // Save to localStorage
+        localStorage.setItem(name, value);
+
+        // Apply changes to system where applicable
+        if (name === 'concurrency') {
+            system.data.content.concurrencyLimit = parseInt(value);
+        }
+
+        //Theme handling
+        if (name === 'theme') {
+            document.documentElement.setAttribute('data-theme', value);
+        }
     };
 
-    const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setApiKey(e.target.value);
-        // In a real implementation, you would likely want to store this securely
-        // and re-initialize the system with the new API key.
-    };
+    const handleSaveSettings = () => {
+        // Save API key to localStorage
+        localStorage.setItem('apiKey', settings.apiKey);
 
-    const handleThemeToggle = () => {
-        const newTheme = theme === 'light' ? 'dark' : 'light';
-        setTheme(newTheme);
-        // In a real implementation, you would apply the theme to the document or app context.
+        // Save model name to localStorage
+        localStorage.setItem('modelName', settings.modelName);
+
+        // Save temperature to localStorage
+        localStorage.setItem('temperature', settings.temperature.toString());
+
+        // Save theme to localStorage
+        localStorage.setItem('theme', settings.theme);
+
+        // Apply theme
+        document.documentElement.setAttribute('data-theme', settings.theme);
+
+        alert('Settings saved!');
     };
 
     return (
@@ -34,8 +81,9 @@ export const SettingsView: React.FC = () => {
                     Concurrency Limit:
                     <input
                         type="number"
-                        value={concurrency}
-                        onChange={handleConcurrencyChange}
+                        name="concurrency"
+                        value={settings.concurrency}
+                        onChange={handleInputChange}
                     />
                 </label>
 
@@ -43,17 +91,50 @@ export const SettingsView: React.FC = () => {
                     OpenAI API Key:
                     <input
                         type="text"
-                        value={apiKey}
-                        onChange={handleApiKeyChange}
+                        name="apiKey"
+                        value={settings.apiKey}
+                        onChange={handleInputChange}
+                    />
+                </label>
+
+                <label>
+                    LLM Model:
+                    <select
+                        name="modelName"
+                        value={settings.modelName}
+                        onChange={handleInputChange}
+                    >
+                        <option value="gpt-3.5-turbo">GPT 3.5 Turbo</option>
+                        <option value="gpt-4">GPT 4</option>
+                    </select>
+                </label>
+
+                <label>
+                    Temperature:
+                    <input
+                        type="number"
+                        name="temperature"
+                        value={settings.temperature}
+                        onChange={handleInputChange}
+                        step="0.1"
+                        min="0"
+                        max="1"
                     />
                 </label>
 
                 <label>
                     Theme:
-                    <button onClick={handleThemeToggle}>
-                        {theme === 'light' ? 'Dark' : 'Light'} Mode
-                    </button>
+                    <select
+                        name="theme"
+                        value={settings.theme}
+                        onChange={handleInputChange}
+                    >
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
                 </label>
+
+                <button onClick={handleSaveSettings}>Save Settings</button>
             </div>
         </UIView>
     );
