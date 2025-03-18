@@ -1,12 +1,12 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Message from './Message';
-import {getSystemNote, onSystemNoteChange} from '../../lib/systemNote';
-import {systemLog} from '../../lib/systemLog';
-import {NoteImpl} from '../../lib/note';
-import {NoteEditor} from '../NoteEditor/NoteEditor';
+import { getSystemNote, onSystemNoteChange } from '../../lib/systemNote';
+import { systemLog } from '../../lib/systemLog';
+import { NoteImpl } from '../../lib/note';
+import { NoteEditor } from '../NoteEditor/NoteEditor';
 import styles from './ChatView.module.css';
 
-export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({selectedTaskId}) => {
+export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selectedTaskId }) => {
     const [messages, setMessages] = useState<any[]>([]);
     const [input, setInput] = useState('');
     const messagesEnd = useRef<HTMLDivElement>(null);
@@ -33,7 +33,7 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({selectedT
     }, [selectedTaskId, system]); // Dependencies: selectedTaskId and system
 
     useEffect(() => {
-        messagesEnd.current?.scrollIntoView({behavior: 'smooth'});
+        messagesEnd.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
@@ -45,6 +45,20 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({selectedT
 
         const promptContent = input.trim();
         const promptNote = await NoteImpl.createTaskNote(`Prompt for ${task.title}`, promptContent, task.priority);
+
+        // Use the LLM to interpret user input and generate logic for promptNote
+        try {
+            const llm = system.getLLM();
+            if (llm) {
+                const llmResponse = await llm.invoke(`Convert this to a task plan (JSON format): ${promptContent}`);
+                promptNote.data.logic = llmResponse;
+                systemLog.info(`LLM generated logic for promptNote: ${llmResponse}`, 'ChatView');
+            } else {
+                systemLog.warn('LLM not initialized, cannot generate logic for promptNote.', 'ChatView');
+            }
+        } catch (error: any) {
+            systemLog.error(`Error generating logic from LLM: ${error.message}`, 'ChatView');
+        }
 
         system.addNote(promptNote.data);
         task.references.push(promptNote.data.id);
@@ -77,8 +91,8 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({selectedT
             </div>
 
             <div className={styles.messagesContainer}>
-                {messages.map((msg, i) => <Message key={i} message={msg}/>)}
-                <div ref={messagesEnd}/>
+                {messages.map((msg, i) => <Message key={i} message={msg} />)}
+                <div ref={messagesEnd} />
             </div>
 
             {editingNote && selectedTaskId ? (
@@ -91,7 +105,7 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({selectedT
                             if (selectedTaskId) {
                                 const task = system.getNote(selectedTaskId);
                                 if (task) {
-                                    system.updateNote({...task, content});
+                                    system.updateNote({ ...task, content });
                                     setEditingNote(false);
                                 } else {
                                     systemLog.error('Note not found!', 'ChatView');
