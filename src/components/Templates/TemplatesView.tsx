@@ -100,6 +100,10 @@ export const TemplatesView: React.FC = () => {
 
     const handleEditTemplate = (templateId: string) => {
         setEditingTemplateId(templateId);
+        const template = system.getNote(templateId);
+        if (template) {
+            setNewTemplateLogic(template.logic || ''); // Initialize the editor with the template's logic
+        }
     };
 
     const handleSaveTemplate = (templateId: string, newLogic: string) => {
@@ -159,7 +163,7 @@ export const TemplatesView: React.FC = () => {
                                         height="300"
                                         language="json"
                                         theme="vs-dark"
-                                        value={template.logic || ''}
+                                        value={newTemplateLogic}
                                         options={editorOptions}
                                         onChange={(value) => setNewTemplateLogic(value)}
                                     />
@@ -167,10 +171,6 @@ export const TemplatesView: React.FC = () => {
                                     <button onClick={handleCancelEdit}>Cancel</button>
                                 </div>
                             )}
-                            <div>
-                                <h4>Logic:</h4>
-                                <pre>{template.logic}</pre>
-                            </div>
                         </li>
                     ))}
                 </ul>

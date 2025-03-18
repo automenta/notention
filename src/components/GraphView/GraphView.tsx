@@ -4,10 +4,12 @@ import { getSystemNote, onSystemNoteChange } from '../../lib/systemNote';
 import styles from './GraphView.module.css';
 import * as d3 from 'd3';  // Import D3.js
 import { NoteEditor } from '../NoteEditor/NoteEditor'; // Import NoteEditor
+import { Note } from '../../types'; // Import Note type
 
 interface Node {
     id: string;
     title: string;
+    type: string; // Add type property
     x: number;
     y: number;
 }
@@ -58,6 +60,7 @@ export const GraphView: React.FC = () => {
             return {
                 id: note.id,
                 title: note.title,
+                type: note.type, // Include the note type
                 x: 0,
                 y: 0,
                 //...generateRandomPosition(graphContainerSize.width, graphContainerSize.height),
@@ -159,7 +162,14 @@ export const GraphView: React.FC = () => {
             .enter()
             .append("circle")
             .attr("r", 15)
-            .attr("class", styles.node)
+            .attr("class", (d: any) => {
+                switch (d.type) {
+                    case 'Task': return styles.nodeTask;
+                    case 'Template': return styles.nodeTemplate;
+                    case 'Tool': return styles.nodeTool;
+                    default: return styles.node;
+                }
+            })
             .call(d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)

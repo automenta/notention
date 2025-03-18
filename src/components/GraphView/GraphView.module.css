@@ -1,4 +1,3 @@
-
 .graphView {
     flex-grow: 1;
     padding: 20px;
@@ -20,6 +19,18 @@
     stroke: white;
     stroke-width: 2px;
     cursor: pointer;
+}
+
+.nodeTask {
+    fill: #4287f5; /* Blue for tasks */
+}
+
+.nodeTemplate {
+    fill: #f0ad4e; /* Orange for templates */
+}
+
+.nodeTool {
+    fill: #5cb85c; /* Green for tools */
 }
 
 .nodeLabel {
