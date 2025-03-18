@@ -43,7 +43,7 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
 
             noteImplPromise = NoteImpl.createTaskNote(taskTitle, 'Describe your task here...');
             noteImplPromise.then(noteImpl => {
-                noteImpl.data.logic = JSON.stringify(newLogic);
+                noteImpl.data.logic = newLogic;
                 system.addNote(noteImpl.data);
             });
             setShowToolSelector(false);
