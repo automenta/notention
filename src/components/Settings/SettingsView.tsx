@@ -4,6 +4,7 @@ import { getSystemNote, initializeSystemNote } from '../../lib/systemNote';
 import { UIView } from '../../components/UI/UI';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
 import { systemLog } from '../../lib/systemLog';
+import { validateSettings } from './settingsValidation';
 
 // Define a type for the settings
 interface Settings {
@@ -54,32 +55,10 @@ export const SettingsView: React.FC = () => {
         setErrors(prevErrors => ({ ...prevErrors, [name]: '' })); // Clear any previous error for this field
     };
 
-    const validateSettings = (): boolean => {
-        let isValid = true;
-        const newErrors: { [key: string]: string } = {};
-
-        if (settings.concurrency < 1 || settings.concurrency > 10) {
-            newErrors.concurrency = 'Concurrency must be between 1 and 10';
-            isValid = false;
-        }
-
-        if (settings.temperature < 0 || settings.temperature > 1) {
-            newErrors.temperature = 'Temperature must be between 0 and 1';
-            isValid = false;
-        }
-
-        if (!settings.apiKey) {
-            newErrors.apiKey = 'API Key is required';
-            isValid = false;
-        }
-
-        setErrors(newErrors);
-        return isValid;
-    };
-
-
     const handleSaveSettings = () => {
-        if (!validateSettings()) {
+        const validationResult = validateSettings(settings);
+        if (!validationResult.isValid) {
+            setErrors(validationResult.errors);
             return;
         }
 
