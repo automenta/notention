@@ -75,7 +75,7 @@ export const initializeInitialTools = () => {
     const echoToolImplementation = async (input: any) => {
         return { output: input.input };
     };
-    systemNote.registerToolDefinition({ ...echoToolNoteData, implementation: echoToolImplementation }); // Register Echo Tool
+    systemNote.registerToolDefinition({ ...echoToolNoteData, implementation: echoToolImplementation, type: 'custom' }); // Register Echo Tool
 
     // 2. Web Search Tool (SerpAPI)
     const webSearchToolData: Note = {
@@ -118,7 +118,7 @@ export const initializeInitialTools = () => {
         const results = await serpAPI.call(input);
         return { results: results };
     };
-    systemNote.registerToolDefinition({ ...webSearchToolData, implementation: webSearchToolImplementation });
+    systemNote.registerToolDefinition({ ...webSearchToolData, implementation: webSearchToolImplementation, type: 'langchain' });
 
     // 3. File Operations Tool (Basic - READ/WRITE - SECURITY WARNING)
     const fileOperationsToolData: Note = {
@@ -207,7 +207,7 @@ export const initializeInitialTools = () => {
             return { result: `Error: ${error.message}` };
         }
     };
-    systemNote.registerToolDefinition({ ...fileOperationsToolData, implementation: fileOperationsToolImplementation });
+    systemNote.registerToolDefinition({ ...fileOperationsToolData, implementation: fileOperationsToolImplementation, type: 'custom' });
 
     // 4. Generate Task Logic Tool
     const generateTaskLogicToolData: Note = {
@@ -260,7 +260,32 @@ export const initializeInitialTools = () => {
             throw error;
         }
     };
-    systemNote.registerToolDefinition({ ...generateTaskLogicToolData, implementation: generateTaskLogicToolImplementation });
+    systemNote.registerToolDefinition({ ...generateTaskLogicToolData, implementation: generateTaskLogicToolImplementation, type: 'langchain' });
+
+     // 5. Example API Tool (Simple GET Request)
+     const apiToolData: Note = {
+        id: idService.generateId(),
+        type: 'Tool',
+        title: 'Joke API Tool',
+        content: 'Fetches a random joke from an API.',
+        logic: 'https://official-joke-api.appspot.com/random_joke', // API endpoint
+        status: 'active',
+        priority: 50,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+        references: [],
+        inputSchema: JSON.stringify({}), // No input required
+        outputSchema: JSON.stringify({
+            type: 'object',
+            properties: {
+                setup: { type: 'string', description: 'Joke setup' },
+                punchline: { type: 'string', description: 'Joke punchline' }
+            },
+            required: ['setup', 'punchline']
+        }),
+        description: 'Fetches a random joke from the Joke API.',
+    };
+    systemNote.registerToolDefinition({ ...apiToolData, type: 'api' });
 
     systemLog.info('Initial tools registered.', 'SystemNote');
 };
