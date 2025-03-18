@@ -36,6 +36,8 @@ export const GraphView: React.FC = () => {
     const [graphError, setGraphError] = useState<string | null>(null);
     const zoom = useRef(d3.zoom().scaleExtent([0.1, 3])); // Ref for zoom behavior
     const container = useRef<d3.Selection<SVGGElement, unknown, null, undefined>>(); // Ref for the container
+    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [nodeToDelete, setNodeToDelete] = useState<string | null>(null);
 
     // Move the setGraphContainerSize update outside of the useEffect
     useEffect(() => {
@@ -126,11 +128,23 @@ export const GraphView: React.FC = () => {
     }, [system, handleContextMenuClose]);
 
     const handleDeleteNode = useCallback((nodeId: string) => {
-        if (window.confirm(`Delete Note ${nodeId}?`)) {
-            system.deleteNote(nodeId);
-        }
+        setNodeToDelete(nodeId);
+        setShowConfirmation(true);
         handleContextMenuClose();
-    }, [system, handleContextMenuClose]);
+    }, [handleContextMenuClose]);
+
+    const confirmDelete = useCallback(() => {
+        if (nodeToDelete) {
+            system.deleteNote(nodeToDelete);
+            setNodeToDelete(null);
+        }
+        setShowConfirmation(false);
+    }, [system, nodeToDelete]);
+
+    const cancelDelete = useCallback(() => {
+        setShowConfirmation(false);
+        setNodeToDelete(null);
+    }, []);
 
     const handleCloseEditor = useCallback(() => {
         setEditingNodeId(null);
@@ -297,6 +311,16 @@ export const GraphView: React.FC = () => {
                         onClose={handleCloseEditor}
                         onSave={handleSaveNote}
                     />}
+                </div>
+            )}
+
+            {showConfirmation && (
+                <div className={styles.confirmationOverlay}>
+                    <div className={styles.confirmationDialog}>
+                        <p>Are you sure you want to delete this note?</p>
+                        <button onClick={confirmDelete}>Yes</button>
+                        <button onClick={cancelDelete}>No</button>
+                    </div>
                 </div>
             )}
         </div>
