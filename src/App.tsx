@@ -74,7 +74,7 @@ const App: React.FC = () => {
     return (
         <div className={styles.appContainer}>
             <header className={styles.appHeader}>
-                <h1>Netention v4 🚀</h1>
+                <h1>Netention v5 🚀</h1>
                 <nav className={styles.appNav}>
                     <button className={activeView === 'tasks' ? styles.activeViewButton : ''}
                             onClick={() => setActiveView('tasks')}>Tasks
