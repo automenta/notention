@@ -114,16 +114,21 @@ export const initializeInitialTools = () => {
     };
 
     const webSearchToolImplementation = async (input: any) => {
-        const serpApiKey = localStorage.getItem('serpApiKey');
+        try {
+            const serpApiKey = localStorage.getItem('serpApiKey');
 
-        if (!serpApiKey) {
-            systemLog.error('SerpAPI key not found in settings.', 'WebSearchTool');
-            return { results: 'SerpAPI key not found. Please configure it in the <a href="/settings">settings</a>.' };
+            if (!serpApiKey) {
+                systemLog.error('SerpAPI key not found in settings.', 'WebSearchTool');
+                return { results: 'SerpAPI key not found. Please configure it in the <a href="/settings">settings</a>.' };
+            }
+
+            const serpAPI = new SerpAPI(serpApiKey);
+            const results = await serpAPI.call(input.query);
+            return { results: results };
+        } catch (error: any) {
+            systemLog.error(`Web Search failed: ${error.message}`, 'WebSearchTool');
+            return { results: `Web Search failed: ${error.message}. Please check your SerpAPI key and try again.` };
         }
-
-        const serpAPI = new SerpAPI(serpApiKey);
-        const results = await serpAPI.call(input.query);
-        return { results: results };
     };
     systemNote.registerToolDefinition({ ...webSearchToolData, implementation: webSearchToolImplementation, type: 'custom' });
 
@@ -204,7 +209,9 @@ export const initializeInitialTools = () => {
                 if (!input.content) {
                     throw new Error('Invalid input: Content is required for write action.');
                 }
-                fs.writeFileSync(filename, input.content, 'utf-8');
+                // Ensure the content is a string before writing
+                const contentToWrite = String(input.content);
+                fs.writeFileSync(filename, contentToWrite, 'utf-8');
                 return { result: 'File written successfully' };
             } else if (action === 'createDirectory') {
                 fs.mkdirSync(filename, { recursive: true });
@@ -354,19 +361,19 @@ export const initializeInitialTools = () => {
     };
 
     const summarizationToolImplementation = async (input: any) => {
-        const llm = systemNote.getLLM();
-        if (!llm) {
-            systemLog.warn('LLM not initialized, cannot summarize.', 'SummarizationTool');
-            throw new Error('LLM not initialized.');
-        }
-
-        const prompt = `Summarize the following text: ${input.text}`;
         try {
+            const llm = systemNote.getLLM();
+            if (!llm) {
+                systemLog.warn('LLM not initialized, cannot summarize.', 'SummarizationTool');
+                throw new Error('LLM not initialized.');
+            }
+
+            const prompt = `Summarize the following text: ${input.text}`;
             const summary = await llm.invoke(prompt);
             return { summary: summary };
         } catch (error: any) {
             systemLog.error(`Error summarizing text: ${error.message}`, 'SummarizationTool');
-            throw error;
+            return { summary: `Error summarizing text: ${error.message}` };
         }
     };
     systemNote.registerToolDefinition({ ...summarizationToolData, implementation: summarizationToolImplementation, type: 'langchain' });
