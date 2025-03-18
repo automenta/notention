@@ -92,6 +92,17 @@ export const useSystemNote = () => {
     useEffect(() => {
         ensureSystemNote();
 
+        const usePersistence = localStorage.getItem('usePersistence') === 'true';
+        const dataMigrationComplete = localStorage.getItem('dataMigrationComplete') === 'true';
+
+        if (usePersistence && !dataMigrationComplete) {
+            systemLog.info('Migrating data to GraphDBNoteStorage.');
+            migrateDataToGraphDB().then(() => {
+                localStorage.setItem('dataMigrationComplete', 'true');
+                systemLog.info('Data migration complete.');
+            });
+        }
+
         const newSystemNote = new SystemNote(systemNoteData!, noteStorage);
         setSystemNote(newSystemNote);
 
@@ -112,19 +123,7 @@ export const useSystemNote = () => {
 };
 
 export const getSystemNote = () => {
-    const usePersistence = localStorage.getItem('usePersistence') === 'true';
-    const dataMigrationComplete = localStorage.getItem('dataMigrationComplete') === 'true';
-
-    if (usePersistence && !dataMigrationComplete) {
-        systemLog.info('Migrating data to GraphDBNoteStorage.');
-        migrateDataToGraphDB().then(() => {
-            localStorage.setItem('dataMigrationComplete', 'true');
-            systemLog.info('Data migration complete.');
-        });
-    }
-
     ensureSystemNote();
-
     return new SystemNote(systemNoteData!, noteStorage);
 };
 
