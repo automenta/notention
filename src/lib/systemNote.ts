@@ -237,7 +237,7 @@ class SystemNote {
                         return await tool.implementation.call(input); // Or however you call the LangChain tool
                     } catch (error: any) {
                         systemLog.error(`Error executing LangChain tool ${toolId}: ${error.message}`, 'SystemNote');
-                        throw error;
+                        throw new Error(`Error executing LangChain tool ${toolId}: ${error.message}`);
                     }
                 case 'api':
                     // Implement API call logic here (e.g., using fetch)
@@ -246,13 +246,19 @@ class SystemNote {
                         // Validate API endpoint URL
                         try {
                             new URL(tool.logic);
-                        } catch (urlError) {
+                        } catch (urlError: any) {
                             systemLog.error(`Invalid API endpoint URL for tool ${toolId}: ${tool.logic}`, 'SystemNote');
-                            throw new Error(`Invalid API endpoint URL: ${tool.logic}`);
+                            throw new Error(`Invalid API endpoint URL: ${tool.logic} - ${urlError.message}`);
                         }
 
                         const method = tool.config?.method || 'POST';
-                        const headers = tool.config?.headers ? JSON.parse(tool.config.headers) : { 'Content-Type': 'application/json' };
+                        let headers = {};
+                        try {
+                            headers = tool.config?.headers ? JSON.parse(tool.config.headers) : { 'Content-Type': 'application/json' };
+                        } catch (headersError: any) {
+                            systemLog.error(`Invalid API headers JSON for tool ${toolId}: ${tool.config?.headers}`, 'SystemNote');
+                            throw new Error(`Invalid API headers JSON: ${headersError.message}`);
+                        }
 
                         const response = await fetch(tool.logic, { // Assuming tool.logic contains the API endpoint
                             method: method,
@@ -261,8 +267,14 @@ class SystemNote {
                         });
 
                         if (!response.ok) {
-                            systemLog.error(`API call failed for tool ${toolId}: ${response.status} ${response.statusText}`, 'SystemNote');
-                            throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+                            let errorBody = '';
+                            try {
+                                errorBody = JSON.stringify(await response.json());
+                            } catch (e) {
+                                errorBody = response.statusText;
+                            }
+                            systemLog.error(`API call failed for tool ${toolId}: ${response.status} ${response.statusText} - ${errorBody}`, 'SystemNote');
+                            throw new Error(`API call failed: ${response.status} ${response.statusText} - ${errorBody}`);
                         }
 
                         const data = await response.json();
@@ -270,7 +282,7 @@ class SystemNote {
                         return data;
                     } catch (error: any) {
                         systemLog.error(`Error executing API tool ${toolId}: ${error.message}`, 'SystemNote');
-                        throw error;
+                        throw new Error(`Error executing API tool ${toolId}: ${error.message}`);
                     }
                 default:
                     throw new Error(`Unknown tool type: ${tool.type}`);
