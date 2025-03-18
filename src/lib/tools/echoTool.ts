@@ -3,6 +3,7 @@ import idService from '../idService';
 import { SystemNote, getSystemNote } from '../systemNote';
 import { RunnablePassthrough } from "@langchain/core/runnables";
 import { systemLog } from '../systemLog';
+import { registerTool } from './toolUtils';
 
 export const registerEchoTool = (systemNote: SystemNote) => {
     const echoToolNoteData: Note = {
@@ -51,6 +52,6 @@ export const registerEchoTool = (systemNote: SystemNote) => {
     const echoToolImplementation = async (input: any) => {
         return { output: input.input };
     };
-    systemNote.registerToolDefinition({ ...echoToolNoteData, implementation: echoToolImplementation, type: 'custom' }); // Register Echo Tool
+    registerTool({ ...echoToolNoteData, implementation: echoToolImplementation, type: 'custom' }); // Register Echo Tool
     systemLog.info(`🔨 Registered Tool ${echoToolNoteData.id}: ${echoToolNoteData.title}`, 'SystemNote');
 };
