@@ -2,7 +2,7 @@ import { Note } from '../types';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
 import { systemLog } from './systemLog';
 import { NoteImpl } from './note';
-import { z } from "zod";
+import * as z from 'zod';
 import * as fs from 'fs'; // Import the fs module
 import { executeTool } from './executor'; // Import the executeTool function
 import { SerpAPI } from "langchain/tools";
