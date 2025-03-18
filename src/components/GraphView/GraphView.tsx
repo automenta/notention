@@ -28,6 +28,7 @@ export const GraphView: React.FC = () => {
     const system = getSystemNote();
     const graphViewRef = useRef<HTMLDivElement>(null);
     const svgRef = useRef<SVGSVGElement>(null);  // Ref for the SVG element
+    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
 
     // Move the setGraphContainerSize update outside of the useEffect
     useEffect(() => {
@@ -55,7 +56,9 @@ export const GraphView: React.FC = () => {
             return {
                 id: note.id,
                 title: note.title,
-                ...generateRandomPosition(graphContainerSize.width, graphContainerSize.height),
+                x: 0,
+                y: 0,
+                //...generateRandomPosition(graphContainerSize.width, graphContainerSize.height),
             };
         });
 
@@ -84,6 +87,37 @@ export const GraphView: React.FC = () => {
             unsubscribe();
         };
     }, [updateGraph]);
+
+    const handleNodeClick = useCallback((event: any, d: any) => {
+        event.preventDefault();
+        setContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            nodeId: d.id
+        });
+    }, []);
+
+    const handleContextMenuClose = useCallback(() => {
+        setContextMenu(null);
+    }, []);
+
+    const handleEditNode = useCallback((nodeId: string) => {
+        console.log(`Edit node ${nodeId}`);
+        handleContextMenuClose();
+        // Implement edit logic here
+    }, [handleContextMenuClose]);
+
+    const handleRunNode = useCallback((nodeId: string) => {
+        console.log(`Run node ${nodeId}`);
+        handleContextMenuClose();
+        // Implement run logic here
+    }, [handleContextMenuClose]);
+
+    const handleDeleteNode = useCallback((nodeId: string) => {
+        console.log(`Delete node ${nodeId}`);
+        handleContextMenuClose();
+        // Implement delete logic here
+    }, [handleContextMenuClose]);
 
     // D3.js graph rendering
     useEffect(() => {
@@ -119,7 +153,10 @@ export const GraphView: React.FC = () => {
             .call(d3.drag()
                 .on("start", dragstarted)
                 .on("drag", dragged)
-                .on("end", dragended) as any);
+                .on("end", dragended) as any)
+            .on("contextmenu", (event: any, d: any) => {
+                handleNodeClick(event, d);
+            });
 
         node.append("title")
             .text((d: any) => d.title);
@@ -169,12 +206,24 @@ export const GraphView: React.FC = () => {
             d.fy = null;
         }
 
-    }, [nodes, edges, graphContainerSize]);
+    }, [nodes, edges, graphContainerSize, handleNodeClick]);
 
     return (
         <div className={styles.graphView} ref={graphViewRef}>
             <h2>Note Graph Visualization 🕸️</h2>
             <svg width="100%" height="600px" ref={svgRef}></svg>
+
+            {contextMenu && (
+                <div
+                    className={styles.contextMenu}
+                    style={{ left: contextMenu.x, top: contextMenu.y }}
+                    onClick={handleContextMenuClose}
+                >
+                    <button onClick={() => handleEditNode(contextMenu.nodeId)}>Edit</button>
+                    <button onClick={() => handleRunNode(contextMenu.nodeId)}>Run</button>
+                    <button onClick={() => handleDeleteNode(contextMenu.nodeId)}>Delete</button>
+                </div>
+            )}
         </div>
     );
 };
