@@ -14,22 +14,40 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
     const [editingNote, setEditingNote] = useState<boolean>(false);
 
     useEffect(() => {
+        systemLog.debug('ChatView useEffect triggered', 'ChatView');
         if (!selectedTaskId) {
+            systemLog.debug('No selected task ID, clearing messages', 'ChatView');
             setMessages([]);
             return;
         }
 
         const task = system.getNote(selectedTaskId);
+        if (!task) {
+            systemLog.warn(`Task with ID ${selectedTaskId} not found`, 'ChatView');
+            setMessages([]);
+            return;
+        }
+
         const initialMessages = task?.type === 'Task' ? task.content?.messages ?? [] : [];
         setMessages(initialMessages);
+        systemLog.debug(`Initial messages loaded for task ${selectedTaskId}: ${initialMessages.length}`, 'ChatView');
 
         // Subscribe to system note changes
         const unsubscribe = onSystemNoteChange(() => {
             const updatedTask = system.getNote(selectedTaskId);
+            if (!updatedTask) {
+                systemLog.warn(`Task with ID ${selectedTaskId} not found during update`, 'ChatView');
+                setMessages([]);
+                return;
+            }
             setMessages(updatedTask?.type === 'Task' ? updatedTask.content?.messages ?? [] : []);
+            systemLog.debug(`Messages updated for task ${selectedTaskId}`, 'ChatView');
         });
 
-        return unsubscribe; // Cleanup subscription
+        return () => {
+            systemLog.debug('ChatView useEffect cleanup', 'ChatView');
+            unsubscribe(); // Cleanup subscription
+        };
     }, [selectedTaskId, system]); // Dependencies: selectedTaskId and system
 
     useEffect(() => {
@@ -38,12 +56,19 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!selectedTaskId || !input.trim()) return;
+        if (!selectedTaskId || !input.trim()) {
+            systemLog.debug('Submit prevented: no selected task or empty input', 'ChatView');
+            return;
+        }
 
         const task = system.getNote(selectedTaskId);
-        if (!task) return;
+        if (!task) {
+            systemLog.error(`Task with ID ${selectedTaskId} not found on submit`, 'ChatView');
+            return;
+        }
 
         const promptContent = input.trim();
+        systemLog.debug(`Submitting prompt: ${promptContent} for task ${selectedTaskId}`, 'ChatView');
         const promptNote = await NoteImpl.createTaskNote(`Prompt for ${task.title}`, promptContent, task.priority);
 
         // Use the LLM to interpret user input and generate logic for promptNote
@@ -75,9 +100,18 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
         systemLog.info(`💬 User input for Task ${selectedTaskId}: ${promptContent}`, 'ChatView');
     }, [selectedTaskId, system, input]);
 
-    const handleEditInlineNote = useCallback(() => setEditingNote(true), []);
-    const handleSaveInlineNote = useCallback(() => setEditingNote(false), []);
-    const handleCancelInlineNote = useCallback(() => setEditingNote(false), []);
+    const handleEditInlineNote = useCallback(() => {
+        systemLog.debug('Edit inline note requested', 'ChatView');
+        setEditingNote(true);
+    }, []);
+    const handleSaveInlineNote = useCallback(() => {
+        systemLog.debug('Save inline note requested', 'ChatView');
+        setEditingNote(false);
+    }, []);
+    const handleCancelInlineNote = useCallback(() => {
+        systemLog.debug('Cancel inline note requested', 'ChatView');
+        setEditingNote(false);
+    }, []);
 
     return (
         <div className={styles.chatView}>
