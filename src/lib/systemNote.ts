@@ -7,6 +7,7 @@ import * as fs from 'fs'; // Import the fs module
 import { executeTool } from './executor'; // Import the executeTool function
 import { SerpAPI } from "langchain/tools";
 import path from 'path';
+import idService from './idService'; // Import the IdService
 
 type Listener = () => void;
 const listeners: Listener[] = [];

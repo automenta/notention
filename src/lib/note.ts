@@ -3,6 +3,7 @@ import { z } from "zod";
 import { systemLog } from './systemLog';
 import { getSystemNote } from './systemNote';
 import { Runnable } from "langchain/runnables";
+import idService from './idService'; // Import the IdService
 
 const NoteSchema = z.object({
     id: z.string(),
@@ -52,7 +53,7 @@ export class NoteImpl {
     static createTaskNote = async (title: string, content: string, priority: number = 50): Promise<NoteImpl> => {
         systemLog.debug(`Creating task note: ${title}`, 'NoteImpl');
         return new NoteImpl({
-            id: `task-${Date.now()}`,
+            id: idService.generateId(),
             type: 'Task',
             title: title,
             content: {

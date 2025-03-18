@@ -3,7 +3,7 @@ import { getSystemNote } from '../../lib/systemNote';
 import { Note, TaskLogic } from '../../types';
 import styles from './TaskList.module.css';
 import { NoteImpl } from "../../lib/note";
-import { v4 as uuidv4 } from 'uuid'; // Import UUID generator
+import idService from '../../lib/idService'; // Import the IdService
 
 interface TaskCreationProps {
     onTaskAdd: () => void;
@@ -33,7 +33,7 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
             const newLogic: TaskLogic = {
                 steps: [
                     {
-                        id: uuidv4(), // Generate UUID for tool step
+                        id: idService.generateId(), // Generate UUID for tool step
                         type: 'tool',
                         toolId: selectedToolId,
                         input: { /* Define input parameters here */ }
