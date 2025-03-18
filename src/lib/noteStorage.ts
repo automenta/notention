@@ -65,7 +65,7 @@ export class GraphDBNoteStorage implements NoteStorage {
 
     constructor(dbPath: string = 'netention.db') {
         try {
-            const leveldb = level(dbPath, { createIfMissing: true });
+            const leveldb = level(dbPath, { createIfMissing: true, valueEncoding: 'json' });
             this.db = levelgraph(leveldb);
             systemLog.info(`GraphDBNoteStorage initialized with database at ${dbPath}`, 'GraphDBNoteStorage');
         } catch (error: any) {
@@ -83,16 +83,15 @@ export class GraphDBNoteStorage implements NoteStorage {
                 }
 
                 if (list && list.length > 0) {
-                    const noteData = list[0].subject;
-                    this.db.get({ subject: noteData, predicate: 'data', object: 'note' }, (err: any, noteList: any) => {
+                    this.db.get({ subject: id, predicate: 'data', object: 'note' }, (err: any, noteList: any) => {
                         if (err) {
                             systemLog.error(`Error getting note data ${id}: ${err.message}`, 'GraphDBNoteStorage');
                             return reject(err);
                         }
                         if (noteList && noteList.length > 0) {
                             try {
-                                const note = JSON.parse(noteList[0].object);
-                                resolve(note as Note);
+                                const note = noteList[0].object as Note;
+                                resolve(note);
                             } catch (parseError: any) {
                                 systemLog.error(`Error parsing note data for ${id}: ${parseError.message}`, 'GraphDBNoteStorage');
                                 reject(parseError);
@@ -134,7 +133,7 @@ export class GraphDBNoteStorage implements NoteStorage {
         return new Promise((resolve, reject) => {
             const ops = [
                 { subject: note.id, predicate: 'type', object: 'Note' },
-                { subject: note.id, predicate: 'data', object: JSON.stringify(note) }
+                { subject: note.id, predicate: 'data', object: note }
             ];
 
             this.db.put(ops, (err: any) => {

@@ -72,4 +72,42 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
         const retrievedNote = await inMemoryStorage.getNote(note1.id);
         expect(retrievedNote).toBeUndefined();
     });
+
+    describe('Tool Execution', () => {
+        it('should execute a custom tool', async () => {
+            // Create a custom tool note
+            const customTool: Note = {
+                id: idService.generateId(),
+                type: 'Tool',
+                title: 'Custom Tool',
+                content: 'This is a custom tool',
+                status: 'active',
+                priority: 50,
+                createdAt: new Date().toISOString(),
+                updatedAt: null,
+                references: [],
+                description: '',
+                requiresWebSearch: false,
+                inputSchema: '',
+                outputSchema: '',
+                config: {},
+                logic: ''
+            };
+
+            // Register the custom tool with the SystemNote
+            systemNote.registerToolDefinition({
+                ...customTool,
+                type: 'custom',
+                implementation: async (input: any) => {
+                    return { result: `Custom tool executed with input: ${JSON.stringify(input)}` };
+                }
+            });
+
+            // Execute the custom tool
+            const result = await systemNote.executeTool(customTool.id, { input: 'test' });
+
+            // Verify the result
+            expect(result).toEqual({ result: 'Custom tool executed with input: {"input":"test"}' });
+        });
+    });
 });
