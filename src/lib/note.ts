@@ -1,24 +1,24 @@
-import { Note } from '../types';
+import { Note, NoteSchema } from '../types';
 import { z } from "zod";
 import { systemLog } from './systemLog';
 import { getSystemNote } from './systemNote';
 import { Runnable } from "langchain/runnables";
 import idService from './idService'; // Import the IdService
 
-const NoteSchema = z.object({
-    id: z.string(),
-    type: z.enum(['Task', 'System', 'Template', 'Tool']),
-    title: z.string(),
-    content: z.any(),
-    logic: z.any().optional(), // Change to any for now
-    status: z.enum(['active', 'pending', 'completed', 'failed', 'dormant', 'bypassed', 'pendingRefinement', 'running']),
-    priority: z.number(),
-    createdAt: z.string(),
-    updatedAt: z.string().nullable(),
-    references: z.array(z.string()),
-    inputSchema: z.string().optional(),
-    outputSchema: z.string().optional(),
-});
+//const NoteSchema = z.object({
+//    id: z.string(),
+//    type: z.enum(['Task', 'System', 'Template', 'Tool']),
+//    title: z.string(),
+//    content: z.any(),
+//    logic: z.any().optional(), // Change to any for now
+//    status: z.enum(['active', 'pending', 'completed', 'failed', 'dormant', 'bypassed', 'pendingRefinement', 'running']),
+//    priority: z.number(),
+//    createdAt: z.string(),
+//    updatedAt: z.string().nullable(),
+//    references: z.array(z.string()),
+//    inputSchema: z.string().optional(),
+//    outputSchema: z.string().optional(),
+//});
 
 export class NoteImpl {
     private _runnable: Runnable | null = null; // Cache runnable
@@ -46,6 +46,12 @@ export class NoteImpl {
             createdAt: new Date().toISOString(),
             updatedAt: null,
             references: [],
+            description: 'The root note for the system.',
+            requiresWebSearch: false,
+            inputSchema: '',
+            outputSchema: '',
+            config: {},
+            logic: ''
         });
     };
 
@@ -69,6 +75,11 @@ export class NoteImpl {
             createdAt: new Date().toISOString(),
             updatedAt: null,
             references: [],
+            requiresWebSearch: false,
+            inputSchema: '',
+            outputSchema: '',
+            config: {},
+            logic: ''
         });
     };
 
