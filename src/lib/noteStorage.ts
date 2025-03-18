@@ -90,8 +90,13 @@ export class GraphDBNoteStorage implements NoteStorage {
                             return reject(err);
                         }
                         if (noteList && noteList.length > 0) {
-                            const note = JSON.parse(noteList[0].object);
-                            resolve(note as Note);
+                            try {
+                                const note = JSON.parse(noteList[0].object);
+                                resolve(note as Note);
+                            } catch (parseError: any) {
+                                systemLog.error(`Error parsing note data for ${id}: ${parseError.message}`, 'GraphDBNoteStorage');
+                                reject(parseError);
+                            }
                         } else {
                             resolve(undefined);
                         }
@@ -166,13 +171,16 @@ export class GraphDBNoteStorage implements NoteStorage {
     }
 
     async getReferences(noteId: string): Promise<string[]> {
-        return new Promise((resolve, reject) => {
-            this.db.get({ subject: noteId, predicate: 'references', object: this.db.v('reference') }, (err: any, list: any) => {
+         return new Promise((resolve, reject) => {
+            const references: string[] = [];
+            this.db.search([{ subject: noteId, predicate: 'references', object: this.db.v('reference') }], (err: any, results: any) => {
                 if (err) {
                     systemLog.error(`Error getting references for note ${noteId}: ${err.message}`, 'GraphDBNoteStorage');
                     return reject(err);
                 }
-                const references = list.map((item: any) => item.reference);
+                results.forEach((result: any) => {
+                    references.push(result.reference);
+                });
                 resolve(references);
             });
         });
