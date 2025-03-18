@@ -24,6 +24,7 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
     const [editingToolId, setEditingToolId] = useState<string | null>(null);
     const [editingToolInputSchemaId, setEditingToolInputSchemaId] = useState<string | null>(null);
     const [editingToolOutputSchemaId, setEditingToolOutputSchemaId] = useState<string | null>(null);
+    const [editingApiToolId, setEditingApiToolId] = useState<string | null>(null);
     const [tools, setTools] = useState<Note[]>([]);
 
     const fetchTools = useCallback(async () => {
@@ -105,6 +106,23 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
     }, [system]);
 
+     const handleEditApiTool = useCallback((toolId: string) => {
+        try {
+            setEditingApiToolId(toolId);
+            const tool = system.getTool(toolId);
+            if (!tool) {
+                setToolCreationError(`Tool with id ${toolId} not found.`);
+                return;
+            }
+            setNewApiEndpoint(tool.logic || '');
+            setNewApiMethod((tool.config?.method as 'GET' | 'POST' | 'PUT' | 'DELETE') || 'POST');
+            setNewApiHeaders(tool.config?.headers || '{}');
+        } catch (error: any) {
+            systemLog.error(`Error editing API tool: ${error.message}`, 'ToolManager');
+            setToolCreationError(`Error editing API tool: ${error.message}`);
+        }
+    }, [system]);
+
     const handleEditToolInputSchema = useCallback((toolId: string) => {
         try {
             setEditingToolInputSchemaId(toolId);
@@ -155,6 +173,36 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
     }, [system, fetchTools]);
 
+    const handleSaveApiTool = useCallback((toolId: string, newApiEndpoint: string, newApiMethod: string, newApiHeaders: string) => {
+         try {
+            const tool = system.getTool(toolId);
+            if (!tool) {
+                setToolCreationError(`Tool with id ${toolId} not found.`);
+                return;
+            }
+
+             try {
+                JSON.parse(newApiHeaders);
+            } catch (e: any) {
+                setToolCreationError(`Invalid JSON in API Headers: ${e.message}`);
+                return;
+            }
+
+            tool.logic = newApiEndpoint;
+            tool.config = {
+                method: newApiMethod,
+                headers: newApiHeaders
+            };
+            system.updateNote(tool);
+            setEditingApiToolId(null);
+            setToolCreationError(null);
+            fetchTools();
+        } catch (error: any) {
+            systemLog.error(`Error saving API tool: ${error.message}`, 'ToolManager');
+            setToolCreationError(`Error saving API tool: ${error.message}`);
+        }
+    }, [system, fetchTools]);
+
     const handleSaveToolInputSchema = useCallback((toolId: string, newInputSchema: string) => {
         try {
             const tool = system.getTool(toolId);
@@ -196,6 +244,10 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
     // Handle canceling the editing of a tool
     const handleCancelEditTool = useCallback(() => {
         setEditingToolId(null);
+    }, []);
+
+    const handleCancelEditApiTool = useCallback(() => {
+        setEditingApiToolId(null);
     }, []);
 
     const handleCancelEditToolInputSchema = useCallback(() => {
@@ -309,10 +361,17 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                 {system.getAllTools().map(tool => (
                     <li key={tool.id}>
                         {tool.title}
-                        <button onClick={() => {
-                            handleEditTool(tool.id);
-                            setNewToolLogic(tool.logic || '');
-                        }}>Edit Logic</button>
+                        {tool.type !== 'api' && (
+                            <button onClick={() => {
+                                handleEditTool(tool.id);
+                                setNewToolLogic(tool.logic || '');
+                            }}>Edit Logic</button>
+                        )}
+                        {tool.type === 'api' && (
+                            <button onClick={() => {
+                                handleEditApiTool(tool.id);
+                            }}>Edit API Config</button>
+                        )}
                         <button onClick={() => {
                             handleEditToolInputSchema(tool.id);
                             setNewToolInputSchema(tool.inputSchema || '');
@@ -335,6 +394,41 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                                 />
                                 <button onClick={() => handleSaveTool(tool.id, newToolLogic)}>Save</button>
                                 <button onClick={handleCancelEditTool}>Cancel</button>
+                            </div>
+                        )}
+
+                        {editingApiToolId === tool.id && (
+                            <div className={styles.templateEditor}>
+                                 <label htmlFor={`apiEndpoint-${tool.id}`}>API Endpoint:</label>
+                                    <input
+                                        type="text"
+                                        id={`apiEndpoint-${tool.id}`}
+                                        placeholder="API Endpoint URL"
+                                        value={newApiEndpoint}
+                                        onChange={(e) => setNewApiEndpoint(e.target.value)}
+                                    />
+
+                                    <label htmlFor={`apiMethod-${tool.id}`}>API Method:</label>
+                                    <select
+                                        id={`apiMethod-${tool.id}`}
+                                        value={newApiMethod}
+                                        onChange={(e) => setNewApiMethod(e.target.value as 'GET' | 'POST' | 'PUT' | 'DELETE')}
+                                    >
+                                        <option value="GET">GET</option>
+                                        <option value="POST">POST</option>
+                                        <option value="PUT">PUT</option>
+                                        <option value="DELETE">DELETE</option>
+                                    </select>
+
+                                    <label htmlFor={`apiHeaders-${tool.id}`}>API Headers (JSON):</label>
+                                    <textarea
+                                        id={`apiHeaders-${tool.id}`}
+                                        placeholder="API Headers (JSON)"
+                                        value={newApiHeaders}
+                                        onChange={(e) => setNewApiHeaders(e.target.value)}
+                                    />
+                                <button onClick={() => handleSaveApiTool(tool.id, newApiEndpoint, newApiMethod, newApiHeaders)}>Save</button>
+                                <button onClick={handleCancelEditApiTool}>Cancel</button>
                             </div>
                         )}
 
