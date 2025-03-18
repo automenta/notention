@@ -33,18 +33,31 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onClose }) => {
     };
 
     const handleSave = useCallback(() => {
-        const validationResult = validateSettings(settings);
-        if (!validationResult.isValid) {
-            setErrors(validationResult.errors);
-        } else {
-            localStorage.setItem('settings', JSON.stringify(settings)); // Save settings to local storage
-            const systemNote = getSystemNote();
-            systemNote.data.content.llm.apiKey = settings.apiKey;
-            systemNote.data.content.llm.modelName = settings.modelName;
-            systemNote.data.content.llm.temperature = settings.temperature;
-            localStorage.setItem('usePersistence', JSON.stringify(settings.usePersistence));
-            onClose();
+        const newErrors: { [key: string]: string } = {};
+
+        if (!settings.apiKey.trim()) {
+            newErrors.apiKey = 'API Key cannot be empty.';
         }
+
+        if (!settings.modelName.trim()) {
+            newErrors.modelName = 'Model Name cannot be empty.';
+        }
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
+        setErrors({}); // Clear any previous errors
+
+        localStorage.setItem('settings', JSON.stringify(settings)); // Save settings to local storage
+        const systemNote = getSystemNote();
+        systemNote.data.content.llm.apiKey = settings.apiKey;
+        systemNote.data.content.llm.modelName = settings.modelName;
+        systemNote.data.content.llm.temperature = settings.temperature;
+        localStorage.setItem('usePersistence', JSON.stringify(settings.usePersistence));
+        onClose();
+
     }, [settings, onClose]);
 
     return (
