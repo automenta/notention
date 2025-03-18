@@ -7,7 +7,7 @@
     border-radius: 5px;
     margin: 20px;
     border: 1px solid #ddd;
-    position: relative; /* Needed for absolute positioning of nodes */
+    position: relative;
 }
 
 .graphView h2 {
@@ -16,19 +16,13 @@
 }
 
 .node {
-    position: absolute;
-    width: 30px;
-    height: 30px;
-    background-color: #666;
-    border-radius: 50%;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    fill: #666;
+    stroke: white;
+    stroke-width: 2px;
     cursor: pointer;
 }
 
 .edge {
     stroke: #ccc;
-    strokeWidth: 2;
+    strokeWidth: 1;
 }

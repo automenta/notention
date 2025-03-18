@@ -101,16 +101,15 @@ export const GraphView: React.FC = () => {
                     );
                 })}
                 {nodes.map(node => (
-                    <div
+                    <circle
                         key={node.id}
+                        cx={node.x}
+                        cy={node.y}
+                        r="15"
                         className={styles.node}
-                        style={{
-                            left: node.x - 15, // Center the node
-                            top: node.y - 15, // Center the node
-                        }}
                     >
-                        {node.title}
-                    </div>
+                        <title>{node.title}</title>
+                    </circle>
                 ))}
             </svg>
         </div>
