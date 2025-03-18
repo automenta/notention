@@ -124,32 +124,11 @@ class SystemNote {
                     if (rule.condition) {
                         conditionMet = rule.condition(note, this);
                     }
-                    if (rule.llmCondition) {
-                        try {
-                            const llmResponse = await rule.llmCondition(note, this);
-                            conditionMet = llmResponse.result;
-                            const confidenceThreshold = 0.75; // Adjust this value as needed
-                            if (llmResponse.confidence < confidenceThreshold) {
-                                systemLog.info(`LLM confidence below threshold (${confidenceThreshold}), skipping rule.`, 'SystemNote');
-                                conditionMet = false;
-                            }
-                        } catch (error: any) {
-                            systemLog.error(`Error during LLM condition check: ${error.message}`, 'SystemNote');
-                            conditionMet = false; // Treat LLM errors as condition not met
-                        }
-                    }
 
                     if (conditionMet) {
                         systemLog.info(`Applying planning rule (${order}): ${rule.name} to note ${note.title}`, 'SystemNote');
                         if (rule.action) {
                             await rule.action(note, this);
-                        } else if (rule.llmAction) {
-                            try {
-                                const action = await rule.llmAction(note, this);
-                                await action(note, this);
-                            } catch (error: any) {
-                                systemLog.error(`Error during LLM action generation: ${error.message}`, 'SystemNote');
-                            }
                         }
                     }
                 } catch (error: any) {
