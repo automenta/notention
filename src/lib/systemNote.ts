@@ -232,7 +232,11 @@ const registerInitialTools = () => {
         inputSchema: JSON.stringify({ //Basic input schema for the tool
             type: 'object',
             properties: {
-                input: { type: 'string', description: 'Text to echo' }
+                input: {
+                    type: 'string',
+                    description: 'Text to echo',
+                    inputType: 'textarea' // Specify inputType as textarea
+                }
             },
             required: ['input']
         }),
@@ -319,7 +323,13 @@ const registerInitialTools = () => {
         inputSchema: JSON.stringify({
             type: 'object',
             properties: {
-                action: { type: 'string', enum: ['read', 'write'], description: 'Action to perform' },
+                action: {
+                    type: 'string',
+                    enum: ['read', 'write'],
+                    description: 'Action to perform',
+                    inputType: 'select', // Specify inputType as select
+                    options: ['read', 'write'] // Add options for the select input
+                },
                 filename: { type: 'string', description: 'Filename' },
                 content: { type: 'string', description: 'Content to write (for write action)' }
             },
