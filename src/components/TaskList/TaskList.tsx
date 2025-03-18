@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState, useMemo} from 'react';
 import TaskListItem from './TaskListItem';
 import {getSystemNote, onSystemNoteChange} from '../../lib/systemNote';
 import {Note} from '../../types';
@@ -20,42 +20,41 @@ export const TaskList: React.FC<{
     const [availableTemplates, setAvailableTemplates] = useState<Note[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
+    const updateTasks = useCallback(() => {
+        const newTasks = system.getAllNotes().filter(n => n.type === 'Task');
+        setTasks(prevTasks => {
+            if (JSON.stringify(prevTasks) !== JSON.stringify(newTasks)) {
+                return newTasks;
+            }
+            return prevTasks;
+        });
+    }, [system]);
+
     useEffect(() => {
-        const updateTasks = () => {
-            const newTasks = system.getAllNotes().filter(n => n.type === 'Task');
-            setTasks(prevTasks => {
-                // Only update if tasks have actually changed
-                if (JSON.stringify(prevTasks) !== JSON.stringify(newTasks)) {
-                    return newTasks;
-                }
-                return prevTasks;
-            });
-        };
         updateTasks();
         const unsubscribe = onSystemNoteChange(updateTasks);
         return unsubscribe;
-    }, [system]);
+    }, [system, updateTasks]);
 
     useEffect(() => {
         setAvailableTools(system.getAllTools());
         setAvailableTemplates(system.getAllNotes().filter(n => n.type === 'Template'));
     }, [system]);
 
-    // Compute sorted and filtered tasks in render phase
-    const sortedAndFilteredTasks = (() => {
+    const sortedAndFilteredTasks = useMemo(() => {
         let sortedTasks = [...tasks];
         if (sortBy === 'priority') sortedTasks.sort((a, b) => b.priority - a.priority);
         if (sortBy === 'createdAt') sortedTasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         if (sortBy === 'status') sortedTasks.sort((a, b) => a.status.localeCompare(b.status));
         return filterByStatus === 'all' ? sortedTasks : sortedTasks.filter(task => task.status === filterByStatus);
-    })();
+    }, [tasks, sortBy, filterByStatus]);
 
-    const changePriority = useCallback((id: string, priority: number) => {
+    const handleChangePriority = useCallback((id: string, priority: number) => {
         const note = system.getNote(id);
         if (note) system.updateNote({...note, priority});
     }, [system]);
 
-    const selectTask = useCallback((id: string) => {
+    const handleSelectTask = useCallback((id: string) => {
         setSelectedId(id);
         onTaskSelect(id);
     }, [onTaskSelect]);
@@ -66,7 +65,7 @@ export const TaskList: React.FC<{
 
     const handleRunTask = useCallback(() => {
         if (selectedId) {
-            system.runNote(selectedId); // Call system.runNote with selectedId
+            system.runNote(selectedId);
         }
     }, [selectedId, system]);
 
@@ -174,8 +173,8 @@ export const TaskList: React.FC<{
                     <TaskListItem
                         key={task.id}
                         task={task}
-                        onPriorityChange={changePriority}
-                        onClick={selectTask}
+                        onPriorityChange={handleChangePriority}
+                        onClick={handleSelectTask}
                         isSelected={task.id === selectedId}
                     />
                 ))}
