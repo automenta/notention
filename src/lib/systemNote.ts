@@ -1,11 +1,10 @@
 import { Note } from '../types';
-import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { ChatOpenAI } from '@langchain/openai';
 import { systemLog } from './systemLog';
 import { NoteImpl } from './note';
 import * as z from 'zod';
 import * as fs from 'fs'; // Import the fs module
 import { executeTool } from './executor'; // Import the executeTool function
-import { SerpAPI } from "langchain/tools";
 import path from 'path';
 import planningRules, { PlanningRule } from './planningRules';
 import { initializeInitialTools } from './initialTools';
