@@ -76,7 +76,24 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose, onSave }) => {
 
     const handleRun = async () => {
         if (note) {
-            systemNote.runNote(note.id);
+            const noteImpl = new NoteImpl(note);
+            try {
+                await noteImpl.run();
+                // Fetch the updated note after running
+                const updatedNote = await systemNote.getNote(note.id);
+                if (updatedNote) {
+                    setNote(updatedNote);
+                    // Extract the last system message as the tool result
+                    if (updatedNote.content?.messages && updatedNote.content.messages.length > 0) {
+                        const lastMessage = updatedNote.content.messages[updatedNote.content.messages.length - 1];
+                        setToolResult(lastMessage.content);
+                    } else {
+                        setToolResult('No result.');
+                    }
+                }
+            } catch (error: any) {
+                setToolResult(`Error: ${error.message}`);
+            }
         }
     };
 
