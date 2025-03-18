@@ -153,7 +153,6 @@ export const TaskList: React.FC<{
             <h2>Tasks 🚀</h2>
             <div className={styles.taskListActions}>
                 <button onClick={handleAddTask}>+ Add Task</button>
-                <button onClick={handleCreateFromTemplate}>Create from Template</button>
                 {selectedId && (
                     <>
                         <button onClick={handleRunTask}>Run Task</button>
