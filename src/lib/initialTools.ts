@@ -167,7 +167,6 @@ export const initializeInitialTools = () => {
                     enum: ['read', 'write', 'createDirectory', 'deleteFile'],
                     description: 'Action to perform',
                     inputType: 'select', // Specify inputType as select
-                    options: ['read', 'write', 'createDirectory', 'deleteFile'] // Add options for the select input
                 },
                 filename: { type: 'string', description: 'Filename' }
             },
