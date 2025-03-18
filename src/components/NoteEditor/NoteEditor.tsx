@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import styles from './NoteEditor.module.css';
 import {getSystemNote} from '../../lib/systemNote';
 import MonacoEditor from 'react-monaco-editor';
