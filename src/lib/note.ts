@@ -122,9 +122,11 @@ export class NoteImpl {
             return;
         }
 
+        let stepResult: any = null; // Store the result of each step
+
         for (const step of logic.steps) {
             try {
-                await this.executeStep(step);
+                stepResult = await this.executeStep(step, stepResult); // Pass the previous result to the next step
             } catch (error: any) {
                 systemLog.error(`Error executing step ${step.id} in Note ${this.data.id}: ${error.message}`, this.data.type);
                 this.addSystemMessage(`Error executing step ${step.id}: ${error.message}`, 'error');
@@ -133,30 +135,46 @@ export class NoteImpl {
         }
     }
 
-    private async executeStep(step: any) {
+    private async executeStep(step: any, previousStepResult: any): Promise<any> {
         systemLog.debug(`Running step ${step.id} of type ${step.type}`, this.data.type);
 
         if (step.type === 'tool') {
-            await this.executeToolStep(step);
+            return await this.executeToolStep(step, previousStepResult);
         } else {
             systemLog.warn(`Unknown step type: ${step.type}. Skipping step.`, this.data.type);
+            return null;
         }
     }
 
-    private async executeToolStep(step: any) {
+    private async executeToolStep(step: any, previousStepResult: any): Promise<any> {
         const toolId = step.toolId;
-        const input = step.input;
+        let input = step.input;
 
         if (!toolId) {
             systemLog.warn(`Tool ID not provided in step ${step.id}`, this.data.type);
-            return;
+            return null;
         }
 
-        systemLog.info(`⚙️ Executing tool ${toolId} for Note ${this.data.id}`, this.data.type);
+        // Basic mechanism for passing data between steps
+        if (typeof input === 'string' && input.startsWith('{') && input.endsWith('}')) {
+            try {
+                input = JSON.parse(input);
+            } catch (e) {
+                // If parsing fails, assume it's a simple string
+            }
+        }
+
+        if (previousStepResult && typeof input === 'object' && input !== null) {
+            // Merge previous step result into the input
+            input = { ...input, ...previousStepResult };
+        }
+
+        systemLog.info(`⚙️ Executing tool ${toolId} for Note ${this.data.id} with input ${JSON.stringify(input)}`, this.data.type);
         try {
             const result = await getSystemNote().executeTool(toolId, input);
             systemLog.info(`✅ Tool ${toolId} executed successfully for Note ${this.data.id}. Result: ${JSON.stringify(result)}`, this.data.type);
             this.addSystemMessage(`Tool ${toolId} executed successfully. Result: ${JSON.stringify(result)}`);
+            return result; // Return the result for the next step
         } catch (toolError: any) {
             systemLog.error(`❌ Error executing tool ${toolId} for Note ${this.data.id}: ${toolError.message}`, this.data.type);
             this.addSystemMessage(`Error executing tool ${toolId}: ${toolError.message}`, 'error');
