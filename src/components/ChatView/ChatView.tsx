@@ -75,7 +75,9 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
         try {
             const llm = system.getLLM();
             if (llm) {
-                const llmResponse = await llm.invoke(`Convert this to a task plan (JSON format): ${promptContent}`);
+                // Include conversation history in the prompt
+                const conversationHistory = messages.map(msg => `${msg.type}: ${msg.content}`).join('\n');
+                const llmResponse = await llm.invoke(`Here's the conversation history:\n${conversationHistory}\n---\nConvert this to a task plan (JSON format): ${promptContent}`);
                 promptNote.data.logic = llmResponse;
                 systemLog.info(`LLM generated logic for promptNote: ${llmResponse}`, 'ChatView');
             } else {
@@ -98,7 +100,7 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
 
         setInput('');
         systemLog.info(`💬 User input for Task ${selectedTaskId}: ${promptContent}`, 'ChatView');
-    }, [selectedTaskId, system, input]);
+    }, [selectedTaskId, system, input, messages]);
 
     const handleEditInlineNote = useCallback(() => {
         systemLog.debug('Edit inline note requested', 'ChatView');
@@ -135,11 +137,11 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
                     <NoteEditor
                         noteId={selectedTaskId}
                         onClose={handleCancelInlineNote}
-                        onSave={async (content) => {
+                        onSave={async (updatedNote) => {
                             if (selectedTaskId) {
                                 const task = system.getNote(selectedTaskId);
                                 if (task) {
-                                    system.updateNote({ ...task, content });
+                                    system.updateNote(updatedNote);
                                     setEditingNote(false);
                                 } else {
                                     systemLog.error('Note not found!', 'ChatView');
