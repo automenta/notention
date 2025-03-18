@@ -16,7 +16,8 @@ export const NoteSchema = z.object({
     inputSchema: z.any().optional(),
     outputSchema: z.any().optional(),
     references: z.array(z.string().uuid()).default([]),
-    config: z.record(z.any()).optional()
+    config: z.record(z.any()).optional(),
+    description: z.string().optional()
 });
 
 export type Note = z.infer<typeof NoteSchema>;
