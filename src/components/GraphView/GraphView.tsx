@@ -1,111 +1,115 @@
 // src/components/GraphView/GraphView.tsx
-import React, {useEffect, useRef, useCallback} from 'react';
-import cytoscape from 'cytoscape';
+import React, {useEffect, useState} from 'react';
 import {getSystemNote, onSystemNoteChange} from '../../lib/systemNote';
 import styles from './GraphView.module.css';
-import {systemLog} from "../../lib/systemLog";
+
+interface Node {
+    id: string;
+    title: string;
+    x: number;
+    y: number;
+}
+
+interface Edge {
+    source: string;
+    target: string;
+}
+
+const generateRandomPosition = (width: number, height: number) => ({
+    x: Math.random() * width,
+    y: Math.random() * height,
+});
 
 export const GraphView: React.FC = () => {
-    const cyRef = useRef<HTMLDivElement>(null);
-    const cyInstance = useRef<cytoscape.Core | null>(null);
+    const [nodes, setNodes] = useState<Node[]>([]);
+    const [edges, setEdges] = useState<Edge[]>([]);
+    const [graphContainerSize, setGraphContainerSize] = useState({width: 0, height: 0});
     const system = getSystemNote();
-    const isGraphInitialized = useRef(false);
-    const isMounted = useRef(false);
-
-    const updateGraph = useCallback(() => {
-        if (!isMounted.current || !cyInstance.current) {
-            systemLog.warn("Cytoscape instance is not valid or component unmounted, skipping graph update.", "GraphView");
-            return;
-        }
-
-        const cy = cyInstance.current;
-
-        if (cy.destroyed()) {
-            systemLog.warn("Cytoscape instance was destroyed, skipping graph update.", "GraphView");
-            return;
-        }
-
-        try {
-            const notes = system.getAllNotes();
-            cy.elements().remove();
-
-            const nodes = notes.map(note => ({
-                data: {id: note.id, title: note.title, type: note.type, status: note.status}
-            }));
-            cy.add(nodes);
-
-            const edges = notes.flatMap(sourceNote =>
-                sourceNote.references.map(targetId => ({
-                    data: {source: sourceNote.id, target: targetId}
-                }))
-            );
-            cy.add(edges);
-
-            cy.layout({name: 'cose'}).run();
-            cy.fit();
-        } catch (error) {
-            systemLog.error(`Error updating graph: ${error}`, "GraphView");
-        }
-
-    }, [system]);
+    const graphViewRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        isMounted.current = true;
+        const updateGraph = () => {
+            const notes = system.getAllNotes();
 
-        if (!cyRef.current || isGraphInitialized.current) return;
-
-        isGraphInitialized.current = true;
-        cyInstance.current = cytoscape({
-            container: cyRef.current,
-            elements: [],
-            style: [
-                {
-                    selector: 'node',
-                    style: {
-                        'background-color': '#666',
-                        'label': 'data(title)'
-                    }
-                },
-                {
-                    selector: 'edge',
-                    style: {
-                        'width': 3,
-                        'line-color': '#ccc',
-                        'target-arrow-color': '#ccc',
-                        'target-arrow-shape': 'triangle',
-                        'curve-style': 'bezier'
-                    }
-                }
-            ],
-            layout: {
-                name: 'cose'
+            // Get container dimensions
+            if (graphViewRef.current) {
+                setGraphContainerSize({
+                    width: graphViewRef.current.clientWidth,
+                    height: graphViewRef.current.clientHeight,
+                });
             }
-        });
+
+            const newNodes = notes.map(note => {
+                return {
+                    id: note.id,
+                    title: note.title,
+                    ...generateRandomPosition(graphContainerSize.width, graphContainerSize.height),
+                };
+            });
+
+            const newEdges = notes.flatMap(sourceNote =>
+                sourceNote.references.map(targetId => ({
+                    source: sourceNote.id,
+                    target: targetId,
+                }))
+            );
+
+            setNodes(newNodes);
+            setEdges(newEdges);
+        };
 
         updateGraph();
 
-        const unsubscribe = onSystemNoteChange(() => {
-            if (isMounted.current) {
-                updateGraph();
-            }
-        });
+        const unsubscribe = onSystemNoteChange(updateGraph);
+
+        // Update graph on window resize
+        const handleResize = () => {
+            updateGraph();
+        };
+        window.addEventListener('resize', handleResize);
 
         return () => {
-            isMounted.current = false;
             unsubscribe();
-            if (cyInstance.current) {
-                cyInstance.current.destroy();
-                cyInstance.current = null;
-                isGraphInitialized.current = false;
-            }
+            window.removeEventListener('resize', handleResize);
         };
-
-    }, [system, updateGraph]);
+    }, [system, graphContainerSize]);
 
     return (
-        <div className={styles.graphView}>
+        <div className={styles.graphView} ref={graphViewRef}>
             <h2>Note Graph Visualization 🕸️</h2>
-            <div ref={cyRef} style={{height: '600px'}}/>
+            <svg width="100%" height="600px">
+                {edges.map((edge, index) => {
+                    const sourceNode = nodes.find(node => node.id === edge.source);
+                    const targetNode = nodes.find(node => node.id === edge.target);
+
+                    if (!sourceNode || !targetNode) {
+                        return null;
+                    }
+
+                    return (
+                        <line
+                            key={`edge-${index}`}
+                            x1={sourceNode.x}
+                            y1={sourceNode.y}
+                            x2={targetNode.x}
+                            y2={targetNode.y}
+                            className={styles.edge}
+                        />
+                    );
+                })}
+                {nodes.map(node => (
+                    <div
+                        key={node.id}
+                        className={styles.node}
+                        style={{
+                            left: node.x - 15, // Center the node
+                            top: node.y - 15, // Center the node
+                        }}
+                    >
+                        {node.title}
+                    </div>
+                ))}
+            </svg>
         </div>
     );
 };
