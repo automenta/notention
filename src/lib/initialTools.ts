@@ -305,7 +305,7 @@ export const initializeInitialTools = () => {
     systemNote.registerToolDefinition({ ...generateTaskLogicToolData, implementation: generateTaskLogicToolImplementation, type: 'langchain' });
 
     // 5. Example API Tool (Simple GET Request)
-    const apiToolData: Note = {
+     const apiToolData: Note = {
         id: idService.generateId(),
         type: 'Tool',
         title: 'Joke API Tool',
@@ -325,6 +325,11 @@ export const initializeInitialTools = () => {
             },
             required: ['setup', 'punchline']
         }),
+        config: {
+            method: 'GET',
+            headers: JSON.stringify({ 'Content-Type': 'application/json' }),
+            authType: 'none',
+        },
         description: 'Fetches a random joke from the Joke API.',
     };
     systemNote.registerToolDefinition({ ...apiToolData, type: 'api' });
