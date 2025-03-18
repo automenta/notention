@@ -4,6 +4,7 @@ import { SystemNote, getSystemNote } from '../systemNote';
 import { RunnablePassthrough } from "@langchain/core/runnables";
 import { systemLog } from '../systemLog';
 import { registerTool } from './toolUtils';
+import { handleToolError } from './toolUtils';
 
 export const registerEchoTool = (systemNote: SystemNote) => {
     const echoToolNoteData: Note = {
@@ -50,7 +51,11 @@ export const registerEchoTool = (systemNote: SystemNote) => {
         description: 'Echoes the input text.',
     };
     const echoToolImplementation = async (input: any) => {
-        return { output: input.input };
+        try {
+            return { output: input.input };
+        } catch (error: any) {
+            return handleToolError(error, echoToolNoteData.id);
+        }
     };
     registerTool({ ...echoToolNoteData, implementation: echoToolImplementation, type: 'custom' }); // Register Echo Tool
     systemLog.info(`🔨 Registered Tool ${echoToolNoteData.id}: ${echoToolNoteData.title}`, 'SystemNote');

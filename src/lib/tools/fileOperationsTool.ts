@@ -5,6 +5,7 @@ import { systemLog } from '../systemLog';
 import * as fs from 'fs';
 import path from 'path';
 import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, sanitizeFilename } from '../initialTools';
+import { handleToolError } from './toolUtils';
 
 const ALLOWED_ACTIONS: { [filename: string]: string[] } = {
     'test.txt': ['read', 'write', 'deleteFile'],
@@ -131,8 +132,7 @@ export const registerFileOperationsTool = (systemNote: SystemNote): void => {
                 throw new Error('Invalid action');
             }
         } catch (error: any) {
-            systemLog.error(`File operation failed: ${error.message}`, 'FileOperationsTool');
-            return { result: `Error: ${error.message}` };
+            return handleToolError(error, fileOperationsToolData.id);
         }
     };
     systemNote.registerToolDefinition({ ...fileOperationsToolData, implementation: fileOperationsToolImplementation, type: 'custom' });
