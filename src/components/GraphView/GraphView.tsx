@@ -69,8 +69,14 @@ export const GraphView: React.FC = () => {
     }, [system, graphContainerSize]);
 
     useEffect(() => {
-        updateGraph();
-        const unsubscribe = onSystemNoteChange(updateGraph);
+        const throttledUpdateGraph = () => {
+            setTimeout(() => {
+                updateGraph();
+            }, 500); // Adjust the delay (in milliseconds) as needed
+        };
+
+        throttledUpdateGraph();
+        const unsubscribe = onSystemNoteChange(throttledUpdateGraph);
 
         return () => {
             unsubscribe();
@@ -109,6 +115,14 @@ export const GraphView: React.FC = () => {
                         className={styles.node}
                     >
                         <title>{node.title}</title>
+                        <text
+                            x={node.x}
+                            y={node.y + 5} // Adjust vertical alignment as needed
+                            textAnchor="middle"
+                            className={styles.nodeLabel}
+                        >
+                            {node.title}
+                        </text>
                     </circle>
                 ))}
             </svg>

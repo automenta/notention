@@ -22,6 +22,13 @@
     cursor: pointer;
 }
 
+.nodeLabel {
+    font-size: 10px;
+    fill: white;
+    text-shadow: 1px 1px 2px black;
+    pointer-events: none; /* Prevent label from interfering with node interactions */
+}
+
 .edge {
     stroke: #ccc;
     strokeWidth: 1;
