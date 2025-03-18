@@ -84,9 +84,22 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({selectedT
             {editingNote && selectedTaskId ? (
                 <div className={styles.noteEditorInline}>
                     <h3>Inline Note Editor 📝</h3>
-                    <NoteEditor noteId={selectedTaskId} onClose={handleCancelInlineNote}/>
+                    <NoteEditor
+                        noteId={selectedTaskId}
+                        onClose={handleCancelInlineNote}
+                        onSave={async (content) => {
+                            if (selectedTaskId) {
+                                const task = system.getNote(selectedTaskId);
+                                if (task) {
+                                    system.updateNote({...task, content});
+                                    setEditingNote(false);
+                                } else {
+                                    systemLog.error('Note not found!', 'ChatView');
+                                }
+                            }
+                        }}
+                    />
                     <div className={styles.inlineEditorActions}>
-                        <button onClick={handleSaveInlineNote} disabled>Save (Stubbed)</button>
                         <button onClick={handleCancelInlineNote}>Cancel</button>
                     </div>
                 </div>

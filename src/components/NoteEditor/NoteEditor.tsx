@@ -37,9 +37,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose, onSave})
 
         const currentNote = system.getNote(noteId);
         if (currentNote) {
-            system.updateNote({...currentNote, ...parsedContent}); // Basic merge - adjust as needed
-            onClose();
-            alert('Note content updated (Save action stubbed)'); // Save confirmation (stubbed)
+            onSave(parsedContent);
         } else {
             alert('Note not found!');
         }
