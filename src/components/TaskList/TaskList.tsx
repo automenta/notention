@@ -185,6 +185,19 @@ export const TaskList: React.FC<{
 
             <button onClick={handleCreateFromTemplate}>Create from Template</button>
 
+            {showTemplateSelector && (
+                <div className={styles.templateSelector}>
+                    <h3>Select a Template</h3>
+                    <ul>
+                        {availableTemplates.map(template => (
+                            <li key={template.id} onClick={() => handleSelectTemplate(template.id)}>
+                                {template.title}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
             <DragDropContext onDragEnd={onDragEnd}>
                 <Droppable droppableId="tasks">
                     {(provided) => (
@@ -224,19 +237,6 @@ export const TaskList: React.FC<{
                         {availableTools.map(tool => (
                             <li key={tool.id} onClick={() => handleSelectTool(tool.id)}>
                                 {tool.title}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-
-            {showTemplateSelector && (
-                <div className={styles.templateSelector}>
-                    <h3>Select a Template</h3>
-                    <ul>
-                        {availableTemplates.map(template => (
-                            <li key={template.id} onClick={() => handleSelectTemplate(template.id)}>
-                                {template.title}
                             </li>
                         ))}
                     </ul>
