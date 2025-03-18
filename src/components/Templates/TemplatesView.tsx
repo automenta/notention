@@ -271,8 +271,14 @@ export const TemplatesView: React.FC = () => {
                         <li key={template.id}>
                             {template.title} - {template.content}
                             <button onClick={() => handleCreateTaskFromTemplate(template.id)}>Create Task</button>
-                            <button onClick={() => handleEditTemplate(template.id)}>Edit Logic</button>
-                            <button onClick={() => handleEditContentTemplate(template.id)}>Edit Content</button>
+                            <button onClick={() => {
+                                handleEditTemplate(template.id);
+                                setNewTemplateLogic(template.logic || '');
+                            }}>Edit Logic</button>
+                            <button onClick={() => {
+                                handleEditContentTemplate(template.id);
+                                setNewTemplateContent(template.content || '');
+                            }}>Edit Content</button>
                             {editingTemplateId === template.id && (
                                 <div className={styles.templateEditor}>
                                     <MonacoEditor
