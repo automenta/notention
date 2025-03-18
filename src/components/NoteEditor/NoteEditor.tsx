@@ -86,13 +86,21 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose, onSave }) => {
                     // Extract the last system message as the tool result
                     if (updatedNote.content?.messages && updatedNote.content.messages.length > 0) {
                         const lastMessage = updatedNote.content.messages[updatedNote.content.messages.length - 1];
-                        setToolResult(lastMessage.content);
+                         if (lastMessage.type === 'error') {
+                            setError(lastMessage.content);
+                            setToolResult(null);
+                        } else {
+                            setToolResult(lastMessage.content);
+                            setError(null);
+                        }
                     } else {
                         setToolResult('No result.');
+                        setError(null);
                     }
                 }
             } catch (error: any) {
-                setToolResult(`Error: ${error.message}`);
+                setToolResult(null);
+                setError(`Error: ${error.message}`);
             }
         }
     };
