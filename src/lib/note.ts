@@ -50,7 +50,7 @@ export class NoteImpl {
     };
 
     // Static factory method for creating Task Note
-    static createTaskNote = async (title: string, content: string, priority: number = 50): Promise<NoteImpl> => {
+    static createTaskNote = async (title: string, content: string, priority: number = 50, description: string = ''): Promise<NoteImpl> => {
         systemLog.debug(`Creating task note: ${title}`, 'NoteImpl');
         return new NoteImpl({
             id: idService.generateId(),
@@ -63,6 +63,7 @@ export class NoteImpl {
                     timestamp: new Date().toISOString()
                 }],
             },
+            description: description,
             status: 'pending',
             priority: priority,
             createdAt: new Date().toISOString(),

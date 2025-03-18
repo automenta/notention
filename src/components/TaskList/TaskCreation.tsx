@@ -16,6 +16,7 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
     const [availableTemplates, setAvailableTemplates] = useState<Note[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
     const [selectedToolId, setSelectedToolId] = useState<string | null>(null); // Track selected tool
+    const [taskDescription, setTaskDescription] = useState<string>(''); // New state for task description
     const system = getSystemNote();
 
     useEffect(() => {
@@ -41,7 +42,7 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
                 ]
             };
 
-            noteImplPromise = NoteImpl.createTaskNote(taskTitle, 'Describe your task here...');
+            noteImplPromise = NoteImpl.createTaskNote(taskTitle, 'Describe your task here...', 50, taskDescription);
             noteImplPromise.then(noteImpl => {
                 noteImpl.data.logic = newLogic;
                 system.addNote(noteImpl.data);
@@ -50,11 +51,12 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
             setSelectedToolId(null);
         } else {
             // Create a basic task
-            noteImplPromise = NoteImpl.createTaskNote('New Task', 'Describe your task here...');
+            noteImplPromise = NoteImpl.createTaskNote('New Task', 'Describe your task here...', 50, taskDescription);
             noteImplPromise.then(noteImpl => system.addNote(noteImpl.data));
         }
         noteImplPromise.then(() => onTaskAdd());
-    }, [system, selectedToolId, onTaskAdd]);
+        setTaskDescription(''); // Reset task description after adding
+    }, [system, selectedToolId, onTaskAdd, taskDescription]);
 
     const handleCreateFromTemplate = useCallback(() => {
         setShowTemplateSelector(true);
@@ -101,6 +103,14 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
                     </ul>
                 </div>
             )}
+
+            <input
+                type="text"
+                placeholder="Task description"
+                value={taskDescription}
+                onChange={(e) => setTaskDescription(e.target.value)}
+                className={styles.taskDescriptionInput}
+            />
 
             {!showToolSelector ? (
                 <button onClick={handleShowToolSelector}>+ Add Task with Tool</button>
