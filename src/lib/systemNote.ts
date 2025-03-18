@@ -73,6 +73,14 @@ const updateLLM = () => {
     systemLog.info(`LLM updated with model ${settings.modelName}`, 'SystemNote');
 };
 
+const ensureSystemNote = () => {
+    if (!systemNoteData) {
+        systemLog.warn('System Note was not initialized, bootstrapping with default.');
+        systemNoteData = initializeSystemNoteData();
+        initialize();
+    }
+};
+
 // Centralized system note initialization
 export const useSystemNote = () => {
     const [systemNote, setSystemNote] = useState<SystemNote | null>(null);
@@ -82,16 +90,13 @@ export const useSystemNote = () => {
     }, []);
 
     useEffect(() => {
-        if (!systemNoteData) {
-            systemNoteData = initializeSystemNoteData();
-            initialize();
-        }
+        ensureSystemNote();
 
         const newSystemNote = new SystemNote(systemNoteData!, noteStorage);
         setSystemNote(newSystemNote);
 
         const unsubscribe = onSystemNoteChange(() => {
-            setSystemNote(new SystemNote(systemNoteData!, noteStorage));
+            setSystemNote(newSystemNote(systemNoteData!, noteStorage));
         });
 
         // Subscribe to settings changes to update the LLM
@@ -107,11 +112,7 @@ export const useSystemNote = () => {
 };
 
 export const getSystemNote = () => {
-    if (!systemNoteData) {
-        systemLog.warn('System Note was not initialized, bootstrapping with default. Ensure initializeSystemNote is called.', 'SystemNote');
-        systemNoteData = initializeSystemNoteData();
-        initialize();
-    }
+    ensureSystemNote();
 
     if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
         migrateDataToGraphDB();
