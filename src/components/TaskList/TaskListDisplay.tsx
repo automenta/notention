@@ -9,7 +9,6 @@ interface TaskListDisplayProps {
     selectedId: string | null;
     onTaskSelect: (id: string) => void;
     onPriorityChange: (id: string, priority: number) => void;
-    onDragEnd: (result: any) => void;
 }
 
 export const TaskListDisplay: React.FC<TaskListDisplayProps> = ({
@@ -17,7 +16,6 @@ export const TaskListDisplay: React.FC<TaskListDisplayProps> = ({
     selectedId,
     onTaskSelect,
     onPriorityChange,
-    onDragEnd,
 }) => {
     const handleChangePriority = useCallback((id: string, priority: number) => {
         onPriorityChange(id, priority);
@@ -27,8 +25,12 @@ export const TaskListDisplay: React.FC<TaskListDisplayProps> = ({
         onTaskSelect(id);
     }, [onTaskSelect]);
 
+    const handleOnDragEnd = (result: any) => {
+        console.log('drag ended', result);
+    };
+
     return (
-        <DragDropContext onDragEnd={onDragEnd}>
+        <DragDropContext onDragEnd={handleOnDragEnd}>
             <Droppable droppableId="tasks">
                 {(provided) => (
                     <div

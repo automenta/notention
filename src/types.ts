@@ -13,8 +13,8 @@ export const NoteSchema = z.object({
     priority: z.number().int().min(0).max(100).default(0).describe("Priority of the note (0-100, integer)."), // Enforce number range and integer type
     createdAt: z.string().datetime().default(() => new Date().toISOString()).describe("Date and time when the note was created (ISO 8601 format)."), // Enforce datetime format
     updatedAt: z.string().datetime().nullable().describe("Date and time when the note was last updated (ISO 8601 format, nullable)."), // Enforce datetime format and nullability
-    inputSchema: z.any().optional().describe("Input schema for the note (JSON format)."),
-    outputSchema: z.any().optional().describe("Output schema for the note (JSON format)."),
+    inputSchema: z.record(z.any()).optional().describe("Input schema for the note (JSON format)."),
+    outputSchema: z.record(z.any()).optional().describe("Output schema for the note (JSON format)."),
     references: z.array(z.string().uuid()).default([]).describe("List of IDs of notes that this note references (UUID format)."), // Enforce UUID format for references
     config: z.record(z.any()).optional().describe("Configuration settings for the note (key-value pairs)."),
     description: z.string().max(1000).optional().describe("Description of the note (max 1000 characters)."), // Enforce length constraint
