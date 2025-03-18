@@ -4,10 +4,10 @@ export const NoteSchema = z.object({
     id: z.string().uuid().describe("Unique identifier for the note (UUID format)."), // Enforce UUID format
     type: z.enum([
         "Root", "Task", "Plan", "Step", "Tool", "Memory",
-        "System", "Data", "Prompt", "Config", "custom", "langchain", "api"
+        "System", "Data", "Prompt", "Config", "custom", "langchain", "api", "Template"
     ]).default("Task").describe("Type of the note, defining its purpose and behavior."), // Use enum for predefined types
     title: z.string().min(1).max(255).default("Untitled Note").describe("Title of the note (1-255 characters)."), // Enforce length constraints
-    content: z.any().optional().describe("Content of the note (can be any data type)."),
+    content: z.record(z.any()).optional().describe("Content of the note (can be any data type)."), // Standardize content as a record
     logic: z.any().optional().describe("Logic associated with the note (can be any data type)."),
     status: z.enum(["pending", "active", "running", "completed", "failed", "dormant", "bypassed", "pendingRefinement"]).default("pending").describe("Status of the note, indicating its current state."), // Use enum for predefined statuses
     priority: z.number().int().min(0).max(100).default(0).describe("Priority of the note (0-100, integer)."), // Enforce number range and integer type
@@ -32,4 +32,11 @@ export interface WorkflowStep {
     type: 'tool';
     toolId: string;
     input: any;
+}
+
+export interface SystemMessage {
+    type: 'system';
+    content: string;
+    timestamp: string;
+    level?: 'info' | 'warning' | 'error';
 }
