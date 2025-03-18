@@ -6,9 +6,6 @@ import * as fs from 'fs';
 import path from 'path';
 import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, sanitizeFilename } from '../initialTools';
 
-const HARDCODED_USERNAME = 'admin';
-const HARDCODED_PASSWORD = 'password';
-
 const ALLOWED_ACTIONS: { [filename: string]: string[] } = {
     'test.txt': ['read', 'write', 'deleteFile'],
     'test_directory': ['createDirectory'],
@@ -64,11 +61,6 @@ export const registerFileOperationsTool = (systemNote: SystemNote): void => {
 
     const fileOperationsToolImplementation = async (input: any) => {
          try {
-            if (!input || input.username !== HARDCODED_USERNAME || input.password !== HARDCODED_PASSWORD) {
-                systemLog.warn('File operation: Authentication failed', 'FileOperationsTool');
-                throw new Error('Access denied: Invalid username or password.');
-            }
-
             if (!input || !input.filename || !input.action) {
                 systemLog.warn('File operation: Invalid input', 'FileOperationsTool');
                 throw new Error('Invalid input: Action and filename are required.');

@@ -192,8 +192,6 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                 const result = await systemNote.executeTool('file-operations-tool', {
                     action: 'read',
                     filename: 'test.txt',
-                    username: username,
-                    password: password,
                 });
 
                 expect(result).toEqual({ result: 'test content' });
@@ -204,8 +202,6 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                     action: 'write',
                     filename: 'test.txt',
                     content: 'test content',
-                    username: username,
-                    password: password,
                 });
 
                 expect(result).toEqual({ result: 'File written successfully' });
@@ -219,8 +215,6 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                     systemNote.executeTool('file-operations-tool', {
                         action: 'read',
                         filename: '../outside.txt',
-                        username: username,
-                        password: password,
                     })
                 ).rejects.toThrow('Filename is outside the safe directory.');
             });
@@ -231,8 +225,6 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                         action: 'write',
                         filename: '../outside.txt',
                         content: 'test content',
-                        username: username,
-                        password: password,
                     })
                 ).rejects.toThrow('Filename is outside the safe directory.');
             });
@@ -244,8 +236,6 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                     systemNote.executeTool('file-operations-tool', {
                         action: 'read',
                         filename: 'test.exe',
-                        username: username,
-                        password: password,
                     })
                 ).rejects.toThrow('Invalid file extension.');
             });
@@ -256,8 +246,6 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                 const result = await systemNote.executeTool('file-operations-tool', {
                     action: 'createDirectory',
                     filename: 'test_directory',
-                    username: username,
-                    password: password,
                 });
 
                 expect(result).toEqual({ result: 'Directory created successfully' });
@@ -273,24 +261,11 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                 const result = await systemNote.executeTool('file-operations-tool', {
                     action: 'deleteFile',
                     filename: 'test.txt',
-                    username: username,
-                    password: password,
                 });
 
                 expect(result).toEqual({ result: 'File deleted successfully' });
 
                 expect(fs.existsSync(testFilePath)).toBe(false);
-            });
-
-            it('should not allow access with invalid credentials', async () => {
-                await expect(
-                    systemNote.executeTool('file-operations-tool', {
-                        action: 'read',
-                        filename: 'test.txt',
-                        username: 'invalid',
-                        password: 'invalid',
-                    })
-                ).rejects.toThrow('Invalid username or password.');
             });
 
             it('should not allow writing content with script tags', async () => {
@@ -299,8 +274,6 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                         action: 'write',
                         filename: 'test.txt',
                         content: '<script>alert("XSS")</script>',
-                        username: username,
-                        password: password,
                     })
                 ).rejects.toThrow('Content contains potentially harmful code.');
             });
@@ -311,8 +284,6 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                         action: 'write',
                         filename: 'test.txt',
                         content: '<iframe src="https://example.com"></iframe>',
-                        username: username,
-                        password: password,
                     })
                 ).rejects.toThrow('Content contains potentially harmful code.');
             });
@@ -322,8 +293,6 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                     systemNote.executeTool('file-operations-tool', {
                         action: 'createDirectory',
                         filename: 'test.txt',
-                        username: username,
-                        password: password,
                     })
                 ).rejects.toThrow('Action "createDirectory" is not allowed for file "test.txt".');
             });
@@ -333,8 +302,6 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                     systemNote.executeTool('file-operations-tool', {
                         action: 'read',
                         filename: 'test_directory',
-                        username: username,
-                        password: password,
                     })
                 ).rejects.toThrow('Action "read" is not allowed for file "test_directory".');
             });
