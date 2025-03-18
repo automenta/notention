@@ -100,9 +100,10 @@ export const initializeInitialTools = () => {
         inputSchema: JSON.stringify({
             type: 'object',
             properties: {
-                query: { type: 'string', description: 'Search query' }
+                query: { type: 'string', description: 'Search query' },
+                apiKey: { type: 'string', description: 'SerpAPI API Key' }
             },
-            required: ['query']
+            required: ['query', 'apiKey']
         }),
         outputSchema: JSON.stringify({
             type: 'object',
@@ -114,11 +115,11 @@ export const initializeInitialTools = () => {
     };
 
     const webSearchToolImplementation = async (input: any) => {
-        const serpAPI = new SerpAPI(process.env.SERPAPI_API_KEY);
-        const results = await serpAPI.call(input);
+        const serpAPI = new SerpAPI(input.apiKey);
+        const results = await serpAPI.call(input.query);
         return { results: results };
     };
-    systemNote.registerToolDefinition({ ...webSearchToolData, implementation: webSearchToolImplementation, type: 'langchain' });
+    systemNote.registerToolDefinition({ ...webSearchToolData, implementation: webSearchToolImplementation, type: 'custom' });
 
     // 3. File Operations Tool (Basic - READ/WRITE - SECURITY WARNING)
     const fileOperationsToolData: Note = {
@@ -150,10 +151,10 @@ export const initializeInitialTools = () => {
             properties: {
                 action: {
                     type: 'string',
-                    enum: ['read', 'write'],
+                    enum: ['read', 'write', 'createDirectory', 'deleteFile'],
                     description: 'Action to perform',
                     inputType: 'select', // Specify inputType as select
-                    options: ['read', 'write'] // Add options for the select input
+                    options: ['read', 'write', 'createDirectory', 'deleteFile'] // Add options for the select input
                 },
                 filename: { type: 'string', description: 'Filename' },
                 content: { type: 'string', description: 'Content to write (for write action)' }
@@ -186,7 +187,7 @@ export const initializeInitialTools = () => {
 
             // Validate file extension
             const ext = path.extname(filename).toLowerCase();
-            if (!ALLOWED_EXTENSIONS.includes(ext)) {
+            if (action !== 'createDirectory' && !ALLOWED_EXTENSIONS.includes(ext)) {
                 throw new Error(`Access denied: Invalid file extension. Allowed extensions are: ${ALLOWED_EXTENSIONS.join(', ')}`);
             }
 
@@ -199,6 +200,12 @@ export const initializeInitialTools = () => {
                 }
                 fs.writeFileSync(filename, input.content, 'utf-8');
                 return { result: 'File written successfully' };
+            } else if (action === 'createDirectory') {
+                fs.mkdirSync(filename, { recursive: true });
+                return { result: 'Directory created successfully' };
+            } else if (action === 'deleteFile') {
+                fs.unlinkSync(filename);
+                return { result: 'File deleted successfully' };
             } else {
                 throw new Error('Invalid action');
             }
