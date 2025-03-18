@@ -64,58 +64,6 @@ export const TaskList: React.FC<{
         NoteImpl.createTaskNote('New Task', 'Describe your task here...').then(noteImpl => system.addNote(noteImpl.data));
     }, [system]);
 
-    const handleRunTask = useCallback(() => {
-        if (selectedId) {
-            system.runNote(selectedId);
-        }
-    }, [selectedId, system]);
-
-    const handleArchiveTask = useCallback(() => {
-        if (selectedId) alert(`Archive Task: ${selectedId}`);
-    }, [selectedId]);
-
-    const handleDeleteTask = useCallback(() => {
-        if (selectedId && window.confirm(`Delete Task ${selectedId}?`)) {
-            system.deleteNote(selectedId);
-            onTaskSelect(null);
-        }
-    }, [selectedId, system, onTaskSelect]);
-
-    const handleAddToolStep = useCallback(() => {
-        setShowToolSelector(true);
-    }, []);
-
-    const handleSelectTool = useCallback((toolId: string) => {
-        setShowToolSelector(false);
-        if (selectedId) {
-            const task = system.getNote(selectedId);
-            if (task) {
-                try {
-                    const newStep = {
-                        id: `toolStep-${Date.now()}`,
-                        type: 'invoke',
-                        runnable: {
-                            $type: 'Tool',
-                            name: toolId
-                        }
-                    };
-
-                    let logic;
-                    if (task.logic) {
-                        logic = JSON.parse(task.logic);
-                        logic.steps = [...logic.steps, newStep];
-                    } else {
-                        logic = {steps: [newStep]};
-                    }
-                    task.logic = JSON.stringify(logic);
-                    system.updateNote(task);
-                } catch (e) {
-                    alert('Error adding tool step.');
-                }
-            }
-        }
-    }, [selectedId, system]);
-
     const handleCreateFromTemplate = useCallback(() => {
         setShowTemplateSelector(true);
     }, []);
