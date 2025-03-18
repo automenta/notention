@@ -1,5 +1,5 @@
 // src/components/GraphView/GraphView.tsx
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useCallback} from 'react';
 import cytoscape from 'cytoscape';
 import {getSystemNote, onSystemNoteChange} from '../../lib/systemNote';
 import styles from './GraphView.module.css';
@@ -11,6 +11,43 @@ export const GraphView: React.FC = () => {
     const system = getSystemNote();
     const isGraphInitialized = useRef(false);
     const isMounted = useRef(false);
+
+    const updateGraph = useCallback(() => {
+        if (!isMounted.current || !cyInstance.current) {
+            systemLog.warn("Cytoscape instance is not valid or component unmounted, skipping graph update.", "GraphView");
+            return;
+        }
+
+        const cy = cyInstance.current;
+
+        if (cy.destroyed()) {
+            systemLog.warn("Cytoscape instance was destroyed, skipping graph update.", "GraphView");
+            return;
+        }
+
+        try {
+            const notes = system.getAllNotes();
+            cy.elements().remove();
+
+            const nodes = notes.map(note => ({
+                data: {id: note.id, title: note.title, type: note.type, status: note.status}
+            }));
+            cy.add(nodes);
+
+            const edges = notes.flatMap(sourceNote =>
+                sourceNote.references.map(targetId => ({
+                    data: {source: sourceNote.id, target: targetId}
+                }))
+            );
+            cy.add(edges);
+
+            cy.layout({name: 'cose'}).run();
+            cy.fit();
+        } catch (error) {
+            systemLog.error(`Error updating graph: ${error}`, "GraphView");
+        }
+
+    }, [system]);
 
     useEffect(() => {
         isMounted.current = true;
@@ -45,50 +82,25 @@ export const GraphView: React.FC = () => {
             }
         });
 
-        const cy = cyInstance.current;
-
-        const updateGraph = () => {
-            if (!isMounted.current || !cy || cy.destroyed()) {
-                systemLog.warn("Cytoscape instance is not valid or component unmounted, skipping graph update.", "GraphView");
-                return;
-            }
-            try {
-                const notes = system.getAllNotes();
-                cy.elements().remove();
-
-                const nodes = notes.map(note => ({
-                    data: {id: note.id, title: note.title, type: note.type, status: note.status}
-                }));
-                cy.add(nodes);
-
-                const edges = notes.flatMap(sourceNote =>
-                    sourceNote.references.map(targetId => ({
-                        data: {source: sourceNote.id, target: targetId}
-                    }))
-                );
-                cy.add(edges);
-
-                cy.layout({name: 'cose'}).run();
-                cy.fit();
-            } catch (error) {
-                systemLog.error(`Error updating graph: ${error}`, "GraphView");
-            }
-        };
-
         updateGraph();
-        const unsubscribe = onSystemNoteChange(updateGraph);
+
+        const unsubscribe = onSystemNoteChange(() => {
+            if (isMounted.current) {
+                updateGraph();
+            }
+        });
 
         return () => {
             isMounted.current = false;
             unsubscribe();
-            if (cy) {
-                cy.destroy();
+            if (cyInstance.current) {
+                cyInstance.current.destroy();
                 cyInstance.current = null;
                 isGraphInitialized.current = false;
             }
         };
 
-    }, [system]);
+    }, [system, updateGraph]);
 
     return (
         <div className={styles.graphView}>
