@@ -23,14 +23,17 @@
 
 .nodeTask {
     fill: #4287f5; /* Blue for tasks */
+    stroke: #3069bb;
 }
 
 .nodeTemplate {
     fill: #f0ad4e; /* Orange for templates */
+    stroke: #d89a36;
 }
 
 .nodeTool {
     fill: #5cb85c; /* Green for tools */
+    stroke: #4a944a;
 }
 
 .nodeLabel {
@@ -52,4 +55,41 @@
     border: 1px solid red;
     background-color: #ffe6e6;
     border-radius: 5px;
+}
+
+.contextMenu {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+}
+
+.contextMenu button {
+    display: block;
+    padding: 5px 10px;
+    border: none;
+    background-color: transparent;
+    text-align: left;
+    cursor: pointer;
+    width: 100%;
+}
+
+.contextMenu button:hover {
+    background-color: #f0f0f0;
+}
+
+.noteEditorOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 11;
 }

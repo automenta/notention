@@ -134,9 +134,15 @@ export const GraphView: React.FC = () => {
         setEditingNodeId(null);
     }, []);
 
-    const handleSaveNote = useCallback((updatedNote: any) => {
-        system.updateNote(updatedNote);
-        setEditingNodeId(null);
+    const handleSaveNote = useCallback((updatedNote: Note) => {
+        try {
+            system.updateNote(updatedNote);
+            setEditingNodeId(null);
+            setGraphError(null);
+        } catch (error: any) {
+            console.error("Error saving note:", error);
+            setGraphError(`Error saving note: ${error.message}`);
+        }
     }, [system]);
 
     // D3.js graph rendering
@@ -147,14 +153,26 @@ export const GraphView: React.FC = () => {
             const svg = d3.select(svgRef.current);
             svg.selectAll('*').remove();  // Clear previous graph
 
+            // Zoom and pan behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 3]) // Limit zoom scale
+                .on("zoom", (event) => {
+                    container.attr("transform", event.transform);
+                });
+
+            svg.call(zoom);
+
+            const container = svg.append("g");
+
             // Create force simulation
             const simulation = d3.forceSimulation(nodes as any)
-                .force("link", d3.forceLink(edges).id((d: any) => d.id))
-                .force("charge", d3.forceManyBody().strength(-100))
-                .force("center", d3.forceCenter(graphContainerSize.width / 2, graphContainerSize.height / 2));
+                .force("link", d3.forceLink(edges).id((d: any) => d.id).distance(80))
+                .force("charge", d3.forceManyBody().strength(-200)) // Increased strength
+                .force("center", d3.forceCenter(graphContainerSize.width / 2, graphContainerSize.height / 2))
+                .force("collide", d3.forceCollide().radius(20)); // Prevent node overlap
 
             // Create links
-            const links = svg.append("g")
+            const links = container.append("g")
                 .attr("class", "links")
                 .selectAll("line")
                 .data(edges)
@@ -163,7 +181,7 @@ export const GraphView: React.FC = () => {
                 .attr("class", styles.edge);
 
             // Create nodes
-            const node = svg.append("g")
+            const node = container.append("g")
                 .attr("class", "nodes")
                 .selectAll("circle")
                 .data(nodes)
@@ -190,7 +208,7 @@ export const GraphView: React.FC = () => {
                 .text((d: any) => d.title);
 
             // Add labels to nodes
-            const labels = svg.append("g")
+            const labels = container.append("g")
                 .attr("class", "labels")
                 .selectAll("text")
                 .data(nodes)
