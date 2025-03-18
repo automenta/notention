@@ -4,7 +4,7 @@ import { SystemNote, getSystemNote } from '../systemNote';
 import { systemLog } from '../systemLog';
 import * as fs from 'fs';
 import path from 'path';
-import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, sanitizeFilename } from '../initialTools';
+import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, sanitizeFilename } from '../fileUtils';
 import { handleToolError } from './toolUtils';
 
 const ALLOWED_ACTIONS: { [filename: string]: string[] } = {
