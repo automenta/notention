@@ -28,7 +28,14 @@ export const ToolStepEditor: React.FC<ToolStepEditorProps> = ({
             console.warn("Note logic is undefined.  Cannot update input.");
             return;
         }
-        const updatedLogic = { ...JSON.parse(note.logic) };
+        let updatedLogic;
+        try {
+            updatedLogic = { ...JSON.parse(note.logic) };
+        } catch (e) {
+            console.error("Failed to parse note logic", note.logic, e);
+            return;
+        }
+
         if (updatedLogic.steps && updatedLogic.steps.length > 0) {
             updatedLogic.steps[0].input = { ...updatedLogic.steps[0].input, [inputName]: event.target.value };
         } else {
