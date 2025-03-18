@@ -15,121 +15,64 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ToolRegistry } from './toolRegistry';
 import { executeTool } from './executor';
 import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, ensureSafeDirectoryExists } from './fileUtils';
-
-type Listener = () => void;
-const listeners: Listener[] = [];
-let systemNoteData: Note | undefined = undefined;
-let noteStorage: NoteStorage = new InMemoryNoteStorage();
-let hasMigratedData: boolean = false;
-let llm: ChatOpenAI | null = null; // Cache the LLM instance
-
-const initializeSystemNoteData = (): Note => {
-    const newSystemNoteData: Note = {
-        id: 'system',
-        type: 'System',
-        title: 'Netention System',
-        content: {
-            notes: new Map<string, Note>(),
-            activeQueue: [],
-            runningCount: 0,
-            concurrencyLimit: 5,
-            llm: null,
-            toolRegistry: new ToolRegistry(),
-            // executor: new Executor(), //Executor is now a function
-        },
-        status: 'active',
-        priority: 100,
-        createdAt: new Date().toISOString(),
-        updatedAt: null,
-        references: [],
-        description: 'The root note for the system.',
-        inputSchema: undefined,
-        outputSchema: undefined,
-        config: undefined,
-        logic: undefined
-    };
-    systemLog.info('System Note Initialized 🚀', 'SystemNote');
-    initializeInitialTools();
-    return newSystemNoteData;
-};
-
-const initialize = () => {
-    if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
-        migrateDataToGraphDB();
-        hasMigratedData = true;
-    }
-
-    // Initialize or update the LLM instance based on settings changes
-    updateLLM();
-};
-
-const updateLLM = () => {
-    const settings = SettingsService.getSettings();
-    llm = new ChatOpenAI({
-        apiKey: settings.apiKey,
-        modelName: settings.modelName,
-        temperature: settings.temperature,
-    });
-    systemLog.info(`LLM updated with model ${settings.modelName}`, 'SystemNote');
-};
-
-const ensureSystemNote = () => {
-    if (!systemNoteData) {
-        systemLog.warn('System Note was not initialized, bootstrapping with default.');
-        systemNoteData = initializeSystemNoteData();
-        initialize();
-    }
-};
-
-// Centralized system note initialization
-export const useSystemNote = () => {
-    const [systemNote, setSystemNote] = useState<SystemNote | null>(null);
-
-    const memoizedUpdateLLM = useCallback(() => {
-        updateLLM();
-    }, []);
-
-    useEffect(() => {
-        ensureSystemNote();
-
-        const usePersistence = localStorage.getItem('usePersistence') === 'true';
-        const dataMigrationComplete = localStorage.getItem('dataMigrationComplete') === 'true';
-
-        if (usePersistence && !dataMigrationComplete) {
-            systemLog.info('Migrating data to GraphDBNoteStorage.');
-            migrateDataToGraphDB().then(() => {
-                localStorage.setItem('dataMigrationComplete', 'true');
-                systemLog.info('Data migration complete.');
-            });
-        }
-
-        const newSystemNote = new SystemNote(systemNoteData!, noteStorage);
-        setSystemNote(newSystemNote);
-
-        const unsubscribe = onSystemNoteChange(() => {
-            setSystemNote(newSystemNote(systemNoteData!, noteStorage));
-        });
-
-        // Subscribe to settings changes to update the LLM
-        const settingsSubscription = SettingsService.subscribe(memoizedUpdateLLM);
-
-        return () => {
-            unsubscribe();
-            settingsSubscription(); // Unsubscribe from settings changes
-        };
-    }, [memoizedUpdateLLM]);
-
-    return systemNote;
-};
-
-export const getSystemNote = () => {
-    ensureSystemNote();
-    return new SystemNote(systemNoteData!, noteStorage);
-};
+import { Subject } from 'rxjs';
 
 class SystemNote {
-    constructor(public data: Note, private noteStorage: NoteStorage) {
+    private data: Note;
+    private noteStorage: NoteStorage;
+    private llm: ChatOpenAI | null = null;
+    private settingsSubscription: () => void;
+    private systemNoteSubject = new Subject<Note>();
+
+    constructor() {
+        this.data = this.initializeSystemNoteData();
+        const settings = SettingsService.getSettings();
+        this.noteStorage = settings.usePersistence ? new GraphDBNoteStorage() : new InMemoryNoteStorage();
+        this.updateLLM();
+        initializeInitialTools();
+
+        this.settingsSubscription = SettingsService.subscribe(() => {
+            this.updateLLM();
+        });
     }
+
+    private initializeSystemNoteData = (): Note => {
+        const newSystemNoteData: Note = {
+            id: 'system',
+            type: 'System',
+            title: 'Netention System',
+            content: {
+                notes: new Map<string, Note>(),
+                activeQueue: [],
+                runningCount: 0,
+                concurrencyLimit: 5,
+                llm: null,
+                toolRegistry: new ToolRegistry(),
+            },
+            status: 'active',
+            priority: 100,
+            createdAt: new Date().toISOString(),
+            updatedAt: null,
+            references: [],
+            description: 'The root note for the system.',
+            inputSchema: undefined,
+            outputSchema: undefined,
+            config: undefined,
+            logic: undefined
+        };
+        systemLog.info('System Note Initialized 🚀', 'SystemNote');
+        return newSystemNoteData;
+    };
+
+    private updateLLM = () => {
+        const settings = SettingsService.getSettings();
+        this.llm = new ChatOpenAI({
+            apiKey: settings.apiKey,
+            modelName: settings.modelName,
+            temperature: settings.temperature,
+        });
+        systemLog.info(`LLM updated with model ${settings.modelName}`, 'SystemNote');
+    };
 
     addNote = async (note: Note) => {
         await this.noteStorage.addNote(note);
@@ -137,19 +80,23 @@ class SystemNote {
         this.notify();
         systemLog.info(`📝 Added Note ${note.id}: ${note.title}`, 'SystemNote');
     };
+
     getNote = async (id: string) => {
         const note = await this.noteStorage.getNote(id);
         return note;
     }
+
     getAllNotes = async () => {
         return await this.noteStorage.getAllNotes();
     }
+
     updateNote = async (note: Note) => {
         await this.noteStorage.updateNote(note);
         this.data.content.notes.set(note.id, note);
         this.notify();
         systemLog.info(`🔄 Updated Note ${note.id}: ${note.title}`, 'SystemNote');
     };
+
     deleteNote = async (id: string) => {
         await this.noteStorage.deleteNote(id);
         this.data.content.notes.delete(id);
@@ -166,6 +113,7 @@ class SystemNote {
             systemLog.info(`➡️ Enqueued Note ${note.id}: ${note?.title}`, 'SystemNote');
         }
     };
+
     dequeueNote = () => {
         if (!this.data.content.activeQueue.length) return;
         this.data.content.activeQueue.sort((a, b) => (this.getNote(b)?.priority ?? 0) - (this.getNote(a)?.priority ?? 0));
@@ -178,10 +126,10 @@ class SystemNote {
     };
 
     getLLM = () => {
-        if (!llm) {
-            updateLLM(); // Initialize LLM if it's not already initialized
+        if (!this.llm) {
+            this.updateLLM(); // Initialize LLM if it's not already initialized
         }
-        return llm;
+        return this.llm;
     }
 
     incrementRunning = () => {
@@ -193,6 +141,7 @@ class SystemNote {
         this.data.content.runningCount--;
         this.notify();
     };
+
     canRun = () => this.data.content.runningCount < this.data.content.concurrencyLimit;
 
     private async applyPlanningRules(note: Note, order: 'before' | 'after') {
@@ -243,8 +192,8 @@ class SystemNote {
     }
 
     getTool(id: string): Note | undefined {
-         const toolRegistry = this.data.content.toolRegistry as ToolRegistry;
-         return toolRegistry.getTool(id);
+        const toolRegistry = this.data.content.toolRegistry as ToolRegistry;
+        return toolRegistry.getTool(id);
     }
 
     getAllTools(): Note[] {
@@ -275,12 +224,46 @@ class SystemNote {
         }
     }
 
-    private notify = () => listeners.forEach(l => l());
+    private notify = () => this.systemNoteSubject.next(this.data);
+
+    // Observable for system note changes
+    onSystemNoteChange = () => this.systemNoteSubject.asObservable();
+
+    getData = () => this.data;
+
+    cleanup = () => {
+        this.settingsSubscription();
+        this.systemNoteSubject.complete();
+    };
 }
 
-export const onSystemNoteChange = (listener: Listener) => {
-    listeners.push(listener);
-    return () => listeners.splice(listeners.indexOf(listener), 1);
+// Singleton instance
+let systemNote: SystemNote | null = null;
+
+export const getSystemNote = (): SystemNote => {
+    if (!systemNote) {
+        systemNote = new SystemNote();
+    }
+    return systemNote;
+};
+
+export const useSystemNote = () => {
+    const [systemNoteInstance, setSystemNoteInstance] = useState<SystemNote | null>(null);
+
+    useEffect(() => {
+        const instance = getSystemNote();
+        setSystemNoteInstance(instance);
+
+        const subscription = instance.onSystemNoteChange().subscribe(() => {
+            setSystemNoteInstance(new SystemNote());
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, []);
+
+    return systemNoteInstance;
 };
 
 ensureSafeDirectoryExists();
