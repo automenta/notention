@@ -7,6 +7,8 @@ import * as fs from 'fs'; // Import the fs module
 import { executeTool } from './executor'; // Import the executeTool function
 import { SerpAPI } from "langchain/tools";
 import path from 'path';
+import planningRules, { PlanningRule } from './planningRules';
+import { initializeInitialTools } from './initialTools';
 import idService from './idService'; // Import the IdService
 
 type Listener = () => void;
@@ -119,37 +121,40 @@ class SystemNote {
         if (note) {
             const noteImpl = new NoteImpl(note);
             await noteImpl.run();
+
+            // Apply planning rules after running the note
+            for (const rule of planningRules) {
+                try {
+                    if (rule.condition(note, this)) {
+                        systemLog.info(`Applying planning rule: ${rule.name} to note ${note.title}`, 'SystemNote');
+                        await rule.action(note, this);
+                    }
+                } catch (error: any) {
+                    systemLog.error(`Error applying planning rule ${rule.name} to note ${note.title}: ${error.message}`, 'SystemNote');
+                }
+            }
+
+
         } else {
             systemLog.error(`🔥 Note with ID ${noteId} not found, cannot run.`, 'SystemNote');
         }
     };
 
-    // System Loop - Dequeue and Run Notes
-    runSystemLoop = async () => {
-        const loop = async () => {
-            while (this.canRun()) {
-                const nextNoteId = this.dequeueNote();
-                if (nextNoteId) {
-                    this.incrementRunning();
-                    await this.runNote(nextNoteId);
-                    this.decrementRunning();
-                } else {
-                    break; // No more notes in queue
-                }
-            }
-            setTimeout(loop, 1000); // Run loop every 1 second
-        };
-        loop(); // Start the loop
-        systemLog.info('System Loop Started 🔄', 'SystemNote');
-    };
-
     registerTool(toolNote: Note, toolImplementation?: Function) {
+        // Deprecated: old way of registering tools
+        systemLog.warn('Deprecated: registerTool with toolImplementation.  Use registerTool with a tool definition instead.', 'SystemNote');
+        this.registerToolDefinition({ ...toolNote, type: 'custom', implementation: toolImplementation });
+    }
+
+    registerToolDefinition(toolDefinition: Note & { type: 'custom' | 'langchain' | 'api', implementation?: Function | any }) {
+        const toolNote = toolDefinition as Note;
         this.data.content.tools.set(toolNote.id, toolNote);
-        if (toolImplementation) {
-            this.data.content.toolImplementations.set(toolNote.id, toolImplementation);
+        if (toolDefinition.type === 'custom' && toolDefinition.implementation) {
+            this.data.content.toolImplementations.set(toolNote.id, toolDefinition.implementation);
         }
         this.notify();
         systemLog.info(`🔨 Registered Tool ${toolNote.id}: ${toolNote.title}`, 'SystemNote');
+
     }
 
     getTool(id: string): Note | undefined {
@@ -174,17 +179,33 @@ class SystemNote {
             throw new Error(`Tool with id ${toolId} not found.`);
         }
 
-        if (!toolImplementation) {
-            systemLog.warn(`No implementation found for tool ${toolId}, using default executor.`, 'SystemNote');
-        }
-
         try {
-            return await executeTool(tool, input, toolImplementation);
+            switch (tool.type) {
+                case 'custom':
+                    if (!toolImplementation) {
+                        systemLog.warn(`No implementation found for tool ${toolId}, using default executor.`, 'SystemNote');
+                    }
+                    return await executeTool(tool, input, toolImplementation);
+                case 'langchain':
+                    // Assuming the 'implementation' field holds the LangChain tool instance
+                    if (!tool.implementation) {
+                        throw new Error(`LangChain tool implementation missing for tool ${toolId}`);
+                    }
+                    return await tool.implementation.call(input); // Or however you call the LangChain tool
+                case 'api':
+                    // Implement API call logic here (e.g., using fetch)
+                    systemLog.warn(`API Tool not yet implemented ${toolId}`, 'SystemNote');
+                    throw new Error(`API Tool not yet implemented ${toolId}`);
+                default:
+                    throw new Error(`Unknown tool type: ${tool.type}`);
+            }
         } catch (error: any) {
             systemLog.error(`Error executing tool ${toolId}: ${error.message}`, 'SystemNote');
             throw error;
         }
     }
+
+
 
     // Notification system for UI updates
     private notify = () => listeners.forEach(l => l());
@@ -206,234 +227,3 @@ const ALLOWED_EXTENSIONS = ['.txt', '.md', '.json', '.js'];
 if (!fs.existsSync(SAFE_DIRECTORY)) {
     fs.mkdirSync(SAFE_DIRECTORY);
 }
-
-const registerInitialTools = () => {
-    const systemNote = getSystemNote();
-
-    // 1. Echo Tool Note Definition (JSON - in memory)
-    const echoToolNoteData: Note = {
-        id: idService.generateId(),
-        type: 'Tool',
-        title: 'Echo Tool',
-        content: 'A simple tool that echoes back the input.',
-        logic: JSON.stringify({
-            "steps": [
-                {
-                    "id": "echo",
-                    "type": "passthrough", // Use RunnablePassthrough for simple echo
-                    "runnable": {
-                        "constructor": "RunnablePassthrough",
-                        "kwargs": {}
-                    },
-                    "input": "{input}" // Pass input through
-                }
-            ],
-        }),
-        status: 'active',
-        priority: 50,
-        createdAt: new Date().toISOString(),
-        updatedAt: null,
-        references: [],
-        inputSchema: JSON.stringify({ //Basic input schema for the tool
-            type: 'object',
-            properties: {
-                input: {
-                    type: 'string',
-                    description: 'Text to echo',
-                    inputType: 'textarea' // Specify inputType as textarea
-                }
-            },
-            required: ['input']
-        }),
-        outputSchema: JSON.stringify({  //Basic output schema for the tool
-            type: 'object',
-            properties: {
-                output: { type: 'string', description: 'Echoed text' }
-            },
-            required: ['output']
-        }),
-        description: 'Echoes the input text.',
-    };
-    const echoToolImplementation = async (input: any) => {
-        return { output: input.input };
-    };
-    systemNote.registerTool(echoToolNoteData, echoToolImplementation); // Register Echo Tool
-
-    // 2. Web Search Tool (SerpAPI)
-    const webSearchToolData: Note = {
-        id: idService.generateId(),
-        type: 'Tool',
-        title: 'Web Search Tool',
-        content: 'A tool to search the web using SerpAPI.',
-        logic: JSON.stringify({
-            "steps": [
-                {
-                    "id": "search",
-                    "type": "serpapi",
-                    "input": "{query}"
-                }
-            ],
-        }),
-        status: 'active',
-        priority: 50,
-        createdAt: new Date().toISOString(),
-        updatedAt: null,
-        references: [],
-        inputSchema: JSON.stringify({
-            type: 'object',
-            properties: {
-                query: { type: 'string', description: 'Search query' }
-            },
-            required: ['query']
-        }),
-        outputSchema: JSON.stringify({
-            type: 'object',
-            properties: {
-                results: { type: 'array', description: 'Search results' }
-            }
-        }),
-        description: 'Searches the web using SerpAPI.',
-    };
-
-    const webSearchToolImplementation = async (input: any) => {
-        const serpAPI = new SerpAPI(process.env.SERPAPI_API_KEY);
-        const results = await serpAPI.call(input);
-        return { results: results };
-    };
-    systemNote.registerTool(webSearchToolData, webSearchToolImplementation);
-
-    // 3. File Operations Tool (Basic - READ/WRITE - SECURITY WARNING)
-    const fileOperationsToolData: Note = {
-        id: idService.generateId(),
-        type: 'Tool',
-        title: 'File Operations Tool',
-        content: `A tool to read and write local files within the safe directory: ${SAFE_DIRECTORY} (SECURITY WARNING).`,
-        logic: JSON.stringify({
-            "steps": [
-                {
-                    "id": "read-file",
-                    "type": "passthrough",
-                    "input": "{filename}"
-                },
-                {
-                    "id": "write-file",
-                    "type": "passthrough",
-                    "input": "{filename, content}"
-                }
-            ],
-        }),
-        status: 'active',
-        priority: 50,
-        createdAt: new Date().toISOString(),
-        updatedAt: null,
-        references: [],
-        inputSchema: JSON.stringify({
-            type: 'object',
-            properties: {
-                action: {
-                    type: 'string',
-                    enum: ['read', 'write'],
-                    description: 'Action to perform',
-                    inputType: 'select', // Specify inputType as select
-                    options: ['read', 'write'] // Add options for the select input
-                },
-                filename: { type: 'string', description: 'Filename' },
-                content: { type: 'string', description: 'Content to write (for write action)' }
-            },
-            required: ['action', 'filename']
-        }),
-        outputSchema: JSON.stringify({
-            type: 'object',
-            properties: {
-                result: { type: 'string', description: 'Result of the operation' }
-            }
-        }),
-        description: 'Reads and writes local files within a safe directory (SECURITY WARNING).',
-    };
-
-    const fileOperationsToolImplementation = async (input: any) => {
-        try {
-            const filename = path.resolve(SAFE_DIRECTORY, input.filename);
-
-            // Check if the resolved path is within the safe directory
-            if (!filename.startsWith(SAFE_DIRECTORY)) {
-                throw new Error('Access denied: Filename is outside the safe directory.');
-            }
-
-            // Validate file extension
-            const ext = path.extname(filename).toLowerCase();
-            if (!ALLOWED_EXTENSIONS.includes(ext)) {
-                throw new Error(`Access denied: Invalid file extension. Allowed extensions are: ${ALLOWED_EXTENSIONS.join(', ')}`);
-            }
-
-            if (input.action === 'read') {
-                const content = fs.readFileSync(filename, 'utf-8');
-                return { result: content };
-            } else if (input.action === 'write') {
-                fs.writeFileSync(filename, input.content, 'utf-8');
-                return { result: 'File written successfully' };
-            } else {
-                throw new Error('Invalid action');
-            }
-        } catch (error: any) {
-            systemLog.error(`File operation failed: ${error.message}`, 'FileOperationsTool');
-            return { result: `Error: ${error.message}` };
-        }
-    };
-    systemNote.registerTool(fileOperationsToolData, fileOperationsToolImplementation);
-
-    // 4. Generate Task Logic Tool
-    const generateTaskLogicToolData: Note = {
-        id: idService.generateId(),
-        type: 'Tool',
-        title: 'Generate Task Logic Tool',
-        content: 'A tool to generate task logic (JSON) using the LLM, based on a task description.',
-        status: 'active',
-        priority: 50,
-        createdAt: new Date().toISOString(),
-        updatedAt: null,
-        references: [],
-        inputSchema: JSON.stringify({
-            type: 'object',
-            properties: {
-                taskDescription: {
-                    type: 'string',
-                    description: 'Description of the task for which to generate logic.',
-                    inputType: 'textarea'
-                }
-            },
-            required: ['taskDescription']
-        }),
-        outputSchema: JSON.stringify({
-            type: 'object',
-            properties: {
-                taskLogic: {
-                    type: 'string',
-                    description: 'Generated task logic in JSON format.'
-                }
-            },
-            required: ['taskLogic']
-        }),
-        description: 'Generates task logic (JSON) using the LLM, based on a task description.',
-    };
-
-    const generateTaskLogicToolImplementation = async (input: any) => {
-        const llm = systemNote.getLLM();
-        if (!llm) {
-            systemLog.warn('LLM not initialized, cannot generate logic.', 'GenerateTaskLogicTool');
-            throw new Error('LLM not initialized.');
-        }
-
-        const prompt = `Generate a LangChain Runnable steps array (JSON format) for the following task: ${input.taskDescription}. Include a step to use the "web-search-tool" if appropriate.`;
-        try {
-            const taskLogic = await llm.invoke(prompt);
-            return { taskLogic: taskLogic };
-        } catch (error: any) {
-            systemLog.error(`Error generating task logic: ${error.message}`, 'GenerateTaskLogicTool');
-            throw error;
-        }
-    };
-    systemNote.registerTool(generateTaskLogicToolData, generateTaskLogicToolImplementation);
-
-    systemLog.info('Initial tools registered.', 'SystemNote');
-};
