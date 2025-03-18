@@ -34,6 +34,8 @@ export const GraphView: React.FC = () => {
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
     const [editingNodeId, setEditingNodeId] = useState<string | null>(null); // State for editing a node
     const [graphError, setGraphError] = useState<string | null>(null);
+    const zoom = useRef(d3.zoom().scaleExtent([0.1, 3])); // Ref for zoom behavior
+    const container = useRef<d3.Selection<SVGGElement, unknown, null, undefined>>(); // Ref for the container
 
     // Move the setGraphContainerSize update outside of the useEffect
     useEffect(() => {
@@ -153,16 +155,18 @@ export const GraphView: React.FC = () => {
             const svg = d3.select(svgRef.current);
             svg.selectAll('*').remove();  // Clear previous graph
 
-            // Zoom and pan behavior
-            const zoom = d3.zoom()
+            // Initialize zoom behavior
+            zoom.current = d3.zoom()
                 .scaleExtent([0.1, 3]) // Limit zoom scale
                 .on("zoom", (event) => {
-                    container.attr("transform", event.transform);
+                    container.current!.attr("transform", event.transform);
                 });
 
-            svg.call(zoom);
+            // Apply zoom behavior to the SVG
+            svg.call(zoom.current as any);
 
-            const container = svg.append("g");
+            // Create a container group for the graph elements
+            container.current = svg.append("g");
 
             // Create force simulation
             const simulation = d3.forceSimulation(nodes as any)
@@ -172,7 +176,7 @@ export const GraphView: React.FC = () => {
                 .force("collide", d3.forceCollide().radius(20)); // Prevent node overlap
 
             // Create links
-            const links = container.append("g")
+            const links = container.current.append("g")
                 .attr("class", "links")
                 .selectAll("line")
                 .data(edges)
@@ -181,7 +185,7 @@ export const GraphView: React.FC = () => {
                 .attr("class", styles.edge);
 
             // Create nodes
-            const node = container.append("g")
+            const node = container.current.append("g")
                 .attr("class", "nodes")
                 .selectAll("circle")
                 .data(nodes)
@@ -208,7 +212,7 @@ export const GraphView: React.FC = () => {
                 .text((d: any) => d.title);
 
             // Add labels to nodes
-            const labels = container.append("g")
+            const labels = container.current.append("g")
                 .attr("class", "labels")
                 .selectAll("text")
                 .data(nodes)
@@ -243,7 +247,7 @@ export const GraphView: React.FC = () => {
 
             function dragged(event: any, d: any) {
                 d.fx = event.x;
-                d.fy = d.y;
+                d.fy = event.y;
             }
 
             function dragended(event: any, d: any) {
