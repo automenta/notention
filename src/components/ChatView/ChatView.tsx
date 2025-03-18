@@ -324,8 +324,7 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
         }
 
         const inputSchema = JSON.parse(selectedToolData.inputSchema);
-        const conversationHistory = messages.map(msg => `${msg.type}: ${msg.content}`).join('\n');
-        const prompt = `Generate input values (JSON format) for the "${selectedToolData.title}" tool, based on the following task description: ${task.description}. The input schema is: ${selectedToolData.inputSchema}. Here's the conversation history: ${conversationHistory}`;
+        const prompt = `Generate input values (JSON format) for the "${selectedToolData.title}" tool, based on the following task description: ${task.description}. The input schema is: ${selectedToolData.inputSchema}`;
 
         try {
             const generatedInputs = await llm.invoke(prompt);
@@ -336,7 +335,7 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
         } catch (error: any) {
             systemLog.error(`Error generating tool inputs: ${error.message}`, 'ChatView');
         }
-    }, [selectedTaskId, selectedTool, system, messages]);
+    }, [selectedTaskId, selectedTool, system]);
 
     return (
         <div className={styles.chatView}>
@@ -418,7 +417,6 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
                             onChange={handleInputChange}
                             onSave={handleAddSelectedTool}
                             onCancel={handleCancelAddTool}
-                            onGenerate={handleGenerateToolInputs}
                         />
                     )}
 
@@ -439,7 +437,6 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
                                                     onChange={handleInputChange}
                                                     onSave={handleSaveEditedToolStep}
                                                     onCancel={handleCancelEditToolStep}
-                                                    onGenerate={handleGenerateToolInputs}
                                                 />
                                             ) : (
                                                 <>
