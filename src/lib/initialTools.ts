@@ -373,7 +373,7 @@ export const initializeInitialTools = () => {
             const llm = systemNote.getLLM();
             if (!llm) {
                 systemLog.warn('LLM not initialized, cannot summarize.', 'SummarizationTool');
-                throw new Error('LLM not initialized.');
+                return { summary: 'LLM not initialized. Please check your settings.' };
             }
 
             const prompt = `Summarize the following text: ${input.text}`;
@@ -385,6 +385,57 @@ export const initializeInitialTools = () => {
         }
     };
     systemNote.registerToolDefinition({ ...summarizationToolData, implementation: summarizationToolImplementation, type: 'langchain' });
+
+     // 7. User Interaction Tool
+     const userInteractionToolData: Note = {
+        id: idService.generateId(),
+        type: 'Tool',
+        title: 'User Interaction Tool',
+        content: 'A tool to prompt the user for input.',
+        logic: {
+            "steps": [
+                {
+                    "id": "prompt",
+                    "type": "user_input",
+                    "input": "{prompt}"
+                }
+            ],
+        },
+        status: 'active',
+        priority: 50,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+        references: [],
+        inputSchema: JSON.stringify({
+            type: 'object',
+            properties: {
+                prompt: {
+                    type: 'string',
+                    description: 'The prompt to display to the user.',
+                    inputType: 'textarea'
+                }
+            },
+            required: ['prompt']
+        }),
+        outputSchema: JSON.stringify({
+            type: 'object',
+            properties: {
+                userInput: {
+                    type: 'string',
+                    description: 'The input provided by the user.'
+                }
+            },
+            required: ['userInput']
+        }),
+        description: 'Prompts the user for input.',
+    };
+
+    const userInteractionToolImplementation = async (input: any) => {
+        const userInput = prompt(input.prompt); // Use the prompt function
+        return { userInput: userInput || '' };
+    };
+
+    systemNote.registerToolDefinition({ ...userInteractionToolData, implementation: userInteractionToolImplementation, type: 'custom' });
 
     systemLog.info('Initial tools registered.', 'SystemNote');
 };
