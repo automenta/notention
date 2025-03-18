@@ -1,6 +1,6 @@
 # Netention
 
-**Netention** is a revolutionary personal knowledge and task management system that transforms how you organize and achieve your goals. Built around **Active Notes**—dynamic, intelligent digital entities that autonomously process information, perform tasks, and adapt to your needs—Netention moves beyond static note-taking into a realm of proactive assistance. It seamlessly integrates into your digital life, offering subtle, context-aware support to boost productivity across all domains, from personal projects to professional workflows.
+**Netention** is a personal knowledge and task management system that transforms how you organize and achieve your goals. Built around **Active Notes**—dynamic, intelligent digital entities that autonomously process information, perform tasks, and adapt to your needs—Netention moves beyond static note-taking into a realm of proactive assistance. It seamlessly integrates into your digital life, offering subtle, context-aware support to boost productivity across all domains, from personal projects to professional workflows.
 
 Unlike traditional tools, Netention's Active Notes are not passive documents; they act as living agents, evolving with your input and powered by a self-improving architecture. With a focus on originality, modularity, and efficiency, Netention aims to redefine personal productivity and set a new standard for AI-driven assistants.
 
@@ -16,6 +16,8 @@ Unlike traditional tools, Netention's Active Notes are not passive documents; th
 - [Development Roadmap](#development-roadmap)
 - [Getting Started](#getting-started)
 - [Contributing](#contributing)
+- [Code Guidelines](#code-guidelines)
+- [UI Design Principles](#ui-design-principles)
 - [License](#license)
 
 ---
@@ -49,9 +51,12 @@ Netention’s architecture revolves around a unified, self-evolving structure an
 - **Agents:** Embedded within Notes, Agents drive intelligence by reasoning, planning, and acting via tools. The **Ur-Agent**, housed in the Primordial Note, bootstraps the system’s evolution.
 - **Plans:** Directed graphs of **PlanSteps**, enabling non-linear, adaptive workflows with dependencies and contingencies. Plans prioritize tasks based on user input, deadlines, and system needs.
 - **Tools:** Modular, extensible functionalities (e.g., web search, file operations) that Agents use to interact with the world. Tools are managed in a **Tool Registry**.
+    - **Tool Registry:** A central component for managing and accessing tools. Implemented with `ToolRegistry` class.
 - **Executor:** A unified interface for executing tools, handling both synchronous and asynchronous operations.
+    - **Executor:** A central component for executing tools. Implemented with `Executor` class.
 - **Memory Manager:** Oversees each Note’s memory, implementing summarization and archiving to manage resources.
 - **Graph Database:** Stores all data (Notes, Plans, Tools, Memory) in a LevelGraph structure, optimized for relationships and queries.
+    - **Note Storage:** Abstraction for storing notes. Implemented with `InMemoryNoteStorage` and `GraphDBNoteStorage` classes.
 - **LLM Interface:** An abstraction layer for interacting with multiple Large Language Models (e.g., OpenAI, Ollama), powering reasoning and code generation.
 
 The system evolves through a recursive loop: Agents reflect on their state, refine Plans, execute Tools, and update Memory, driving continuous improvement from a minimal seed.
@@ -95,6 +100,7 @@ Netention offers a rich feature set, categorized by component:
 
 ### Data Management Features
 - **Graph Persistence:** Store all data in LevelGraph for integrity and efficiency.
+    - **Note Storage:** Abstraction for storing notes. Implemented with `InMemoryNoteStorage` and `GraphDBNoteStorage` classes.
 - **Memory Management:** Summarize or archive data to optimize resource use.
 
 ### Self-Evolution Features
@@ -158,6 +164,9 @@ Netention evolves through stages, leveraging its self-building capabilities to m
 - Generate core schemas and classes (Note, Plan, Agent, Executor).
 - Implement initial tools and basic plan execution.
 - Integrate LevelGraph and establish self-reflection.
+    - Implemented `ToolRegistry` and `Executor` classes.
+    - Implemented `InMemoryNoteStorage` and `GraphDBNoteStorage` classes.
+    - Added tests for `ToolRegistry`, `Executor`, `InMemoryNoteStorage`, and `GraphDBNoteStorage`.
 
 ### Stage 2: Capability Expansion
 - Enhance Agent and Plan functionality with prioritization.
