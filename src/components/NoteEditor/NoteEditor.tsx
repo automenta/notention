@@ -1,61 +1,99 @@
 import React, {useEffect, useState} from 'react';
 import styles from './NoteEditor.module.css';
 import {getSystemNote} from '../../lib/systemNote';
+import MonacoEditor from 'react-monaco-editor';
+import {Note} from '../../types';
 
 interface NoteEditorProps {
     noteId: string;
     onClose: () => void;
-    onSave: (content: any) => void;
+    onSave: (note: Note) => void;
 }
 
 export const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose, onSave}) => {
-    const [noteContent, setNoteContent] = React.useState<string>('');
+    const [note, setNote] = useState<Note | undefined>(undefined);
+    const [content, setContent] = useState<string>('');
+    const [logic, setLogic] = useState<string>('');
     const [validationError, setValidationError] = React.useState<string | null>(null);
     const system = getSystemNote();
 
     useEffect(() => {
-        const note = system.getNote(noteId);
-        if (note) {
-            setNoteContent(JSON.stringify(note, null, 2) || '');
+        const currentNote = system.getNote(noteId);
+        if (currentNote) {
+            setNote(currentNote);
+            setContent(currentNote.content || '');
+            setLogic(currentNote.logic || '');
         }
     }, [noteId, system]);
 
-    const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setNoteContent(e.target.value);
-        setValidationError(null); // Clear previous errors on edit
+    const handleContentChange = (value: string) => {
+        setContent(value);
+    };
+
+    const handleLogicChange = (value: string) => {
+        setLogic(value);
     };
 
     const handleSave = () => {
-        let parsedContent;
+        if (!note) {
+            alert('Note not found!');
+            return;
+        }
+
+        let parsedLogic;
         try {
-            parsedContent = JSON.parse(noteContent);
+            parsedLogic = JSON.parse(logic);
             setValidationError(null); // Clear error if parsing succeeds
         } catch (e: any) {
             setValidationError(`JSON Parse Error: ${e.message}`);
             return; // Do not save if JSON is invalid
         }
 
-        const currentNote = system.getNote(noteId);
-        if (currentNote) {
-            onSave(parsedContent);
-        } else {
-            alert('Note not found!');
-        }
+        const updatedNote: Note = {
+            ...note,
+            content: content,
+            logic: logic,
+        };
+
+        onSave(updatedNote);
+    };
+
+    const editorOptions = {
+        selectOnLineNumbers: true,
+        roundedSelection: false,
+        readOnly: false,
+        cursorStyle: 'line',
+        automaticLayout: true,
     };
 
     return (
         <div className={styles.noteEditor}>
-            <textarea
-                className={styles.editorTextarea}
-                value={noteContent}
+            <h3>Content</h3>
+            <MonacoEditor
+                width="800"
+                height="200"
+                language="markdown"
+                theme="vs-dark"
+                value={content}
+                options={editorOptions}
                 onChange={handleContentChange}
-                placeholder="Enter Note Content (JSON)"
             />
+
+            <h3>Logic (JSON)</h3>
+            <MonacoEditor
+                width="800"
+                height="400"
+                language="json"
+                theme="vs-dark"
+                value={logic}
+                options={editorOptions}
+                onChange={handleLogicChange}
+            />
+
             {validationError &&
-                <div className={styles.validationError}>⚠️ ${validationError}</div>} {/* Display error message */}
+            <div className={styles.validationError}>⚠️ {validationError}</div>}
             <div className={styles.editorActions}>
-                <button onClick={handleSave} disabled>Save (Stubbed)</button>
-                {/* Save button is stubbed */}
+                <button onClick={handleSave}>Save</button>
                 <button onClick={onClose}>Cancel</button>
             </div>
         </div>
