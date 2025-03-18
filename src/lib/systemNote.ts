@@ -233,7 +233,12 @@ class SystemNote {
                     if (!tool.implementation) {
                         throw new Error(`LangChain tool implementation missing for tool ${toolId}`);
                     }
-                    return await tool.implementation.call(input); // Or however you call the LangChain tool
+                    try {
+                        return await tool.implementation.call(input); // Or however you call the LangChain tool
+                    } catch (error: any) {
+                        systemLog.error(`Error executing LangChain tool ${toolId}: ${error.message}`, 'SystemNote');
+                        throw error;
+                    }
                 case 'api':
                     // Implement API call logic here (e.g., using fetch)
                     systemLog.info(`Executing API Tool ${toolId}`, 'SystemNote');
