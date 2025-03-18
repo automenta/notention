@@ -6,7 +6,11 @@ import * as fs from 'fs';
 import path from 'path';
 import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, sanitizeFilename } from '../initialTools';
 
-export const registerFileOperationsTool = (systemNote: SystemNote) => {
+/**
+ * Registers the file operations tool with the system.
+ * @param {SystemNote} systemNote - The system note instance.
+ */
+export const registerFileOperationsTool = (systemNote: SystemNote): void => {
     const fileOperationsToolData: Note = {
         id: idService.generateId(),
         type: 'Tool',
@@ -60,8 +64,8 @@ export const registerFileOperationsTool = (systemNote: SystemNote) => {
                 throw new Error('Invalid input: Action and filename are required.');
             }
 
-            const action = input.action;
-            let filename = sanitizeFilename(input.filename); // Sanitize the filename
+            const action: string = input.action;
+            let filename: string = sanitizeFilename(input.filename); // Sanitize the filename
             filename = path.resolve(SAFE_DIRECTORY, filename); // Resolve the full path
 
             // More robust check to ensure the resolved path is within the safe directory
@@ -77,21 +81,21 @@ export const registerFileOperationsTool = (systemNote: SystemNote) => {
             }
 
             // Validate file extension
-            const ext = path.extname(filename).toLowerCase();
+            const ext: string = path.extname(filename).toLowerCase();
 	    //console.log(`action=${action} filename=${filename} ext=${ext} ALLOWED_EXTENSIONS=${ALLOWED_EXTENSIONS}`)
             if (action !== 'createDirectory' && !ALLOWED_EXTENSIONS.includes(ext)) {
                 throw new Error(`Access denied: Invalid file extension. Allowed extensions are: ${ALLOWED_EXTENSIONS.join(', ')}`);
             }
 
             if (action === 'read') {
-                const content = fs.readFileSync(filename, 'utf-8');
+                const content: string = fs.readFileSync(filename, 'utf-8');
                 return { result: content };
             } else if (action === 'write') {
                  if (input.content === undefined || input.content === null) {
                     throw new Error('Invalid input: Content is required for write action.');
                 }
                 // Ensure the content is a string before writing
-                const contentToWrite = String(input.content);
+                const contentToWrite: string = String(input.content);
                 fs.writeFileSync(filename, contentToWrite, 'utf-8');
                 return { result: 'File written successfully' };
             } else if (action === 'createDirectory') {
