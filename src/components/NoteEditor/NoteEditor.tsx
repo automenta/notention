@@ -5,11 +5,12 @@ import {getSystemNote} from '../../lib/systemNote';
 interface NoteEditorProps {
     noteId: string;
     onClose: () => void;
+    onSave: (content: any) => void;
 }
 
-export const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose}) => {
-    const [noteContent, setNoteContent] = useState<string>('');
-    const [validationError, setValidationError] = useState<string | null>(null);
+export const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose, onSave}) => {
+    const [noteContent, setNoteContent] = React.useState<string>('');
+    const [validationError, setValidationError] = React.useState<string | null>(null);
     const system = getSystemNote();
 
     useEffect(() => {
