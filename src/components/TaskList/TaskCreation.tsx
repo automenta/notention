@@ -3,6 +3,7 @@ import { getSystemNote } from '../../lib/systemNote';
 import { Note } from '../../types';
 import styles from './TaskList.module.css';
 import { NoteImpl } from "../../lib/note";
+import { v4 as uuidv4 } from 'uuid'; // Import UUID generator
 
 interface TaskCreationProps {
     onTaskAdd: () => void;
@@ -23,6 +24,7 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
     }, [system]);
 
     const handleAddTask = useCallback(() => {
+        let noteImplPromise: Promise<NoteImpl>;
         if (selectedToolId) {
             // Create a task with the selected tool
             const selectedTool = system.getTool(selectedToolId);
@@ -31,7 +33,7 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
             const newLogic = {
                 steps: [
                     {
-                        id: `tool-${Date.now()}`,
+                        id: uuidv4(), // Generate UUID for tool step
                         type: 'tool',
                         toolId: selectedToolId,
                         input: { /* Define input parameters here */ }
@@ -39,7 +41,8 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
                 ]
             };
 
-            NoteImpl.createTaskNote(taskTitle, 'Describe your task here...').then(noteImpl => {
+            noteImplPromise = NoteImpl.createTaskNote(taskTitle, 'Describe your task here...');
+            noteImplPromise.then(noteImpl => {
                 noteImpl.data.logic = JSON.stringify(newLogic);
                 system.addNote(noteImpl.data);
             });
@@ -47,9 +50,10 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
             setSelectedToolId(null);
         } else {
             // Create a basic task
-            NoteImpl.createTaskNote('New Task', 'Describe your task here...').then(noteImpl => system.addNote(noteImpl.data));
+            noteImplPromise = NoteImpl.createTaskNote('New Task', 'Describe your task here...');
+            noteImplPromise.then(noteImpl => system.addNote(noteImpl.data));
         }
-        onTaskAdd();
+        noteImplPromise.then(() => onTaskAdd());
     }, [system, selectedToolId, onTaskAdd]);
 
     const handleCreateFromTemplate = useCallback(() => {
