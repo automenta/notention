@@ -5,6 +5,8 @@ import { systemLog } from '../../lib/systemLog';
 import { NoteImpl } from '../../lib/note';
 import { NoteEditor } from '../NoteEditor/NoteEditor';
 import styles from './ChatView.module.css';
+import { TaskLogic } from '../../types';
+import { v4 as uuidv4 } from 'uuid';
 
 export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selectedTaskId }) => {
     const [messages, setMessages] = useState<any[]>([]);
@@ -153,19 +155,21 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
             return;
         }
 
-        const newLogic = {
+        const newStep = {
+            id: uuidv4(),
+            type: 'tool',
+            toolId: selectedTool,
+            input: toolInputValues, // Use the input values from the form
+        };
+
+        const newLogic: TaskLogic = {
             steps: [
-                ...(task.logic ? JSON.parse(task.logic).steps : []),
-                {
-                    id: `tool-${Date.now()}`,
-                    type: 'tool',
-                    toolId: selectedTool,
-                    input: toolInputValues, // Use the input values from the form
-                }
+                ...(task.logic && Array.isArray((task.logic as any).steps) ? (task.logic as any).steps : []),
+                newStep
             ]
         };
 
-        task.logic = JSON.stringify(newLogic);
+        task.logic = newLogic;
         system.updateNote(task);
         setShowToolSelector(false);
         setSelectedTool(null);
@@ -195,7 +199,7 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
         const task = system.getNote(selectedTaskId);
         if (!task || !task.logic) return;
 
-        const logic = JSON.parse(task.logic);
+        const logic = task.logic as TaskLogic;
         const step = logic.steps.find((s: any) => s.id === stepId);
 
         if (step && step.input) {
@@ -209,12 +213,12 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
         const task = system.getNote(selectedTaskId);
         if (!task || !task.logic) return;
 
-        const logic = JSON.parse(task.logic);
+        const logic = task.logic as TaskLogic;
         const stepIndex = logic.steps.findIndex((s: any) => s.id === editingToolStep);
 
         if (stepIndex !== -1) {
             logic.steps[stepIndex].input = toolInputValues; // Update the input values
-            task.logic = JSON.stringify(logic);
+            task.logic = logic;
             system.updateNote(task);
             setEditingToolStep(null);
             setToolInputValues({}); // Clear the input values
@@ -233,12 +237,12 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
         const task = system.getNote(selectedTaskId);
         if (!task || !task.logic) return;
 
-        const logic = JSON.parse(task.logic);
+        const logic = task.logic as TaskLogic;
         const stepIndex = logic.steps.findIndex((s: any) => s.id === stepId);
 
         if (stepIndex !== -1) {
             logic.steps.splice(stepIndex, 1); // Remove the step from the array
-            task.logic = JSON.stringify(logic);
+            task.logic = logic;
             system.updateNote(task);
             systemLog.info(`Tool step ${stepId} deleted from Task ${selectedTaskId}`, 'ChatView');
         }
@@ -249,7 +253,7 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
         const task = system.getNote(selectedTaskId);
         if (!task || !task.logic) return null;
 
-        const logic = JSON.parse(task.logic);
+        const logic = task.logic as TaskLogic;
         return logic.steps.find((s: any) => s.id === stepId);
     }, [system, selectedTaskId]);
 
@@ -389,7 +393,7 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
                         <div>
                             <h3>Tool Steps</h3>
                             <ul>
-                                {JSON.parse(system.getNote(selectedTaskId)!.logic!).steps.map((step: any) => (
+                                {(system.getNote(selectedTaskId)!.logic as TaskLogic).steps.map((step: any) => (
                                     <li key={step.id}>
                                         {step.type === 'tool' ? (
                                             <>
