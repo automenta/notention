@@ -109,5 +109,89 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
             // Verify the result
             expect(result).toEqual({ result: 'Custom tool executed with input: {"input":"test"}' });
         });
+
+        it('should execute a langchain tool', async () => {
+            // Create a langchain tool note
+            const langchainTool: Note = {
+                id: idService.generateId(),
+                type: 'Tool',
+                title: 'Langchain Tool',
+                content: 'This is a langchain tool',
+                status: 'active',
+                priority: 50,
+                createdAt: new Date().toISOString(),
+                updatedAt: null,
+                references: [],
+                description: '',
+                requiresWebSearch: false,
+                inputSchema: '',
+                outputSchema: '',
+                config: {},
+                logic: ''
+            };
+
+            // Mock a Langchain tool
+            const mockLangchainTool = {
+                call: jest.fn().mockResolvedValue('Mock Langchain Tool Response'),
+            };
+
+            // Register the langchain tool with the SystemNote
+            systemNote.registerToolDefinition({
+                ...langchainTool,
+                type: 'langchain',
+                implementation: mockLangchainTool,
+            });
+
+            // Execute the langchain tool
+            const result = await systemNote.executeTool(langchainTool.id, { input: 'test' });
+
+            // Verify the result
+            expect(result).toEqual('Mock Langchain Tool Response');
+            expect(mockLangchainTool.call).toHaveBeenCalledWith({ input: 'test' });
+        });
+
+        it('should execute an api tool', async () => {
+            // Create an api tool note
+            const apiTool: Note = {
+                id: idService.generateId(),
+                type: 'Tool',
+                title: 'API Tool',
+                content: 'This is an API tool',
+                status: 'active',
+                priority: 50,
+                createdAt: new Date().toISOString(),
+                updatedAt: null,
+                references: [],
+                description: '',
+                requiresWebSearch: false,
+                inputSchema: '',
+                outputSchema: '',
+                config: {
+                    method: 'POST',
+                    headers: JSON.stringify({ 'Content-Type': 'application/json' }),
+                },
+                logic: 'https://example.com/api', // Replace with a mock API endpoint
+            };
+
+            // Mock the fetch function
+            global.fetch = jest.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({ result: 'Mock API Response' }),
+            }) as jest.Mock;
+
+            // Register the api tool with the SystemNote
+            systemNote.registerToolDefinition(apiTool);
+
+            // Execute the api tool
+            const result = await systemNote.executeTool(apiTool.id, { input: 'test' });
+
+            // Verify the result
+            expect(result).toEqual({ result: 'Mock API Response' });
+            expect(fetch).toHaveBeenCalledWith('https://example.com/api', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ input: 'test' }),
+            });
+        });
     });
 });
