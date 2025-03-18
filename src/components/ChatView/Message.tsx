@@ -29,7 +29,11 @@ const Message: React.FC<MessageProps> = ({message}) => {
     return (
         <div className={`${styles.message} ${messageClass()}`}>
             <div className={styles.messageContent}>
-                {message.content}
+                {message.type === 'error' ? (
+                    <pre>{message.content}</pre>
+                ) : (
+                    message.content
+                )}
             </div>
             <div className={styles.messageTimestamp}>
                 {message.timestamp && new Date(message.timestamp).toLocaleTimeString()}
