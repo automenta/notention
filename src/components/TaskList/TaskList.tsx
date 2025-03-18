@@ -20,6 +20,7 @@ export const TaskList: React.FC<{
     const [showTemplateSelector, setShowTemplateSelector] = useState(false);
     const [availableTemplates, setAvailableTemplates] = useState<Note[]>([]);
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+    const [selectedToolId, setSelectedToolId] = useState<string | null>(null); // Track selected tool
 
     const updateTasks = useCallback(() => {
         const newTasks = system.getAllNotes().filter(n => n.type === 'Task');
@@ -61,8 +62,30 @@ export const TaskList: React.FC<{
     }, [onTaskSelect]);
 
     const handleAddTask = useCallback(() => {
-        NoteImpl.createTaskNote('New Task', 'Describe your task here...').then(noteImpl => system.addNote(noteImpl.data));
-    }, [system]);
+        if (selectedToolId) {
+            // Create a task with the selected tool
+            const newLogic = {
+                steps: [
+                    {
+                        id: `tool-${Date.now()}`,
+                        type: 'tool',
+                        toolId: selectedToolId,
+                        input: { /* Define input parameters here */ }
+                    }
+                ]
+            };
+
+            NoteImpl.createTaskNote('New Task with Tool', 'Describe your task here...').then(noteImpl => {
+                noteImpl.data.logic = JSON.stringify(newLogic);
+                system.addNote(noteImpl.data);
+            });
+            setShowToolSelector(false);
+            setSelectedToolId(null);
+        } else {
+            // Create a basic task
+            NoteImpl.createTaskNote('New Task', 'Describe your task here...').then(noteImpl => system.addNote(noteImpl.data));
+        }
+    }, [system, selectedToolId]);
 
     const handleCreateFromTemplate = useCallback(() => {
         setShowTemplateSelector(true);
@@ -115,6 +138,11 @@ export const TaskList: React.FC<{
 
     const handleSelectTool = useCallback((toolId: string) => {
         console.log('Selected tool:', toolId);
+        setSelectedToolId(toolId); // Set selected tool
+    }, []);
+
+    const handleShowToolSelector = useCallback(() => {
+        setShowToolSelector(true); // Show tool selector
     }, []);
 
     return (
@@ -198,16 +226,21 @@ export const TaskList: React.FC<{
                 </Droppable>
             </DragDropContext>
 
-            {showToolSelector && (
+            {!showToolSelector ? (
+                <button onClick={handleShowToolSelector}>+ Add Task with Tool</button>
+            ) : (
                 <div className={styles.toolSelector}>
                     <h3>Select a Tool</h3>
                     <ul>
                         {availableTools.map(tool => (
-                            <li key={tool.id} onClick={() => handleSelectTool(tool.id)}>
+                            <li key={tool.id}
+                                onClick={() => handleSelectTool(tool.id)}
+                                className={selectedToolId === tool.id ? styles.selected : ''}>
                                 {tool.title}
                             </li>
                         ))}
                     </ul>
+                    <button onClick={handleAddTask}>Create Task with Selected Tool</button>
                 </div>
             )}
         </div>
