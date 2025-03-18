@@ -3,17 +3,21 @@ import React, {useEffect, useRef} from 'react';
 import cytoscape from 'cytoscape';
 import {getSystemNote, onSystemNoteChange} from '../../lib/systemNote';
 import styles from './GraphView.module.css';
+import {systemLog} from "../../lib/systemLog";
 
 export const GraphView: React.FC = () => {
     const cyRef = useRef<HTMLDivElement>(null);
     const cyInstance = useRef<cytoscape.Core | null>(null);
     const system = getSystemNote();
-    const isGraphInitialized = useRef(false); // Track initialization state
+    const isGraphInitialized = useRef(false);
+    const isMounted = useRef(false);
 
     useEffect(() => {
-        if (!cyRef.current || isGraphInitialized.current) return; // Prevent re-initialization
+        isMounted.current = true;
 
-        isGraphInitialized.current = true; // Mark as initialized
+        if (!cyRef.current || isGraphInitialized.current) return;
+
+        isGraphInitialized.current = true;
         cyInstance.current = cytoscape({
             container: cyRef.current,
             elements: [],
@@ -42,9 +46,10 @@ export const GraphView: React.FC = () => {
         });
 
         const cy = cyInstance.current;
+
         const updateGraph = () => {
-            if (!cy || cy.destroyed()) { // Check if cy is valid and not destroyed
-                systemLog.warn("Cytoscape instance is not valid, skipping graph update.", "GraphView");
+            if (!isMounted.current || !cy || cy.destroyed()) {
+                systemLog.warn("Cytoscape instance is not valid or component unmounted, skipping graph update.", "GraphView");
                 return;
             }
             try {
@@ -64,21 +69,22 @@ export const GraphView: React.FC = () => {
                 cy.add(edges);
 
                 cy.layout({name: 'cose'}).run();
-                cy.fit(); // Fit viewport to graph after layout
+                cy.fit();
             } catch (error) {
-                systemLog.error(`Error updating graph: ${error}`, "GraphView"); // Error logging within updateGraph
+                systemLog.error(`Error updating graph: ${error}`, "GraphView");
             }
         };
 
-
         updateGraph();
         const unsubscribe = onSystemNoteChange(updateGraph);
+
         return () => {
+            isMounted.current = false;
             unsubscribe();
             if (cy) {
                 cy.destroy();
                 cyInstance.current = null;
-                isGraphInitialized.current = false; // Reset initialization flag on unmount
+                isGraphInitialized.current = false;
             }
         };
 
