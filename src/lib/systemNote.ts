@@ -8,7 +8,7 @@ const listeners: Listener[] = [];
 let systemNoteData: Note | undefined = undefined;
 
 // Initialize System Note - singleton pattern
-export const initializeSystemNote = (llm: ChatOpenAI) => {
+export const initializeSystemNote = (llm: ChatOpenAI | any) => {
     if (systemNoteData) throw new Error('System Note already initialized');
     systemNoteData = {
         id: 'system',
@@ -87,8 +87,8 @@ const registerInitialTools = () => {
 // Accessor for the System Note instance
 export const getSystemNote = () => {
     if (!systemNoteData) {
-        initializeSystemNote({} as ChatOpenAI); // Bootstrap if not initialized
         systemLog.warn('System Note was not initialized, bootstrapping with default. Ensure initializeSystemNote is called.', 'SystemNote');
+        initializeSystemNote({} as ChatOpenAI); // Bootstrap if not initialized
     }
     return new SystemNote(systemNoteData!);
 };
