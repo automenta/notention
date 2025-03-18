@@ -1,6 +1,6 @@
 import React, {useCallback} from 'react';
 import {Note} from '../../types';
-import styles from './TaskList.module.css';
+import styles from './TaskListItem.module.css';
 
 interface TaskListItemProps {
     task: Note;
@@ -9,65 +9,48 @@ interface TaskListItemProps {
     isSelected: boolean;
 }
 
-// TaskListItem component - Displays a single task item in the TaskList
 const TaskListItem: React.FC<TaskListItemProps> = ({task, onPriorityChange, onClick, isSelected}) => {
-    const handlePriorityChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
-        const newPriority = parseInt(event.target.value, 10);
+    const handlePriorityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const newPriority = parseInt(e.target.value, 10);
         onPriorityChange(task.id, newPriority);
-    }, [onPriorityChange, task.id]);
+    }, [task.id, onPriorityChange]);
 
-    const handleClick = useCallback(() => {
-        onClick(task.id);
-    }, [onClick, task.id]);
-
-    const statusColor = () => {
-        switch (task.status) {
-            case 'running':
-                return '#007bff'; // Blue
-            case 'completed':
-                return '#4CAF50'; // Green
-            case 'failed':
-                return '#f44336'; // Red
-            case 'pending':
-                return '#ffc107'; // Yellow
-            case 'dormant':
-                return '#9e9e9e'; // Grey
+    const getStatusColor = (status: string) => {
+        switch (status) {
             case 'active':
-                return '#28a745'; // A brighter green for active
+                return styles.active;
+            case 'pending':
+                return styles.pending;
+            case 'completed':
+                return styles.completed;
+            case 'failed':
+                return styles.failed;
+            case 'dormant':
+                return styles.dormant;
             case 'bypassed':
-                return '#6c757d'; // A muted grey for bypassed
+                return styles.bypassed;
             case 'pendingRefinement':
-                return '#ffa000'; // Orange for pending refinement
+                return styles.pendingRefinement;
             default:
-                return '#fff'; // White
+                return styles.unknown;
         }
     };
 
     return (
-        <div
-            className={`${styles.taskListItem} ${isSelected ? styles.selected : ''}`}
-            onClick={handleClick}
-        >
-            <div className={styles.taskItemHeader}>
+        <div className={`${styles.taskListItem} ${isSelected ? styles.selected : ''}`} onClick={() => onClick(task.id)}>
+            <div className={`${styles.statusIndicator} ${getStatusColor(task.status)}`}/>
+            <div className={styles.taskContent}>
                 <h3>{task.title}</h3>
-                <span className={styles.taskStatus} style={{backgroundColor: statusColor()}}>
-                    {task.status.toUpperCase()}
-                </span>
+                <p>{task.content}</p>
             </div>
-            <p>{task.content?.text}</p>
-
-            <div className={styles.taskActions}>
-                <select
+            <div className={styles.taskPriority}>
+                <label htmlFor={`priority-${task.id}`}>Priority:</label>
+                <input
+                    type="number"
+                    id={`priority-${task.id}`}
                     value={task.priority}
                     onChange={handlePriorityChange}
-                    className={styles.prioritySelect}
-                >
-                    <option value={100}>High Priority</option>
-                    <option value={75}>Medium-High</option>
-                    <option value={50}>Medium</option>
-                    <option value={25}>Low-Medium</option>
-                    <option value={0}>Low Priority</option>
-                </select>
+                />
             </div>
         </div>
     );
