@@ -11,7 +11,7 @@ export async function executeTool(tool: Note, input: any, toolImplementation?: F
             return await toolImplementation(input);
         } catch (error: any) {
             systemLog.error(`Error executing custom implementation for tool ${tool.id}: ${error.message}`, 'Executor');
-            throw error;
+            throw new Error(`Error executing custom implementation for tool ${tool.id}: ${error.message}`);
         }
     } else {
         try {
@@ -30,12 +30,13 @@ export async function executeTool(tool: Note, input: any, toolImplementation?: F
                     currentInput = await runnable.invoke(input[step.input.replace(/[{}]/g, '')]);
                 } else {
                     systemLog.warn(`Unknown step type: ${step.type} in tool ${tool.id}. Skipping step.`, 'Executor');
+                    throw new Error(`Unknown step type: ${step.type} in tool ${tool.id}.`);
                 }
             }
             return { output: currentInput };
         } catch (error: any) {
             systemLog.error(`Error executing default logic for tool ${tool.id}: ${error.message}`, 'Executor');
-            throw error;
+            throw new Error(`Error executing default logic for tool ${tool.id}: ${error.message}`);
         }
     }
 }

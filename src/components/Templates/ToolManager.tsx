@@ -334,11 +334,14 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                     </select>
 
                     <label htmlFor="newApiHeaders">API Headers (JSON):</label>
-                    <textarea
-                        id="newApiHeaders"
-                        placeholder="API Headers (JSON)"
+                    <MonacoEditor
+                        width="600"
+                        height="200"
+                        language="json"
+                        theme="vs-dark"
                         value={newApiHeaders}
-                        onChange={(e) => setNewApiHeaders(e.target.value)}
+                        options={editorOptions}
+                        onChange={(value) => setNewApiHeaders(value)}
                     />
 
                     <label htmlFor="newApiAuthType">Authentication Type:</label>
@@ -379,27 +382,36 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                 <label htmlFor="newToolLogic">Tool Logic (JSON):</label>
             )}
             {newToolType !== 'api' && (
-                <textarea
-                    id="newToolLogic"
-                    placeholder="Tool Logic (JSON)"
+                <MonacoEditor
+                    width="600"
+                    height="300"
+                    language="json"
+                    theme="vs-dark"
                     value={newToolLogic}
-                    onChange={(e) => setNewToolLogic(e.target.value)}
+                    options={editorOptions}
+                    onChange={(value) => setNewToolLogic(value)}
                 />
             )}
 
             <label htmlFor="newToolInputSchema">Tool Input Schema (JSON):</label>
-            <textarea
-                id="newToolInputSchema"
-                placeholder="Tool Input Schema (JSON)"
+            <MonacoEditor
+                width="600"
+                height="300"
+                language="json"
+                theme="vs-dark"
                 value={newToolInputSchema}
-                onChange={(e) => setNewToolInputSchema(e.target.value)}
+                options={editorOptions}
+                onChange={(value) => setNewToolInputSchema(value)}
             />
             <label htmlFor="newToolOutputSchema">Tool Output Schema (JSON):</label>
-            <textarea
-                id="newToolOutputSchema"
-                placeholder="Tool Output Schema (JSON)"
+            <MonacoEditor
+                width="600"
+                height="300"
+                language="json"
+                theme="vs-dark"
                 value={newToolOutputSchema}
-                onChange={(e) => setNewToolOutputSchema(e.target.value)}
+                options={editorOptions}
+                onChange={(value) => setNewToolOutputSchema(value)}
             />
             <button onClick={handleCreateTool}>Create Tool</button>
             {toolCreationError && <div className={styles.errorMessage}>Error: {toolCreationError}</div>}
@@ -470,11 +482,14 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                                     </select>
 
                                     <label htmlFor={`apiHeaders-${tool.id}`}>API Headers (JSON):</label>
-                                    <textarea
-                                        id={`apiHeaders-${tool.id}`}
-                                        placeholder="API Headers (JSON)"
+                                    <MonacoEditor
+                                        width="600"
+                                        height="200"
+                                        language="json"
+                                        theme="vs-dark"
                                         value={newApiHeaders}
-                                        onChange={(e) => setNewApiHeaders(e.target.value)}
+                                        options={editorOptions}
+                                        onChange={(value) => setNewApiHeaders(value)}
                                     />
 
                                     <label htmlFor={`newApiAuthType`}>Authentication Type:</label>
