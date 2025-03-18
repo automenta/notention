@@ -24,34 +24,43 @@ export class NoteImpl {
     constructor(public data: Note) { }
 
     // Static factory method for creating Root Note
-    static createRootNote = async (llm: any): Promise<NoteImpl> => new NoteImpl({
-        id: 'root',
-        type: 'Root',
-        title: 'Netention Root',
-        content: 'System root note',
-        status: 'active',
-        priority: 100,
-        createdAt: new Date().toISOString(),
-        updatedAt: null,
-        references: [],
-    });
+    static createRootNote = async (llm: any): Promise<NoteImpl> => {
+        systemLog.debug('Creating root note', 'NoteImpl');
+        return new NoteImpl({
+            id: 'root',
+            type: 'Root',
+            title: 'Netention Root',
+            content: 'System root note',
+            status: 'active',
+            priority: 100,
+            createdAt: new Date().toISOString(),
+            updatedAt: null,
+            references: [],
+        });
+    }
 
     // Static factory method for creating Task Notes
-    static createTaskNote = async (title: string, content: string, priority = 50): Promise<NoteImpl> => new NoteImpl({
-        id: crypto.randomUUID(),
-        type: 'Task',
-        title,
-        content: { messages: [], text: content }, // Initialize messages array for ChatView
-        priority,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: null,
-        references: [],
-    });
+    static createTaskNote = async (title: string, content: string, priority = 50): Promise<NoteImpl> => {
+        systemLog.debug(`Creating task note with title: ${title}`, 'NoteImpl');
+        return new NoteImpl({
+            id: crypto.randomUUID(),
+            type: 'Task',
+            title,
+            content: { messages: [], text: content }, // Initialize messages array for ChatView
+            priority,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            updatedAt: null,
+            references: [],
+        });
+    }
 
     // Core run logic for a Note - Executes with LangChain runnables
     async run() {
-        if (this.data.status !== 'active' && this.data.status !== 'pending') return;
+        if (this.data.status !== 'active' && this.data.status !== 'pending') {
+            systemLog.debug(`Note ${this.data.id} is not active or pending, skipping run. Status: ${this.data.status}`, this.data.type);
+            return;
+        }
         this.data.status = 'running';
         this.update();
         systemLog.info(`🚀 Running Note ${this.data.id}: ${this.data.title}`, this.data.type);
@@ -63,6 +72,7 @@ export class NoteImpl {
         try {
             const runnable = this.getRunnable();
             if (runnable) {
+                systemLog.debug(`Note ${this.data.id} has a runnable, invoking...`, this.data.type);
                 // Execute the runnable with callbacks for tracking
                 executionResult = await runnable.invoke(
                     { note: this, input: this.data.content?.text || 'Default input' }, // Pass note and content as input
@@ -71,6 +81,7 @@ export class NoteImpl {
                 systemLog.debug(`Note ${this.data.id} Runnable Result: ${JSON.stringify(executionResult)}`, this.data.type);
                 await this.reflect(executionResult);
             } else {
+                systemLog.debug(`Note ${this.data.id} has no runnable, using simulation.`, this.data.type);
                 // Fallback simulation if no runnable is defined
                 await new Promise(resolve => setTimeout(resolve, 1500));
                 if (Math.random() < 0.2) throw new Error('Simulated task failure!');
@@ -99,6 +110,7 @@ export class NoteImpl {
             }
             await this.handleFailure(e);
         } finally {
+            systemLog.debug(`Note ${this.data.id} finally block executed.`, this.data.type);
             //await awaitAllCallbacks(); // Ensure all callbacks complete  //REMOVED:  This was causing errors.
             getSystemNote().decrementRunning();
             this.update();
@@ -108,7 +120,10 @@ export class NoteImpl {
 
     // Constructs a LangChain Runnable from note logic
     getRunnable(): Runnable | null {
-        if (this._runnable) return this._runnable;
+        if (this._runnable) {
+            systemLog.debug(`Note ${this.data.id} using cached runnable.`, this.data.type);
+            return this._runnable;
+        }
 
         if (!this.data.logic) {
             systemLog.debug(`Note ${this.data.id} has no logic defined, using simulation.`, this.data.type);
@@ -175,6 +190,7 @@ export class NoteImpl {
             // Await all runnables to resolve before creating the sequence
             Promise.all(runnables).then(resolvedRunnables => {
                 this._runnable = resolvedRunnables.length > 1 ? RunnableSequence.from(resolvedRunnables) : resolvedRunnables[0];
+                systemLog.debug(`Note ${this.data.id} runnable sequence created.`, this.data.type);
                 return this._runnable;
             }).catch(error => {
                 systemLog.error(`Error creating runnable sequence: ${error}`, this.data.type);
@@ -256,10 +272,16 @@ export class NoteImpl {
     };
 
     // Schedules the note for future execution
-    private schedule = () => getSystemNote().enqueueNote(this.data.id);
+    private schedule = () => {
+        systemLog.debug(`Scheduling Note ${this.data.id} for future execution.`, this.data.type);
+        getSystemNote().enqueueNote(this.data.id);
+    }
 
     // Updates the note in SystemNote
-    private update = () => getSystemNote().updateNote(this.data);
+    private update = () => {
+        systemLog.debug(`Updating Note ${this.data.id} in SystemNote.`, this.data.type);
+        getSystemNote().updateNote(this.data);
+    }
 
     async generateLogic(): Promise<void> {
         const llm = getSystemNote().getLLM();
