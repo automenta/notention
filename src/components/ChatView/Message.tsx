@@ -10,14 +10,19 @@ interface MessageProps {
 }
 
 // Message component - Displays individual chat messages with styling
-const Message: React.FC<MessageProps> = ({ message }) => {
+const Message: React.FC<MessageProps> = ({message}) => {
     const messageClass = () => {
         switch (message.type) {
-            case 'user': return styles.userMessage;
-            case 'system': return styles.systemMessage;
-            case 'tool': return styles.toolMessage;
-            case 'error': return styles.errorMessage;
-            default: return styles.message;
+            case 'user':
+                return styles.userMessage;
+            case 'system':
+                return styles.systemMessage;
+            case 'tool':
+                return styles.toolMessage;
+            case 'error':
+                return styles.errorMessage;
+            default:
+                return styles.message;
         }
     };
 

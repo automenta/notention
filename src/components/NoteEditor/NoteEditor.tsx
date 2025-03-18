@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import styles from './NoteEditor.module.css';
-import { getSystemNote } from '../../lib/systemNote';
+import {getSystemNote} from '../../lib/systemNote';
 
 interface NoteEditorProps {
     noteId: string;
     onClose: () => void;
 }
 
-export const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose }) => {
+export const NoteEditor: React.FC<NoteEditorProps> = ({noteId, onClose}) => {
     const [noteContent, setNoteContent] = useState<string>('');
     const [validationError, setValidationError] = useState<string | null>(null);
     const system = getSystemNote();
@@ -36,7 +36,7 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose }) => {
 
         const currentNote = system.getNote(noteId);
         if (currentNote) {
-            system.updateNote({ ...currentNote, ...parsedContent }); // Basic merge - adjust as needed
+            system.updateNote({...currentNote, ...parsedContent}); // Basic merge - adjust as needed
             onClose();
             alert('Note content updated (Save action stubbed)'); // Save confirmation (stubbed)
         } else {
@@ -52,9 +52,11 @@ export const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose }) => {
                 onChange={handleContentChange}
                 placeholder="Enter Note Content (JSON)"
             />
-             {validationError && <div className={styles.validationError}>⚠️ ${validationError}</div>} {/* Display error message */}
+            {validationError &&
+                <div className={styles.validationError}>⚠️ ${validationError}</div>} {/* Display error message */}
             <div className={styles.editorActions}>
-                <button onClick={handleSave} disabled>Save (Stubbed)</button> {/* Save button is stubbed */}
+                <button onClick={handleSave} disabled>Save (Stubbed)</button>
+                {/* Save button is stubbed */}
                 <button onClick={onClose}>Cancel</button>
             </div>
         </div>

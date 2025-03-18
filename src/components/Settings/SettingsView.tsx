@@ -1,5 +1,5 @@
 import React from 'react';
-import { UIView } from '../UI/UI';
+import {UIView} from '../UI/UI';
 
 export const SettingsView: React.FC = () => {
     return (

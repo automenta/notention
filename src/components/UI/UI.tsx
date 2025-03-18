@@ -7,7 +7,7 @@ interface UIViewProps {
 }
 
 // UIView component - Generic container for UI views with title and basic styling
-export const UIView: React.FC<UIViewProps> = ({ title, children }) => {
+export const UIView: React.FC<UIViewProps> = ({title, children}) => {
     return (
         <div className={styles.uiView}>
             <h2>{title}</h2>
