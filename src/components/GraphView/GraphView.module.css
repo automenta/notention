@@ -44,3 +44,12 @@
     stroke: #ccc;
     strokeWidth: 1;
 }
+
+.errorMessage {
+    color: red;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid red;
+    background-color: #ffe6e6;
+    border-radius: 5px;
+}

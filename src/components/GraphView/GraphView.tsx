@@ -33,6 +33,7 @@ export const GraphView: React.FC = () => {
     const svgRef = useRef<SVGSVGElement>(null);  // Ref for the SVG element
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, nodeId: string } | null>(null);
     const [editingNodeId, setEditingNodeId] = useState<string | null>(null); // State for editing a node
+    const [graphError, setGraphError] = useState<string | null>(null);
 
     // Move the setGraphContainerSize update outside of the useEffect
     useEffect(() => {
@@ -54,28 +55,34 @@ export const GraphView: React.FC = () => {
     }, []);
 
     const updateGraph = useCallback(() => {
-        const notes = system.getAllNotes();
+        try {
+            const notes = system.getAllNotes();
 
-        const newNodes = notes.map(note => {
-            return {
-                id: note.id,
-                title: note.title,
-                type: note.type, // Include the note type
-                x: 0,
-                y: 0,
-                //...generateRandomPosition(graphContainerSize.width, graphContainerSize.height),
-            };
-        });
+            const newNodes = notes.map(note => {
+                return {
+                    id: note.id,
+                    title: note.title,
+                    type: note.type, // Include the note type
+                    x: 0,
+                    y: 0,
+                    //...generateRandomPosition(graphContainerSize.width, graphContainerSize.height),
+                };
+            });
 
-        const newEdges = notes.flatMap(sourceNote =>
-            sourceNote.references.map(targetId => ({
-                source: sourceNote.id,
-                target: targetId,
-            }))
-        );
+            const newEdges = notes.flatMap(sourceNote =>
+                sourceNote.references.map(targetId => ({
+                    source: sourceNote.id,
+                    target: targetId,
+                }))
+            );
 
-        setNodes(newNodes);
-        setEdges(newEdges);
+            setNodes(newNodes);
+            setEdges(newEdges);
+            setGraphError(null); // Clear any previous errors
+        } catch (error: any) {
+            console.error("Error updating graph:", error);
+            setGraphError(`Error updating graph: ${error.message}`);
+        }
     }, [system, graphContainerSize]);
 
     useEffect(() => {
@@ -136,101 +143,109 @@ export const GraphView: React.FC = () => {
     useEffect(() => {
         if (!nodes.length || !edges.length || !svgRef.current) return;
 
-        const svg = d3.select(svgRef.current);
-        svg.selectAll('*').remove();  // Clear previous graph
+        try {
+            const svg = d3.select(svgRef.current);
+            svg.selectAll('*').remove();  // Clear previous graph
 
-        // Create force simulation
-        const simulation = d3.forceSimulation(nodes as any)
-            .force("link", d3.forceLink(edges).id((d: any) => d.id))
-            .force("charge", d3.forceManyBody().strength(-100))
-            .force("center", d3.forceCenter(graphContainerSize.width / 2, graphContainerSize.height / 2));
+            // Create force simulation
+            const simulation = d3.forceSimulation(nodes as any)
+                .force("link", d3.forceLink(edges).id((d: any) => d.id))
+                .force("charge", d3.forceManyBody().strength(-100))
+                .force("center", d3.forceCenter(graphContainerSize.width / 2, graphContainerSize.height / 2));
 
-        // Create links
-        const links = svg.append("g")
-            .attr("class", "links")
-            .selectAll("line")
-            .data(edges)
-            .enter()
-            .append("line")
-            .attr("class", styles.edge);
+            // Create links
+            const links = svg.append("g")
+                .attr("class", "links")
+                .selectAll("line")
+                .data(edges)
+                .enter()
+                .append("line")
+                .attr("class", styles.edge);
 
-        // Create nodes
-        const node = svg.append("g")
-            .attr("class", "nodes")
-            .selectAll("circle")
-            .data(nodes)
-            .enter()
-            .append("circle")
-            .attr("r", 15)
-            .attr("class", (d: any) => {
-                switch (d.type) {
-                    case 'Task': return styles.nodeTask;
-                    case 'Template': return styles.nodeTemplate;
-                    case 'Tool': return styles.nodeTool;
-                    default: return styles.node;
-                }
-            })
-            .call(d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended) as any)
-            .on("contextmenu", (event: any, d: any) => {
-                handleNodeClick(event, d);
+            // Create nodes
+            const node = svg.append("g")
+                .attr("class", "nodes")
+                .selectAll("circle")
+                .data(nodes)
+                .enter()
+                .append("circle")
+                .attr("r", 15)
+                .attr("class", (d: any) => {
+                    switch (d.type) {
+                        case 'Task': return styles.nodeTask;
+                        case 'Template': return styles.nodeTemplate;
+                        case 'Tool': return styles.nodeTool;
+                        default: return styles.node;
+                    }
+                })
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended) as any)
+                .on("contextmenu", (event: any, d: any) => {
+                    handleNodeClick(event, d);
+                });
+
+            node.append("title")
+                .text((d: any) => d.title);
+
+            // Add labels to nodes
+            const labels = svg.append("g")
+                .attr("class", "labels")
+                .selectAll("text")
+                .data(nodes)
+                .enter()
+                .append("text")
+                .attr("class", styles.nodeLabel)
+                .attr("text-anchor", "middle")
+                .attr("y", 5)
+                .text((d: any) => d.title);
+
+            simulation.on("tick", () => {
+                links
+                    .attr("x1", (d: any) => d.source.x)
+                    .attr("y1", (d: any) => d.source.y)
+                    .attr("x2", (d: any) => d.target.x)
+                    .attr("y2", (d: any) => d.target.y);
+
+                node
+                    .attr("cx", (d: any) => d.x)
+                    .attr("cy", (d: any) => d.y);
+
+                labels
+                    .attr("x", (d: any) => d.x)
+                    .attr("y", (d: any) => d.y + 5);
             });
 
-        node.append("title")
-            .text((d: any) => d.title);
+            function dragstarted(event: any, d: any) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
 
-        // Add labels to nodes
-        const labels = svg.append("g")
-            .attr("class", "labels")
-            .selectAll("text")
-            .data(nodes)
-            .enter()
-            .append("text")
-            .attr("class", styles.nodeLabel)
-            .attr("text-anchor", "middle")
-            .attr("y", 5)
-            .text((d: any) => d.title);
+            function dragged(event: any, d: any) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
 
-        simulation.on("tick", () => {
-            links
-                .attr("x1", (d: any) => d.source.x)
-                .attr("y1", (d: any) => d.source.y)
-                .attr("x2", (d: any) => d.target.x)
-                .attr("y2", (d: any) => d.target.y);
-
-            node
-                .attr("cx", (d: any) => d.x)
-                .attr("cy", (d: any) => d.y);
-
-            labels
-                .attr("x", (d: any) => d.x)
-                .attr("y", (d: any) => d.y + 5);
-        });
-
-        function dragstarted(event: any, d: any) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
+            function dragended(event: any, d: any) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+            setGraphError(null);
+        } catch (error: any) {
+            console.error("Error rendering graph:", error);
+            setGraphError(`Error rendering graph: ${error.message}`);
         }
 
-        function dragged(event: any, d: any) {
-            d.fx = event.x;
-            d.fy = event.y;
-        }
-
-        function dragended(event: any, d: any) {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-        }
 
     }, [nodes, edges, graphContainerSize, handleNodeClick]);
 
     return (
         <div className={styles.graphView} ref={graphViewRef}>
             <h2>Note Graph Visualization 🕸️</h2>
+            {graphError && <div className={styles.errorMessage}>Error: {graphError}</div>}
             <svg width="100%" height="600px" ref={svgRef}></svg>
 
             {contextMenu && (
