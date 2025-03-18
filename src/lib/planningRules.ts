@@ -7,61 +7,40 @@ import { systemLog } from './systemLog';
 export interface PlanningRule {
     name: string;
     order: 'before' | 'after'; // Specify when the rule should be applied
-    condition?: (task: Note, system: SystemNote) => boolean; // Optional synchronous condition
-    action?: (task: Note, system: SystemNote) => Promise<void>; // Optional synchronous action
+    condition?: (task: Note, system: SystemNote) => boolean | Promise<boolean>; // Optional condition (can be async)
+    action?: (task: Note, system: SystemNote) => Promise<void>; // Optional action
 }
 
-// Helper function to determine if a web search step should be added
+/**
+ * Determines if a web search step should be added to a task.
+ *
+ * This function prioritizes user-defined settings (`task.requiresWebSearch`) and
+ * falls back to analyzing the task description for keywords if an LLM is not available
+ * or if the LLM call fails.
+ *
+ * @param {Note} task - The task to analyze.
+ * @param {SystemNote} system - The system note instance.
+ * @returns {Promise<boolean>} - True if a web search step should be added, false otherwise.
+ */
 const shouldAddWebSearch = async (task: Note, system: SystemNote): Promise<boolean> => {
-    if (task.description === undefined || task.description === null) {
+    // Prioritize user-defined setting
+    if (task.requiresWebSearch !== undefined && task.requiresWebSearch !== null) {
+        systemLog.debug(`Using user-defined requiresWebSearch: ${task.requiresWebSearch} for task ${task.title}`, 'PlanningRules');
+        return task.requiresWebSearch;
+    }
+
+    // Check if task description is available
+    if (!task.description) {
+        systemLog.debug(`Task description is missing for task ${task.title}, skipping web search.`, 'PlanningRules');
         return false;
     }
 
-    if (task.requiresWebSearch !== undefined) {
-        return task.requiresWebSearch; // User override
-    }
-
-    const llm = system.getLLM();
-    if (llm) {
-        try {
-            const prompt = `Analyze the following task description and determine if it requires a web search to be completed. 
-            Respond with a JSON object containing "result" (true or false) and "confidence" (a number between 0 and 1 representing your certainty).
-            Task Description: ${task.description}`;
-            const response = await llm.invoke(prompt);
-            const jsonResponse = JSON.parse(response);
-            const result = jsonResponse.result === true;
-            const confidence = parseFloat(jsonResponse.confidence);
-
-            if (isNaN(confidence) || confidence < 0 || confidence > 1) {
-                systemLog.warn(`Invalid confidence value received: ${jsonResponse.confidence}`, 'PlanningRules');
-                // Fallback to keyword check
-                const keywords = ["search", "find", "research", "investigate"];
-                return keywords.some(keyword => task.description?.toLowerCase().includes(keyword));
-            }
-
-            const confidenceThreshold = 0.75; // Adjust this value as needed
-            if (confidence < confidenceThreshold) {
-                systemLog.info(`LLM confidence below threshold (${confidenceThreshold}), using fallback.`, 'PlanningRules');
-                 // Fallback to keyword check
-                const keywords = ["search", "find", "research", "investigate"];
-                return keywords.some(keyword => task.description?.toLowerCase().includes(keyword));
-            }
-
-            return result;
-        } catch (error: any) {
-            systemLog.error(`Error during LLM call: ${error.message}, using fallback.`, 'PlanningRules');
-             // Fallback to keyword check
-            const keywords = ["search", "find", "research", "investigate"];
-            return keywords.some(keyword => task.description?.toLowerCase().includes(keyword));
-        }
-    } else {
-        systemLog.warn('LLM not initialized, using keyword-based fallback.', 'PlanningRules');
-         // Fallback to keyword check
-        const keywords = ["search", "find", "research", "investigate"];
-        return keywords.some(keyword => task.description?.toLowerCase().includes(keyword));
-    }
+    // Fallback to keyword check
+    const keywords = ["search", "find", "research", "investigate", "what is", "what are", "how to"];
+    const shouldSearch = keywords.some(keyword => task.description.toLowerCase().includes(keyword));
+    systemLog.info(`Using keyword-based check, web search ${shouldSearch ? 'recommended' : 'not recommended'} for task ${task.title}.`, 'PlanningRules');
+    return shouldSearch;
 };
-
 
 const planningRules: PlanningRule[] = [
     {
