@@ -153,6 +153,7 @@ export const TaskList: React.FC<{
             <h2>Tasks 🚀</h2>
             <div className={styles.taskListActions}>
                 <button onClick={handleAddTask}>+ Add Task</button>
+                <button onClick={handleCreateFromTemplate}>Create from Template</button>
                 {selectedId && (
                     <>
                         <button onClick={handleRunTask}>Run Task</button>
@@ -183,20 +184,6 @@ export const TaskList: React.FC<{
                 </select>
             </div>
 
-            <button onClick={handleCreateFromTemplate}>Create from Template</button>
-
-            {showTemplateSelector && (
-                <div className={styles.templateSelector}>
-                    <h3>Select a Template</h3>
-                    <ul>
-                        {availableTemplates.map(template => (
-                            <li key={template.id} onClick={() => handleSelectTemplate(template.id)}>
-                                {template.title}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
 
             <DragDropContext onDragEnd={onDragEnd}>
                 <Droppable droppableId="tasks">
@@ -237,6 +224,19 @@ export const TaskList: React.FC<{
                         {availableTools.map(tool => (
                             <li key={tool.id} onClick={() => handleSelectTool(tool.id)}>
                                 {tool.title}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {showTemplateSelector && (
+                <div className={styles.templateSelector}>
+                    <h3>Select a Template</h3>
+                    <ul>
+                        {availableTemplates.map(template => (
+                            <li key={template.id} onClick={() => handleSelectTemplate(template.id)}>
+                                {template.title}
                             </li>
                         ))}
                     </ul>
