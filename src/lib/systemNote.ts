@@ -249,6 +249,7 @@ class SystemNote {
     async executeTool(toolId: string, input: any): Promise<any> {
         const tool = this.getTool(toolId);
         const toolImplementation = this.getToolImplementation(toolId);
+        const llm = this.getLLM();
 
         if (!tool) {
             systemLog.error(`Tool with id ${toolId} not found.`, 'SystemNote');
@@ -256,7 +257,7 @@ class SystemNote {
         }
 
         try {
-            return await executeTool(tool, input, toolImplementation);
+            return await executeTool(tool, input, llm, toolImplementation);
         } catch (error: any) {
             systemLog.error(`Error executing tool ${toolId}: ${error.message}`, 'SystemNote');
             throw error;

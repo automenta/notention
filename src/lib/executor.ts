@@ -2,7 +2,7 @@ import { Note } from '../types';
 import { systemLog } from './systemLog';
 import { ChatOpenAI } from '@langchain/openai';
 
-export async function executeTool(tool: Note, input: any, toolImplementation?: Function): Promise<any> {
+export async function executeTool(tool: Note, input: any, llm: ChatOpenAI, toolImplementation?: Function): Promise<any> {
     systemLog.info(`Executing tool ${tool.id}: ${tool.title}`, 'Executor');
 
     if (toolImplementation) {
@@ -34,7 +34,6 @@ export async function executeTool(tool: Note, input: any, toolImplementation?: F
                         break;
                     case 'llm':
                         // For llm steps, invoke the LLM with the specified prompt
-                        const llm = new ChatOpenAI({ temperature: 0 });
                         const prompt = step.prompt.replace(/[{}]/g, '');
                         output = await llm.call([
                             `Human: ${prompt}`
