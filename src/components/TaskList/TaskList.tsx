@@ -14,6 +14,8 @@ export const TaskList: React.FC<{
     const [sortBy, setSortBy] = useState<'priority' | 'status' | 'createdAt'>('priority');
     const [filterByStatus, setFilterByStatus] = useState<'active' | 'pending' | 'completed' | 'failed' | 'dormant' | 'bypassed' | 'pendingRefinement' | 'all'>('all');
     const system = getSystemNote();
+    const [showToolSelector, setShowToolSelector] = useState(false);
+    const [availableTools, setAvailableTools] = useState<Note[]>([]);
 
     useEffect(() => {
         const updateTasks = () => {
@@ -29,6 +31,10 @@ export const TaskList: React.FC<{
         updateTasks();
         const unsubscribe = onSystemNoteChange(updateTasks);
         return unsubscribe;
+    }, [system]);
+
+    useEffect(() => {
+        setAvailableTools(system.getAllTools());
     }, [system]);
 
     // Compute sorted and filtered tasks in render phase
@@ -71,6 +77,41 @@ export const TaskList: React.FC<{
         }
     }, [selectedId, system, onTaskSelect]);
 
+    const handleAddToolStep = useCallback(() => {
+        setShowToolSelector(true);
+    }, []);
+
+    const handleSelectTool = useCallback((toolId: string) => {
+        setShowToolSelector(false);
+        if (selectedId) {
+            const task = system.getNote(selectedId);
+            if (task) {
+                try {
+                    const newStep = {
+                        id: `toolStep-${Date.now()}`,
+                        type: 'invoke',
+                        runnable: {
+                            $type: 'Tool',
+                            name: toolId
+                        }
+                    };
+
+                    let logic;
+                    if (task.logic) {
+                        logic = JSON.parse(task.logic);
+                        logic.steps = [...logic.steps, newStep];
+                    } else {
+                        logic = {steps: [newStep]};
+                    }
+                    task.logic = JSON.stringify(logic);
+                    system.updateNote(task);
+                } catch (e) {
+                    alert('Error adding tool step.');
+                }
+            }
+        }
+    }, [selectedId, system]);
+
     return (
         <div className={styles.taskList}>
             <h2>Tasks 🚀</h2>
@@ -82,6 +123,7 @@ export const TaskList: React.FC<{
                         <button onClick={onEditNote}>Edit Note</button>
                         <button onClick={handleArchiveTask}>Archive</button>
                         <button className={styles.deleteButton} onClick={handleDeleteTask}>Delete</button>
+                        <button onClick={handleAddToolStep}>Add Tool Step</button>
                     </>
                 )}
             </div>
@@ -116,6 +158,19 @@ export const TaskList: React.FC<{
                     />
                 ))}
             </div>
+
+            {showToolSelector && (
+                <div className={styles.toolSelector}>
+                    <h3>Select a Tool</h3>
+                    <ul>
+                        {availableTools.map(tool => (
+                            <li key={tool.id} onClick={() => handleSelectTool(tool.id)}>
+                                {tool.title}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </div>
     );
 };
