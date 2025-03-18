@@ -80,6 +80,97 @@ const registerInitialTools = () => {
     };
     systemNote.registerTool(echoToolNoteData); // Register Echo Tool
 
+    // 2. Web Search Tool (Placeholder)
+    const webSearchToolData: Note = {
+        id: 'web-search-tool',
+        type: 'Tool',
+        title: 'Web Search Tool',
+        content: 'A tool to search the web (placeholder).',
+        logic: JSON.stringify({
+            "steps": [
+                {
+                    "id": "search",
+                    "type": "passthrough", // Placeholder
+                    "runnable": {
+                        "constructor": "RunnablePassthrough",
+                        "kwargs": {}
+                    },
+                    "input": "{input}" // Pass input through
+                }
+            ],
+        }),
+        status: 'active',
+        priority: 50,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+        references: [],
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: {type: 'string', description: 'Search query'}
+            },
+            required: ['query']
+        },
+        outputSchema: {
+            type: 'object',
+            properties: {
+                results: {type: 'array', description: 'Search results'}
+            }
+        },
+    };
+    systemNote.registerTool(webSearchToolData);
+
+    // 3. File Operations Tool (Basic - READ/WRITE - SECURITY WARNING)
+    const fileOperationsToolData: Note = {
+        id: 'file-operations-tool',
+        type: 'Tool',
+        title: 'File Operations Tool',
+        content: 'A tool to read and write local files (SECURITY WARNING).',
+        logic: JSON.stringify({
+            "steps": [
+                {
+                    "id": "read-file",
+                    "type": "passthrough", // Placeholder
+                    "runnable": {
+                        "constructor": "RunnablePassthrough",
+                        "kwargs": {}
+                    },
+                    "input": "{input}" // Pass input through
+                },
+                {
+                    "id": "write-file",
+                    "type": "passthrough", // Placeholder
+                    "runnable": {
+                        "constructor": "RunnablePassthrough",
+                        "kwargs": {}
+                    },
+                    "input": "{input}" // Pass input through
+                }
+            ],
+        }),
+        status: 'active',
+        priority: 50,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+        references: [],
+        inputSchema: {
+            type: 'object',
+            properties: {
+                action: {type: 'string', enum: ['read', 'write'], description: 'Action to perform'},
+                filename: {type: 'string', description: 'Filename'},
+                content: {type: 'string', description: 'Content to write (for write action)'}
+            },
+            required: ['action', 'filename']
+        },
+        outputSchema: {
+            type: 'object',
+            properties: {
+                result: {type: 'string', description: 'Result of the operation'}
+            }
+        },
+    };
+    systemNote.registerTool(fileOperationsToolData);
+
     systemLog.info('Initial tools registered.', 'SystemNote');
 };
 
