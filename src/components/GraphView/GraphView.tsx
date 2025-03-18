@@ -171,10 +171,9 @@ export const GraphView: React.FC = () => {
             // Create force simulation
             const simulation = d3.forceSimulation(nodes as any)
                 .force("link", d3.forceLink(edges).id((d: any) => d.id).distance(80))
-                .force("charge", d3.forceManyBody().strength(-200)) // Increased strength
+                .force("charge", d3.forceManyBody().strength(-150)) // Reduced charge strength for less repulsion
                 .force("center", d3.forceCenter(graphContainerSize.width / 2, graphContainerSize.height / 2))
-                .force("collide", d3.forceCollide().radius(20)); // Prevent node overlap
-
+                .force("collide", d3.forceCollide().radius(18)); // Reduced collision radius
             // Create links
             const links = container.current.append("g")
                 .attr("class", "links")
