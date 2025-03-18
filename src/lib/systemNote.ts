@@ -62,6 +62,19 @@ const initialize = () => {
         migrateDataToGraphDB();
         hasMigratedData = true;
     }
+
+    // Initialize or update the LLM instance based on settings changes
+    updateLLM();
+};
+
+const updateLLM = () => {
+    const settings = SettingsService.getSettings();
+    llm = new ChatOpenAI({
+        apiKey: settings.apiKey,
+        modelName: settings.modelName,
+        temperature: settings.temperature,
+    });
+    systemLog.info(`LLM updated with model ${settings.modelName}`, 'SystemNote');
 };
 
 // Centralized system note initialization
@@ -78,7 +91,13 @@ export const useSystemNote = () => {
             setSystemNote(new SystemNote(systemNoteData!, noteStorage));
         });
 
-        return () => unsubscribe();
+        // Subscribe to settings changes to update the LLM
+        const settingsSubscription = SettingsService.subscribe(updateLLM);
+
+        return () => {
+            unsubscribe();
+            settingsSubscription(); // Unsubscribe from settings changes
+        };
     }, []);
 
     return systemNote;
@@ -163,16 +182,9 @@ class SystemNote {
     };
 
     getLLM = () => {
-        if (llm) {
-            return llm; // Return the cached instance
+        if (!llm) {
+            updateLLM(); // Initialize LLM if it's not already initialized
         }
-
-        const settings = SettingsService.getSettings();
-        llm = new ChatOpenAI({
-            apiKey: settings.apiKey,
-            modelName: settings.modelName,
-            temperature: settings.temperature,
-        });
         return llm;
     }
 
