@@ -365,34 +365,39 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
                         />
                     )}
 
-                    {editingToolStep && (
-                        <ToolStepEditor
-                            toolId={getToolStep(editingToolStep)?.toolId}
-                            inputValues={toolInputValues}
-                            onChange={handleInputChange}
-                            onSave={handleSaveEditedToolStep}
-                            onCancel={handleCancelEditToolStep}
-                        />
-                    )}
-
                     {/* Display existing tool steps with edit option */}
                     {selectedTaskId && system.getNote(selectedTaskId)?.logic && (
                         <div>
                             <h3>Tool Steps</h3>
                             <ul>
-                                {(system.getNote(selectedTaskId)!.logic as TaskLogic).steps.map((step: any) => (
-                                    <li key={step.id}>
-                                        {step.type === 'tool' ? (
-                                            <>
-                                                {system.getTool(step.toolId)?.title}
-                                                <button onClick={() => handleEditToolStep(step.id)}>Edit</button>
-                                                <button onClick={() => handleDeleteToolStep(step.id)}>Delete</button>
-                                            </>
-                                        ) : (
-                                            <span>{step.type}</span>
-                                        )}
-                                    </li>
-                                ))}
+                                {(system.getNote(selectedTaskId)!.logic as TaskLogic).steps.map((step: any) => {
+                                    const tool = system.getTool(step.toolId);
+                                    const isEditing = editingToolStep === step.id;
+                                    return (
+                                        <li key={step.id}>
+                                            {isEditing ? (
+                                                <ToolStepEditor
+                                                    toolId={step.toolId}
+                                                    inputValues={toolInputValues}
+                                                    onChange={handleInputChange}
+                                                    onSave={handleSaveEditedToolStep}
+                                                    onCancel={handleCancelEditToolStep}
+                                                />
+                                            ) : (
+                                                <>
+                                                    {tool ? tool.title : 'Unknown Tool'}
+                                                    {tool && tool.inputSchema && (
+                                                        <div className={styles.toolInputDisplay}>
+                                                            Input Schema: {tool.inputSchema}
+                                                        </div>
+                                                    )}
+                                                    <button onClick={() => handleEditToolStep(step.id)}>Edit</button>
+                                                    <button onClick={() => handleDeleteToolStep(step.id)}>Delete</button>
+                                                </>
+                                            )}
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         </div>
                     )}
