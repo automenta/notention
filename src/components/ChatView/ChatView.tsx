@@ -282,6 +282,23 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
         return logic.steps.find((s: any) => s.id === stepId);
     }, [system, selectedTaskId]);
 
+    const formatInputSchema = useCallback((schemaString: string) => {
+        try {
+            const schema = JSON.parse(schemaString);
+            return (
+                <ul>
+                    {Object.entries(schema.properties).map(([key, value]: [string, any]) => (
+                        <li key={key}>
+                            <strong>{key}:</strong> {value.description} ({value.type})
+                        </li>
+                    ))}
+                </ul>
+            );
+        } catch (e) {
+            return <div>Invalid JSON format</div>;
+        }
+    }, []);
+
     return (
         <div className={styles.chatView}>
             <div className={styles.chatHeader}>
@@ -388,7 +405,7 @@ Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', 
                                                     {tool ? tool.title : 'Unknown Tool'}
                                                     {tool && tool.inputSchema && (
                                                         <div className={styles.toolInputDisplay}>
-                                                            Input Schema: {tool.inputSchema}
+                                                            Input Schema: {formatInputSchema(tool.inputSchema)}
                                                         </div>
                                                     )}
                                                     <button onClick={() => handleEditToolStep(step.id)}>Edit</button>
