@@ -54,10 +54,6 @@ const initializeSystemNoteData = (): Note => {
 };
 
 const initialize = () => {
-    if (!systemNoteData) {
-        systemNoteData = initializeSystemNoteData();
-    }
-
     if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
         migrateDataToGraphDB();
         hasMigratedData = true;
@@ -86,7 +82,10 @@ export const useSystemNote = () => {
     }, []);
 
     React.useEffect(() => {
-        initialize();
+        if (!systemNoteData) {
+            systemNoteData = initializeSystemNoteData();
+            initialize();
+        }
 
         const newSystemNote = new SystemNote(systemNoteData!, noteStorage);
         setSystemNote(newSystemNote);
