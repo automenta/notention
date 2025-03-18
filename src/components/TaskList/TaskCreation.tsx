@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { getSystemNote } from '../../lib/systemNote';
+import { useSystemNote } from '../../lib/systemNote';
 import { Note, TaskLogic } from '../../types';
 import styles from './TaskList.module.css';
 import { NoteImpl } from "../../lib/note";
@@ -17,15 +17,24 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
     const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
     const [selectedToolId, setSelectedToolId] = useState<string | null>(null); // Track selected tool
     const [taskDescription, setTaskDescription] = useState<string>(''); // New state for task description
-    const system = getSystemNote();
+    const system = useSystemNote();
     const [taskTitle, setTaskTitle] = useState<string>('');
 
     useEffect(() => {
-        setAvailableTools(system.getAllTools());
-        setAvailableTemplates(system.getAllNotes().filter(n => n.type === 'Template'));
+        if (!system) return;
+        const fetchToolsAndTemplates = async () => {
+            const tools = await system.getAllTools();
+            setAvailableTools(tools);
+            const allNotes = await system.getAllNotes();
+            setAvailableTemplates(allNotes.filter(n => n.type === 'Template'));
+        };
+
+        fetchToolsAndTemplates();
     }, [system]);
 
     const handleAddTask = useCallback(() => {
+        if (!system) return;
+
         let noteImplPromise: Promise<NoteImpl>;
         if (selectedToolId) {
             // Create a task with the selected tool
@@ -67,7 +76,8 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
     const handleSelectTemplate = useCallback(async (templateId: string) => {
         setShowTemplateSelector(false);
         setSelectedTemplateId(templateId);
-        const template = system.getNote(templateId);
+        if (!system) return;
+        const template = await system.getNote(templateId);
         if (template) {
             NoteImpl.createTaskNote(template.title, template.content, template.priority).then(noteImpl => {
                 noteImpl.data.logic = template.logic;

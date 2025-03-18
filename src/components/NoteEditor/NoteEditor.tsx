@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styles from './NoteEditor.module.css';
 import { Note, NoteSchema } from '../../types';
-import { getSystemNote } from '../../lib/systemNote';
+import { useSystemNote } from '../../lib/systemNote';
 import { NoteImpl } from '../../lib/note';
 import idService from '../../lib/idService';
 
@@ -17,7 +17,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({ noteId, onClose, onSave }) => {
     const [content, setContent] = useState<any>('');
     const [error, setError] = useState<string | null>(null);
     const [toolResult, setToolResult] = useState<any>(null); // New state for tool result
-    const systemNote = getSystemNote();
+    const systemNote = useSystemNote();
 
     useEffect(() => {
         const fetchNote = async () => {

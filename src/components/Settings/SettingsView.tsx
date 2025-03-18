@@ -24,12 +24,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onClose }) => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const {name, value, type, checked} = e.target;
-        setSettings(prevSettings => {
-            return {
-                ...prevSettings,
-                [name]: type === 'checkbox' ? checked : value,
-            };
-        });
+        const newSettings = {
+            ...settings,
+            [name]: type === 'checkbox' ? checked : value,
+        };
+        SettingsService.saveSettings(newSettings);
+        setSettings(newSettings);
     };
 
     const handleSave = useCallback(() => {
@@ -50,7 +50,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onClose }) => {
 
         setErrors({}); // Clear any previous errors
 
-        localStorage.setItem('settings', JSON.stringify(settings)); // Save settings to local storage
         const systemNote = getSystemNote();
         const llm = systemNote.getLLM();
         if (llm) {
@@ -58,7 +57,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onClose }) => {
             llm.modelName = settings.modelName;
             llm.temperature = settings.temperature;
         }
-        localStorage.setItem('usePersistence', JSON.stringify(settings.usePersistence));
         onClose();
 
     }, [settings, onClose]);

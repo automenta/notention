@@ -3,7 +3,7 @@ import './App.css';
 import GraphView from './components/GraphView/GraphView';
 import TaskList from './components/TaskList/TaskList';
 import NoteEditor from './components/NoteEditor/NoteEditor';
-import { initializeSystemNote, getSystemNote, onSystemNoteChange } from './lib/systemNote';
+import { initializeSystemNote, getSystemNote, onSystemNoteChange, useSystemNote } from './lib/systemNote';
 import { ChatOpenAI } from '@langchain/openai';
 import SystemLog from './components/SystemLog/SystemLog';
 import SettingsView from './components/Settings/SettingsView';
@@ -19,25 +19,7 @@ function App() {
     const [showSettings, setShowSettings] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
     const [showToolManager, setShowToolManager] = useState(false);
-    const [systemNote, setSystemNote] = useState(getSystemNote());
-
-    useEffect(() => {
-        const settings = SettingsService.getSettings();
-        const llm = new ChatOpenAI({
-            apiKey: settings.apiKey,
-            modelName: settings.modelName,
-            temperature: settings.temperature,
-        });
-
-        initializeSystemNote(llm, settings.usePersistence);
-        setSystemNote(getSystemNote());
-
-        const unsubscribe = onSystemNoteChange(() => {
-            setSystemNote(getSystemNote());
-        });
-
-        return () => unsubscribe();
-    }, []);
+    const systemNote = useSystemNote();
 
     const handleTaskSelect = (id: string) => {
         setSelectedNoteId(id);

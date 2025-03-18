@@ -32,4 +32,11 @@ export const SettingsService = {
             return defaultSettings;
         }
     },
+    saveSettings: (settings: Settings): void => {
+        try {
+            localStorage.setItem('settings', JSON.stringify(settings));
+        } catch (error) {
+            console.error("Error saving settings to local storage:", error);
+        }
+    },
 };
