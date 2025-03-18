@@ -48,7 +48,7 @@ Netention’s architecture revolves around a unified, self-evolving structure an
     - **Memory:** A persistent history of interactions and outcomes, providing context over time.
 - **Agents:** Embedded within Notes, Agents drive intelligence by reasoning, planning, and acting via tools. The **Ur-Agent**, housed in the Primordial Note, bootstraps the system’s evolution.
 - **Plans:** Directed graphs of **PlanSteps**, enabling non-linear, adaptive workflows with dependencies and contingencies. Plans prioritize tasks based on user input, deadlines, and system needs.
-- **Tools:** Modular, extensible functionalities (e.g., web search, summarization) that Agents use to interact with the world. Tools are managed in a **Tool Registry**.
+- **Tools:** Modular, extensible functionalities (e.g., web search, file operations) that Agents use to interact with the world. Tools are managed in a **Tool Registry**.
 - **Executor:** A unified interface for executing tools, handling both synchronous and asynchronous operations.
 - **Memory Manager:** Oversees each Note’s memory, implementing summarization and archiving to manage resources.
 - **Graph Database:** Stores all data (Notes, Plans, Tools, Memory) in a LevelGraph structure, optimized for relationships and queries.
@@ -77,13 +77,21 @@ Netention offers a rich feature set, categorized by component:
 - **Anticipatory Design:** Plans adapt to intermediate results and anticipate future needs.
 
 ### Tool Features
-- **Core Toolset:** Includes web search, file operations, summarization, and user interaction.
-- **Extensibility:** Add new Tools via a plugin system with defined schemas.
+- **Core Toolset:** Includes web search (placeholder), file operations (basic - security warning), summarization, and user interaction.
+- **Extensibility:** Add new Tools via a modular registry.
 
 ### User Interface Features
-- **Flow Note UI:** Visualize Plans as interactive flowcharts, centered around Notes.
-- **Minimalist Design:** Progressive disclosure keeps the interface clean and focused.
-- **System Tray:** Subtle notifications and quick actions enhance usability.
+- **Task Management:** Add, edit, run, archive, and delete tasks.
+- **Chat View:** Interact with tasks through a chat-like interface, powered by LLM.
+- **Graph Visualization:** Visualize notes and their relationships in an interactive graph.
+- **Settings:** Configure system settings such as concurrency limit, API key, and theme.
+- **Templates:** Create and use note templates for efficient task creation.
+- **Tool Creation:** Define and register new tools through the UI.
+- **"Add Tool Step" Button:** Append tool invocations to a task's logic.
+- **Interactive Graph:** Drag nodes and use a context menu to edit, run, or delete them.
+- **Inline Note Editor:** Edit notes directly within the GraphView.
+- **Create from Template:** Create new tasks from existing templates.
+- **Monaco Editor Integration:** Use Monaco Editor for syntax-highlighted JSON editing in NoteEditor.
 
 ### Data Management Features
 - **Graph Persistence:** Store all data in LevelGraph for integrity and efficiency.
@@ -100,7 +108,9 @@ Netention offers a rich feature set, categorized by component:
 - **Language:** JavaScript (Node.js) for cross-platform compatibility.
 - **Database:** LevelGraph (on LevelDB) for lightweight graph storage.
 - **LLM Interface:** OpenAI Node.js SDK with abstraction for multiple providers.
-- **UI Framework:** TBD (options: React, Vue, Svelte; initially CLI-based).
+- **UI Framework:** React
+- **Editor:** Monaco Editor
+- **Graph Visualization:** D3.js
 - **Tools:** Pino (logging), Zod (schema validation), npm/yarn (package management).
 
 ---
@@ -120,6 +130,8 @@ Netention is designed for growth:
 - **Sandboxing:** Tools run in isolated environments to prevent misuse.
 - **Validation:** Inputs are sanitized to avoid injection attacks.
 - **Audits:** Regular security checks ensure system integrity.
+
+**Warning:** The File Operations Tool provides basic read/write functionality but should be used with extreme caution due to potential security risks.
 
 ---
 
@@ -175,19 +187,27 @@ Human effort focuses on initial setup and high-level guidance, with the system t
    ```
 
 3. **Configure Environment:**
-    - Create a `.env` file with your LLM API key:
+    - Create a `.env` file in the project root with your OpenAI API key:
       ```plaintext
-      LLM_API_KEY=your-key-here
+      REACT_APP_OPENAI_API_KEY=your-key-here
       ```
+      **Note:** Make sure to prefix the variable with `REACT_APP_` to be accessible in the React app.
 
-4. **Initialize the System:**
-   ```bash
-   npm run init
-   ```
-
-5. **Run Netention:**
+4. **Run Netention:**
    ```bash
    npm start
    ```
 
-Explore the CLI to create Notes and watch the system evolve!
+Open your browser to view Netention and start creating Notes and exploring its features!
+
+---
+
+## Contributing
+
+Contributions are welcome! Please see the [contributing guidelines](CONTRIBUTING.md) for more information.
+
+---
+
+## License
+
+[MIT](LICENSE)
