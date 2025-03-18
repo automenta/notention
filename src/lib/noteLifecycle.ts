@@ -2,6 +2,7 @@ import { Note } from '../types';
 import { getSystemNote } from './systemNote';
 import { systemLog } from './systemLog';
 import { updateNote } from './noteUpdate';
+import { NoteImpl } from './note';
 
 export const reflect = async (note: Note, executionResult: any) => {
     systemLog.debug(`Note ${note.id} Reflecting on result: ${JSON.stringify(executionResult)}`, note.type);
@@ -12,7 +13,7 @@ export const reflect = async (note: Note, executionResult: any) => {
 
         // Example: Create a sub-note if the result suggests further action
         if (executionResult.output && typeof executionResult.output === 'string' && executionResult.output.includes('create sub-task')) {
-            const { NoteImpl } = await import('./note');
+            //const { NoteImpl } = await import('./note');
             const subNote = await NoteImpl.createTaskNote(
                 `Sub-task of ${note.title}`,
                 'Details: ' + executionResult.output,

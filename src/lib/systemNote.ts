@@ -21,6 +21,7 @@ const listeners: Listener[] = [];
 let systemNoteData: Note | undefined = undefined;
 let noteStorage: NoteStorage = new InMemoryNoteStorage();
 let hasMigratedData: boolean = false;
+let llm: ChatOpenAI | null = null; // Cache the LLM instance
 
 const initializeSystemNoteData = (): Note => {
     const newSystemNoteData: Note = {
@@ -32,7 +33,7 @@ const initializeSystemNoteData = (): Note => {
             activeQueue: [],
             runningCount: 0,
             concurrencyLimit: 5,
-            llm: null, // LLM is now managed by SettingsService
+            llm: null,
             toolRegistry: new ToolRegistry(),
             // executor: new Executor(), //Executor is now a function
         },
@@ -52,19 +53,23 @@ const initializeSystemNoteData = (): Note => {
     return newSystemNoteData;
 };
 
+const initialize = () => {
+    if (!systemNoteData) {
+        systemNoteData = initializeSystemNoteData();
+    }
+
+    if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
+        migrateDataToGraphDB();
+        hasMigratedData = true;
+    }
+};
+
 // Centralized system note initialization
 export const useSystemNote = () => {
     const [systemNote, setSystemNote] = React.useState<SystemNote | null>(null);
 
     React.useEffect(() => {
-        if (!systemNoteData) {
-            systemNoteData = initializeSystemNoteData();
-        }
-
-        if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
-            migrateDataToGraphDB();
-            hasMigratedData = true;
-        }
+        initialize();
 
         const newSystemNote = new SystemNote(systemNoteData!, noteStorage);
         setSystemNote(newSystemNote);
@@ -90,7 +95,7 @@ export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: bool
         systemLog.info('Using InMemoryNoteStorage (default).', 'SystemNote');
     }
 
-    systemNoteData = initializeSystemNoteData();
+    initialize();
 };
 
 export const getSystemNote = () => {
@@ -158,12 +163,17 @@ class SystemNote {
     };
 
     getLLM = () => {
+        if (llm) {
+            return llm; // Return the cached instance
+        }
+
         const settings = SettingsService.getSettings();
-        return new ChatOpenAI({
+        llm = new ChatOpenAI({
             apiKey: settings.apiKey,
             modelName: settings.modelName,
             temperature: settings.temperature,
         });
+        return llm;
     }
 
     incrementRunning = () => {
