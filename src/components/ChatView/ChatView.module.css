@@ -1,0 +1,108 @@
+
+.chatView {
+    flex-grow: 1; /* Take remaining space */
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.chatHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.chatHeader h2 {
+    margin: 0;
+    color: #333;
+}
+
+.chatActions button {
+    padding: 8px 12px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    border-radius: 4px;
+    margin-left: 10px;
+}
+
+.chatActions button:hover {
+    background-color: #f0f0f0;
+}
+
+.messagesContainer {
+    flex-grow: 1;
+    overflow-y: auto; /* Scrollable message area */
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    background-color: #fff;
+}
+
+.inputArea {
+    display: flex;
+    margin-top: 10px;
+}
+
+.inputArea input {
+    flex-grow: 1;
+    padding: 10px;
+    border-radius: 5px 0 0 5px;
+    border: 1px solid #ccc;
+    border-right: none;
+}
+
+.inputArea button {
+    padding: 10px 15px;
+    border-radius: 0 5px 5px 0;
+    border: 1px solid #ccc;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    border-left: none;
+}
+
+.inputArea button:hover {
+    background-color: #0056b3;
+}
+
+.placeholder {
+    color: #888;
+    text-align: center;
+    padding: 20px;
+}
+
+.noteEditorInline {
+    border: 1px solid #ddd;
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 5px;
+    background-color: #f0f0f0;
+}
+
+.noteEditorInline h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.inlineEditorActions {
+    margin-top: 10px;
+    text-align: right;
+}
+
+.inlineEditorActions button {
+    margin-left: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    border-radius: 4px;
+}
+
+.inlineEditorActions button:hover {
+    background-color: #e0e0e0;
+}
