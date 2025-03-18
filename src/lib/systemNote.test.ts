@@ -317,8 +317,19 @@ describe('SystemNote Integration with InMemoryNoteStorage', () => {
                 ).rejects.toThrow('Content contains potentially harmful code.');
             });
 
-            it('should not allow actions that are not whitelisted', async () => {
+            it('should not allow actions that are not whitelisted for test.txt', async () => {
                 await expect(
+                    systemNote.executeTool('file-operations-tool', {
+                        action: 'createDirectory',
+                        filename: 'test.txt',
+                        username: username,
+                        password: password,
+                    })
+                ).rejects.toThrow('Action "createDirectory" is not allowed for file "test.txt".');
+            });
+
+            it('should not allow actions that are not whitelisted for test_directory', async () => {
+                 await expect(
                     systemNote.executeTool('file-operations-tool', {
                         action: 'read',
                         filename: 'test_directory',
