@@ -280,11 +280,11 @@ export const GraphView: React.FC = () => {
 
             {editingNodeId && (
                 <div className={styles.noteEditorOverlay}>
-                    <NoteEditor
+                    {editingNodeId && <NoteEditor
                         noteId={editingNodeId}
                         onClose={handleCloseEditor}
                         onSave={handleSaveNote}
-                    />
+                    />}
                 </div>
             )}
         </div>
