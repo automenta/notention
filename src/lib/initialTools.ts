@@ -168,9 +168,10 @@ export const initializeInitialTools = () => {
                     description: 'Action to perform',
                     inputType: 'select', // Specify inputType as select
                 },
-                filename: { type: 'string', description: 'Filename' }
+                filename: { type: 'string', description: 'Filename' },
+		        content: { type: 'string', description: 'Content to write', inputType: 'textarea' }
             },
-            required: ['action', 'filename']
+            required: ['action', 'filename', 'content']
         }),
         outputSchema: JSON.stringify({
             type: 'object',
