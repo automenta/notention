@@ -173,7 +173,7 @@ export const GraphView: React.FC = () => {
                 .force("link", d3.forceLink(edges).id((d: any) => d.id).distance(80))
                 .force("charge", d3.forceManyBody().strength(-150)) // Reduced charge strength for less repulsion
                 .force("center", d3.forceCenter(graphContainerSize.width / 2, graphContainerSize.height / 2))
-                .force("collide", d3.forceCollide().radius(18)); // Reduced collision radius
+                .force("collide", d3.forceCollide().radius(22)); // Reduced collision radius
             // Create links
             const links = container.current.append("g")
                 .attr("class", "links")
@@ -190,7 +190,7 @@ export const GraphView: React.FC = () => {
                 .data(nodes)
                 .enter()
                 .append("circle")
-                .attr("r", 25)
+                .attr("r", 28)
                 .attr("class", (d: any) => {
                     switch (d.type) {
                         case 'Task': return styles.nodeTask;
@@ -272,7 +272,7 @@ export const GraphView: React.FC = () => {
             <h2>Note Graph Visualization 🕸️</h2>
             {graphError && (
                 <div className={styles.errorMessage}>
-                    {graphError}
+                    {graphError.length > 60 ? graphError.substring(0, 60) + "..." : graphError}
                     <button onClick={handleClearError}>✖</button>
                 </div>
             )}

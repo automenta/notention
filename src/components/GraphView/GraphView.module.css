@@ -19,21 +19,25 @@
     stroke: white;
     stroke-width: 2px;
     cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow */
 }
 
 .nodeTask {
     fill: #4287f5; /* Blue for tasks */
     stroke: #3069bb;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow */
 }
 
 .nodeTemplate {
     fill: #f0ad4e; /* Orange for templates */
     stroke: #d89a36;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow */
 }
 
 .nodeTool {
     fill: #5cb85c; /* Green for tools */
     stroke: #4a944a;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add shadow */
 }
 
 .nodeLabel {
@@ -59,6 +63,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    overflow: hidden; /* Hide overflowing text */
+    line-height: 1.4em;
+    height: 2.8em; /* Set height to show max 2 lines of text */
 }
 
 .errorMessage button {
