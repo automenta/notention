@@ -326,7 +326,7 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
                         </div>
                     )}
 
-                    {addingTool && selectedToolData && selectedToolData.inputSchema && (
+                    {(addingTool || editingToolStep) && selectedToolData && selectedToolData.inputSchema && (
                         <div className={styles.toolInputForm}>
                             <h3>Enter Input Parameters for {selectedToolData.title}</h3>
                             {Object.entries(JSON.parse(selectedToolData.inputSchema).properties).map(([inputName, inputDetails]: [string, any]) => (
@@ -378,8 +378,9 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
                                 </div>
                             ))
                             }
-                            <button onClick={handleAddSelectedTool}>Add Tool</button>
-                            <button onClick={handleCancelAddTool}>Cancel</button>
+                            {addingTool && <button onClick={handleAddSelectedTool}>Add Tool</button>}
+                            {editingToolStep && <button onClick={handleSaveEditedToolStep}>Save</button>}
+                            <button onClick={editingToolStep ? handleCancelEditToolStep : handleCancelAddTool}>Cancel</button>
                         </div>
                     )}
 
@@ -402,65 +403,6 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
                                     </li>
                                 ))}
                             </ul>
-                        </div>
-                    )}
-
-                    {/* Conditionally render the tool input form for editing */}
-                    {editingToolStep && selectedTaskId && (
-                        <div className={styles.toolInputForm}>
-                            <h3>Edit Input Parameters for {system.getTool(getToolStep(editingToolStep)?.toolId)?.title}</h3>
-                            {selectedToolData && selectedToolData.inputSchema && (
-                                Object.entries(JSON.parse(selectedToolData.inputSchema).properties).map(([inputName, inputDetails]: [string, any]) => (
-                                    <div key={inputName} className={styles.inputGroup}>
-                                        <label htmlFor={inputName}>{inputDetails.description || inputName}:</label>
-                                        {inputDetails.inputType === 'textarea' && (
-                                            <textarea
-                                                id={inputName}
-                                                value={toolInputValues[inputName] || ''}
-                                                onChange={(e) => handleInputChange(e, inputName)}
-                                            />
-                                        )}
-                                        {inputDetails.inputType === 'select' && (
-                                            <select
-                                                id={inputName}
-                                                value={toolInputValues[inputName] || ''}
-                                                onChange={(e) => handleInputChange(e, inputName)}
-                                            >
-                                                {inputDetails.options && inputDetails.options.map((option: string) => (
-                                                    <option key={option} value={option}>{option}</option>
-                                                ))}
-                                            </select>
-                                        )}
-                                        {inputDetails.type === 'string' && !inputDetails.inputType && (
-                                            <input
-                                                type="text"
-                                                id={inputName}
-                                                value={toolInputValues[inputName] || ''}
-                                                onChange={(e) => handleInputChange(e, inputName)}
-                                            />
-                                        )}
-                                        {inputDetails.type === 'number' && (
-                                            <input
-                                                type="number"
-                                                id={inputName}
-                                                value={toolInputValues[inputName] || ''}
-                                                onChange={(e) => handleInputChange(e, inputName)}
-                                            />
-                                        )}
-                                        {inputDetails.type === 'boolean' && (
-                                            <input
-                                                type="checkbox"
-                                                id={inputName}
-                                                checked={toolInputValues[inputName] || false}
-                                                onChange={(e) => handleInputChange(e, inputName)}
-                                            />
-                                        )}
-                                        {/* Add more input types as needed */}
-                                    </div>
-                                ))
-                            )}
-                            <button onClick={handleSaveEditedToolStep}>Save</button>
-                            <button onClick={handleCancelEditToolStep}>Cancel</button>
                         </div>
                     )}
                 </div>
