@@ -11,7 +11,7 @@ import idService from './idService';
 import { NoteStorage, InMemoryNoteStorage, GraphDBNoteStorage } from './noteStorage';
 import { migrateDataToGraphDB } from './dataMigration';
 import { SettingsService } from './settingsService';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ToolRegistry } from './toolRegistry';
 import { executeTool } from './executor';
 import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, ensureSafeDirectoryExists } from './fileUtils';
@@ -75,13 +75,13 @@ const updateLLM = () => {
 
 // Centralized system note initialization
 export const useSystemNote = () => {
-    const [systemNote, setSystemNote] = React.useState<SystemNote | null>(null);
+    const [systemNote, setSystemNote] = useState<SystemNote | null>(null);
 
     const memoizedUpdateLLM = useCallback(() => {
         updateLLM();
     }, []);
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (!systemNoteData) {
             systemNoteData = initializeSystemNoteData();
             initialize();
