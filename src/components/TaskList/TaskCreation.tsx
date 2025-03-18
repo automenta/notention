@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { getSystemNote } from '../../lib/systemNote';
-import { Note } from '../../types';
+import { Note, TaskLogic } from '../../types';
 import styles from './TaskList.module.css';
 import { NoteImpl } from "../../lib/note";
 import { v4 as uuidv4 } from 'uuid'; // Import UUID generator
@@ -30,7 +30,7 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
             const selectedTool = system.getTool(selectedToolId);
             const taskTitle = selectedTool ? `Task with ${selectedTool.title}` : 'New Task with Tool';
 
-            const newLogic = {
+            const newLogic: TaskLogic = {
                 steps: [
                     {
                         id: uuidv4(), // Generate UUID for tool step
