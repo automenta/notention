@@ -286,7 +286,7 @@ class SystemNote {
                         return data;
                     } catch (error: any) {
                         systemLog.error(`Error executing API tool ${toolId}: ${error.message}`, 'SystemNote');
-                        throw new Error(`Error executing API tool ${toolId}: ${error.message}`);
+                        return { error: `API call failed: ${error.message}` }; // Return error in a structured format
                     }
                 default:
                     throw new Error(`Unknown tool type: ${tool.type}`);
