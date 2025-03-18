@@ -87,9 +87,28 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
         try {
             const llm = system.getLLM();
             if (llm) {
-                // Include conversation history in the prompt
+                // Structure the prompt for better LLM reasoning
                 const conversationHistory = messages.map(msg => `${msg.type}: ${msg.content}`).join('\n');
-                const llmResponse = await llm.invoke(`Here's the conversation history:\n${conversationHistory}\n---\nConvert this to a task plan (JSON format): ${promptContent}`);
+                const availableToolsList = system.getAllTools().map(tool => `- ${tool.title}: ${tool.content}`).join('\n');
+
+                const llmPrompt = `
+You are an AI task planner. Your goal is to convert user input into a task plan represented as a JSON array of steps.
+
+Here's the current task: ${task.title}
+Task Description: ${task.content}
+
+Here's the conversation history:
+${conversationHistory}
+
+Here are the available tools:
+${availableToolsList}
+
+Based on the above information, convert the following user input into a task plan:
+${promptContent}
+
+Respond ONLY with a JSON array of steps. Each step should have an 'id', 'type', and other relevant properties. If a tool is needed, include a 'toolId' property.
+`;
+                const llmResponse = await llm.invoke(llmPrompt);
                 promptNote.data.logic = llmResponse;
                 systemLog.info(`LLM generated logic for promptNote: ${llmResponse}`, 'ChatView');
             } else {
