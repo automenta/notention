@@ -243,12 +243,20 @@ class SystemNote {
                     // Implement API call logic here (e.g., using fetch)
                     systemLog.info(`Executing API Tool ${toolId}`, 'SystemNote');
                     try {
+                        // Validate API endpoint URL
+                        try {
+                            new URL(tool.logic);
+                        } catch (urlError) {
+                            systemLog.error(`Invalid API endpoint URL for tool ${toolId}: ${tool.logic}`, 'SystemNote');
+                            throw new Error(`Invalid API endpoint URL: ${tool.logic}`);
+                        }
+
+                        const method = tool.config?.method || 'POST';
+                        const headers = tool.config?.headers ? JSON.parse(tool.config.headers) : { 'Content-Type': 'application/json' };
+
                         const response = await fetch(tool.logic, { // Assuming tool.logic contains the API endpoint
-                            method: 'POST', // Assuming it's a POST request, adjust as needed
-                            headers: {
-                                'Content-Type': 'application/json',
-                                // Add any other necessary headers here
-                            },
+                            method: method,
+                            headers: headers,
                             body: JSON.stringify(input), // Send the input as JSON
                         });
 
