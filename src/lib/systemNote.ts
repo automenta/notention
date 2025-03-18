@@ -40,10 +40,10 @@ export const initializeSystemNote = (llm: ChatOpenAI | any) => {
     };
     systemLog.info('System Note Initialized 🚀', 'SystemNote');
     // Start the system loop after initialization
-    getSystemNote().runSystemLoop();
+    //getSystemNote().runSystemLoop();
 
     // Register initial tools here (after SystemNote is created)
-    registerInitialTools();
+    initializeInitialTools();
 };
 
 // Accessor for the System Note instance
