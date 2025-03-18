@@ -19,6 +19,7 @@ export const TemplatesView: React.FC = () => {
     const [newTemplateLogic, setNewTemplateLogic] = useState('');
     const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
     const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
+    const [editingContentTemplateId, setEditingContentTemplateId] = useState<string | null>(null);
     const [templateError, setTemplateError] = useState<string | null>(null);
 
     // State variables for managing tools
@@ -94,6 +95,7 @@ export const TemplatesView: React.FC = () => {
 
             const task = await NoteImpl.createTaskNote(template.title, template.content, template.priority);
             task.data.logic = template.logic;
+            task.data.content = template.content;
             system.addNote(task.data);
             setTemplateError(null);
         } catch (error: any) {
@@ -161,6 +163,15 @@ export const TemplatesView: React.FC = () => {
         }
     }, [system]);
 
+    const handleEditContentTemplate = useCallback((templateId: string) => {
+        try {
+            setEditingContentTemplateId(templateId);
+        } catch (error: any) {
+            systemLog.error(`Error editing template: ${error.message}`, 'TemplatesView');
+            setTemplateError(`Error editing template: ${error.message}`);
+        }
+    }, [system]);
+
     // Handle saving an edited template
     const handleSaveTemplate = useCallback((templateId: string, newLogic: string) => {
         try {
@@ -180,9 +191,31 @@ export const TemplatesView: React.FC = () => {
         }
     }, [system]);
 
+    const handleSaveContentTemplate = useCallback((templateId: string, newContent: string) => {
+        try {
+            const template = system.getNote(templateId);
+            if (!template) {
+                setTemplateError(`Template with id ${templateId} not found.`);
+                return;
+            }
+
+            template.content = newContent;
+            system.updateNote(template);
+            setEditingContentTemplateId(null);
+            setTemplateError(null);
+        } catch (error: any) {
+            systemLog.error(`Error saving template: ${error.message}`, 'TemplatesView');
+            setTemplateError(`Error saving template: ${error.message}`);
+        }
+    }, [system]);
+
     // Handle canceling the editing of a template
     const handleCancelEdit = useCallback(() => {
         setEditingTemplateId(null);
+    }, []);
+
+    const handleCancelContentEdit = useCallback(() => {
+        setEditingContentTemplateId(null);
     }, []);
 
     // Monaco Editor options
@@ -233,6 +266,7 @@ export const TemplatesView: React.FC = () => {
                             {template.title} - {template.content}
                             <button onClick={() => handleCreateTaskFromTemplate(template.id)}>Create Task</button>
                             <button onClick={() => handleEditTemplate(template.id)}>Edit Logic</button>
+                            <button onClick={() => handleEditContentTemplate(template.id)}>Edit Content</button>
                             {editingTemplateId === template.id && (
                                 <div className={styles.templateEditor}>
                                     <MonacoEditor
@@ -246,6 +280,21 @@ export const TemplatesView: React.FC = () => {
                                     />
                                     <button onClick={() => handleSaveTemplate(template.id, newTemplateLogic)}>Save</button>
                                     <button onClick={handleCancelEdit}>Cancel</button>
+                                </div>
+                            )}
+                            {editingContentTemplateId === template.id && (
+                                <div className={styles.templateEditor}>
+                                    <MonacoEditor
+                                        width="600"
+                                        height="300"
+                                        language="markdown"
+                                        theme="vs-dark"
+                                        value={newTemplateContent}
+                                        options={editorOptions}
+                                        onChange={(value) => setNewTemplateContent(value)}
+                                    />
+                                    <button onClick={() => handleSaveContentTemplate(template.id, newTemplateContent)}>Save</button>
+                                    <button onClick={handleCancelContentEdit}>Cancel</button>
                                 </div>
                             )}
                         </li>
