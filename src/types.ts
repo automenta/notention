@@ -17,7 +17,19 @@ export const NoteSchema = z.object({
     outputSchema: z.any().optional(),
     references: z.array(z.string().uuid()).default([]),
     config: z.record(z.any()).optional(),
-    description: z.string().optional()
+    description: z.string().optional(),
+    requiresWebSearch: z.boolean().optional(), // Add requiresWebSearch property
 });
 
 export type Note = z.infer<typeof NoteSchema>;
+
+export interface TaskLogic {
+    steps: WorkflowStep[];
+}
+
+export interface WorkflowStep {
+    id: string;
+    type: 'tool';
+    toolId: string;
+    input: any;
+}
