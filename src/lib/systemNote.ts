@@ -4,7 +4,6 @@ import { systemLog } from './systemLog';
 import { NoteImpl } from './note';
 import * as z from 'zod';
 import * as fs from 'fs';
-import { executeTool } from './executor';
 import path from 'path';
 import planningRules, { PlanningRule } from './planningRules';
 import { initializeInitialTools } from './initialTools';
@@ -13,62 +12,14 @@ import { NoteStorage, InMemoryNoteStorage, GraphDBNoteStorage } from './noteStor
 import { migrateDataToGraphDB } from './dataMigration';
 import { SettingsService } from './settingsService';
 import React from 'react';
+import { ToolRegistry } from './toolRegistry';
+import { Executor } from './executor';
 
 type Listener = () => void;
 const listeners: Listener[] = [];
 let systemNoteData: Note | undefined = undefined;
 let noteStorage: NoteStorage = new InMemoryNoteStorage();
 let hasMigratedData: boolean = false;
-
-class ToolRegistry {
-    private tools: Map<string, Note>;
-    private toolImplementations: Map<string, Function>;
-
-    constructor() {
-        this.tools = new Map<string, Note>();
-        this.toolImplementations = new Map<string, Function>();
-    }
-
-    registerTool(toolDefinition: Note & { type: 'custom' | 'langchain' | 'api', implementation?: Function | any }) {
-        const toolNote = toolDefinition as Note;
-        this.tools.set(toolNote.id, toolNote);
-        if (toolDefinition.type === 'custom' && toolDefinition.implementation) {
-            this.toolImplementations.set(toolDefinition.id, toolDefinition.implementation);
-        }
-        systemLog.info(`🔨 Registered Tool ${toolNote.id}: ${toolNote.title}`, 'SystemNote');
-    }
-
-    getTool(id: string): Note | undefined {
-        return this.tools.get(id);
-    }
-
-    getToolImplementation(id: string): Function | undefined {
-        return this.toolImplementations.get(id);
-    }
-
-    getAllTools(): Note[] {
-        return Array.from(this.tools.values());
-    }
-}
-
-class Executor {
-    async executeTool(tool: Note, input: any, toolImplementation?: Function): Promise<any> {
-        systemLog.info(`Executing tool ${tool.id}: ${tool.title}`, 'Executor');
-
-        if (toolImplementation) {
-            try {
-                systemLog.debug(`Executing tool ${tool.id} with custom implementation.`, 'Executor');
-                return await toolImplementation(input);
-            } catch (error: any) {
-                systemLog.error(`Error executing custom implementation for tool ${tool.id}: ${error.message}`, 'Executor');
-                throw new Error(`Error executing custom implementation for tool ${tool.id}: ${error.message}`);
-            }
-        } else {
-            systemLog.warn(`No implementation found for tool ${tool.id}, using default executor.`, 'Executor');
-            return { result: `Tool ${tool.id} executed successfully (default executor).` };
-        }
-    }
-}
 
 // Centralized system note initialization
 export const useSystemNote = () => {
@@ -171,6 +122,8 @@ export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: bool
             runningCount: 0,
             concurrencyLimit: 5,
             llm: llm || defaultLLM,
+            toolRegistry: new ToolRegistry(),
+            executor: new Executor(),
         },
         status: 'active',
         priority: 100,
@@ -184,12 +137,6 @@ export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: bool
         logic: undefined
     };
     systemLog.info('System Note Initialized 🚀', 'SystemNote');
-
-    const toolRegistry = new ToolRegistry();
-    const executor = new Executor();
-
-    systemNoteData.content.toolRegistry = toolRegistry;
-    systemNoteData.content.executor = executor;
 
     initializeInitialTools();
 };

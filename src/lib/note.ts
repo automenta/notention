@@ -1,9 +1,11 @@
-import { Note, NoteSchema } from '../types';
+import { Note } from '../types';
 import { z } from "zod";
 import { systemLog } from './systemLog';
 import { getSystemNote } from './systemNote';
 import { Runnable } from "langchain/runnables";
 import idService from './idService'; // Import the IdService
+import { handleFailure, reflect } from './noteLifecycle';
+import { updateNote } from './noteUpdate';
 
 //const NoteSchema = z.object({
 //    id: z.string(),
@@ -90,23 +92,23 @@ export class NoteImpl {
         }
 
         this.data.status = 'running';
-        this.update();
+        updateNote(this.data);
         systemLog.info(`🚀 Running Note ${this.data.id}: ${this.data.title}`, this.data.type);
         getSystemNote().incrementRunning();
 
         try {
             await this.executeLogic();
             this.data.status = 'completed';
-            this.update();
+            updateNote(this.data);
             getSystemNote().decrementRunning();
             systemLog.info(`✅ Note ${this.data.id} completed successfully.`, this.data.type);
-            await this.reflect({});
+            await reflect(this.data, {});
         } catch (error: any) {
             this.data.status = 'failed';
-            this.update();
+            updateNote(this.data);
             getSystemNote().decrementRunning();
             systemLog.error(`🔥 Note ${this.data.id} failed: ${error.message}`, this.data.type);
-            this.handleFailure(error);
+            handleFailure(this.data, error);
         }
     }
 
@@ -190,7 +192,7 @@ export class NoteImpl {
         };
 
         this.data.content.messages = [...(this.data.content.messages ?? []), systemMessage];
-        this.update();
+        updateNote(this.data);
         systemLog[level](`[Note ${this.data.id}] ${message}`, this.data.type);
     }
 
@@ -213,71 +215,5 @@ export class NoteImpl {
             systemLog.error(`Error creating runnable from logic: ${e}`, this.data.type);
             return null;
         }
-    }
-
-    async reflect(executionResult: any) {
-        systemLog.debug(`Note ${this.data.id} Reflecting on result: ${JSON.stringify(executionResult)}`, this.data.type);
-
-        if (this.data.type === 'Task' && executionResult) {
-            const reflectionMessage = `Reflection: Task execution completed. Result details: ${JSON.stringify(executionResult)}`;
-            this.addSystemMessage(reflectionMessage);
-
-            // Example: Create a sub-note if the result suggests further action
-            if (executionResult.output && typeof executionResult.output === 'string' && executionResult.output.includes('create sub-task')) {
-                const subNote = await NoteImpl.createTaskNote(
-                    `Sub-task of ${this.data.title}`,
-                    'Details: ' + executionResult.output,
-                    this.data.priority - 1
-                );
-                getSystemNote().addNote(subNote.data);
-                this.data.references.push(subNote.data.id);
-                this.update();
-            }
-        }
-    }
-
-    async handleFailure(error: any) {
-        systemLog.warn(`Handling failure for Note ${this.data.id}: ${error.message}`, this.data.type);
-
-        if (this.data.type === 'Task') {
-            const failureMessage = `Failure Handler: Error encountered - ${error.message}. Details: ${JSON.stringify(error)}`;
-            this.addSystemMessage(failureMessage, 'warning');
-
-            // Example: Retry logic (up to 3 attempts)
-            const retryCount = this.data.content?.retryCount || 0;
-            if (retryCount < 3) {
-                this.data.content.retryCount = retryCount + 1;
-                this.addSystemMessage(`Retrying task (attempt ${this.data.content.retryCount}).`);
-                this.data.status = 'pending';
-                this.update();
-                getSystemNote().enqueueNote(this.data.id); // Re-enqueue the task
-            } else {
-                this.data.status = 'failed';
-                this.update();
-                this.addSystemMessage('Task failed after multiple retries.', 'error');
-            }
-        }
-    }
-
-    async generateLogic(): Promise<void> {
-        const llm = getSystemNote().getLLM();
-        if (!llm) {
-            systemLog.warn(`LLM not initialized, cannot generate logic for Note ${this.data.id}.`, this.data.type);
-            return;
-        }
-        const prompt = `Generate a LangChain Runnable steps array (JSON format) for the following task: ${this.data.content.messages.map(m => m.content).join('\n')}. Include a step to use the "web-search-tool" if appropriate.`;
-        try {
-            const logic = await llm.invoke(prompt);
-            this.data.logic = logic;
-            this.update();
-            systemLog.info(`Logic generated for Note ${this.data.id}: ${logic}`, this.data.type);
-        } catch (error: any) {
-            systemLog.error(`Error generating logic for Note ${this.data.id}: ${error.message}`, this.data.type);
-        }
-    }
-
-    private update() {
-        this.data.updatedAt = new Date().toISOString();
-        getSystemNote().updateNote(this.data);
     }
 }
