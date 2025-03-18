@@ -14,7 +14,7 @@ import { SettingsService } from './settingsService';
 import React from 'react';
 import { ToolRegistry } from './toolRegistry';
 import { executeTool } from './executor';
-import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS } from './fileUtils';
+import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, ensureSafeDirectoryExists } from './fileUtils';
 
 type Listener = () => void;
 const listeners: Listener[] = [];
@@ -22,21 +22,7 @@ let systemNoteData: Note | undefined = undefined;
 let noteStorage: NoteStorage = new InMemoryNoteStorage();
 let hasMigratedData: boolean = false;
 
-const initializeSystemNoteData = (llm: ChatOpenAI | any): Note => {
-    let defaultLLM: ChatOpenAI | any;
-    try {
-        const settings = SettingsService.getSettings();
-        defaultLLM = new ChatOpenAI({
-            apiKey: settings.apiKey,
-            modelName: settings.modelName,
-            temperature: settings.temperature,
-        });
-        systemLog.info(`LLM Initialized with model ${settings.modelName}`, 'SystemNote');
-    } catch (error: any) {
-        systemLog.error(`Error initializing LLM: ${error.message}.  Ensure you have an OPENAI_API_KEY set.`, 'SystemNote');
-        defaultLLM = null;
-    }
-
+const initializeSystemNoteData = (): Note => {
     const newSystemNoteData: Note = {
         id: 'system',
         type: 'System',
@@ -46,7 +32,7 @@ const initializeSystemNoteData = (llm: ChatOpenAI | any): Note => {
             activeQueue: [],
             runningCount: 0,
             concurrencyLimit: 5,
-            llm: llm || defaultLLM,
+            llm: null, // LLM is now managed by SettingsService
             toolRegistry: new ToolRegistry(),
             // executor: new Executor(), //Executor is now a function
         },
@@ -72,7 +58,7 @@ export const useSystemNote = () => {
 
     React.useEffect(() => {
         if (!systemNoteData) {
-            systemNoteData = initializeSystemNoteData({} as ChatOpenAI);
+            systemNoteData = initializeSystemNoteData();
         }
 
         if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
@@ -104,7 +90,7 @@ export const initializeSystemNote = (llm: ChatOpenAI | any, usePersistence: bool
         systemLog.info('Using InMemoryNoteStorage (default).', 'SystemNote');
     }
 
-    systemNoteData = initializeSystemNoteData(llm);
+    systemNoteData = initializeSystemNoteData();
 };
 
 export const getSystemNote = () => {
@@ -171,7 +157,14 @@ class SystemNote {
         return noteId;
     };
 
-    getLLM = () => this.data.content.llm as ChatOpenAI;
+    getLLM = () => {
+        const settings = SettingsService.getSettings();
+        return new ChatOpenAI({
+            apiKey: settings.apiKey,
+            modelName: settings.modelName,
+            temperature: settings.temperature,
+        });
+    }
 
     incrementRunning = () => {
         this.data.content.runningCount++;
@@ -272,6 +265,4 @@ export const onSystemNoteChange = (listener: Listener) => {
     return () => listeners.splice(listeners.indexOf(listener), 1);
 };
 
-if (!fs.existsSync(SAFE_DIRECTORY)) {
-    fs.mkdirSync(SAFE_DIRECTORY);
-}
+ensureSafeDirectoryExists();
