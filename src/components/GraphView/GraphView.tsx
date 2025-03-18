@@ -190,7 +190,7 @@ export const GraphView: React.FC = () => {
                 .data(nodes)
                 .enter()
                 .append("circle")
-                .attr("r", 15)
+                .attr("r", 25)
                 .attr("class", (d: any) => {
                     switch (d.type) {
                         case 'Task': return styles.nodeTask;
@@ -263,10 +263,19 @@ export const GraphView: React.FC = () => {
 
     }, [nodes, edges, graphContainerSize, handleNodeClick]);
 
+    const handleClearError = () => {
+        setGraphError(null);
+    };
+
     return (
         <div className={styles.graphView} ref={graphViewRef}>
             <h2>Note Graph Visualization 🕸️</h2>
-            {graphError && <div className={styles.errorMessage}>Error: {graphError}</div>}
+            {graphError && (
+                <div className={styles.errorMessage}>
+                    {graphError}
+                    <button onClick={handleClearError}>✖</button>
+                </div>
+            )}
             <svg width="100%" height="600px" ref={svgRef}></svg>
 
             {contextMenu && (
