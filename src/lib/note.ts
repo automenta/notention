@@ -123,7 +123,7 @@ export class NoteImpl {
             }
 
             // Build a sequence of runnables from steps
-            const runnables = logicSpec.steps.map((step: any) => {
+            const runnables = logicSpec.steps.map(async (step: any) => {
                 if (step.type === 'invoke' && step.runnable?.$type === 'Tool') {
                     const toolNote = getSystemNote().getTool(step.runnable.name);
                     if (!toolNote) {
@@ -137,12 +137,33 @@ export class NoteImpl {
                         return RunnableLambda.from((input) => input); // Passthrough fallback
                     }
 
-                    // For simplicity, assume tool logic has one step (e.g., passthrough for Echo Tool)
-                    return RunnableLambda.from((input) => {
-                        const toolInput = step.input || input;
-                        systemLog.debug(`Invoking tool ${step.runnable.name} with input: ${JSON.stringify(toolInput)}`, this.data.type);
-                        return { output: toolInput.input }; // Echo Tool behavior
+                    // Dynamic Tool Invocation
+                    const inputSchema = toolNote.inputSchema ? z.object(JSON.parse(toolNote.inputSchema)) : z.any();
+                    const outputSchema = toolNote.outputSchema ? z.object(JSON.parse(toolNote.outputSchema)) : z.any();
+
+                    const toolRunnable = RunnableLambda.from(async (input: any) => {
+                        // Validate input against the tool's input schema
+                        const validatedInput = inputSchema.parse(input);
+
+                        systemLog.debug(`Invoking tool ${step.runnable.name} with input: ${JSON.stringify(validatedInput)}`, this.data.type);
+
+                        // Get the tool implementation from systemNote
+                        const toolImplementation = getSystemNote().getToolImplementation(step.runnable.name);
+                        if (!toolImplementation) {
+                            systemLog.error(`Tool implementation ${step.runnable.name} not found`, this.data.type);
+                            throw new Error(`Tool implementation ${step.runnable.name} not found`);
+                        }
+
+                        // Execute the tool
+                        const rawOutput = await toolImplementation(validatedInput);
+
+                        // Validate output against the tool's output schema
+                        const validatedOutput = outputSchema.parse(rawOutput);
+
+                        return validatedOutput;
                     });
+
+                    return toolRunnable;
                 } else if (step.type === 'passthrough') {
                     return RunnableLambda.from((input) => input); // Passthrough step
                 } else {
@@ -151,12 +172,19 @@ export class NoteImpl {
                 }
             });
 
-            this._runnable = runnables.length > 1 ? RunnableSequence.from(runnables) : runnables[0];
-            return this._runnable;
+            // Await all runnables to resolve before creating the sequence
+            Promise.all(runnables).then(resolvedRunnables => {
+                this._runnable = resolvedRunnables.length > 1 ? RunnableSequence.from(resolvedRunnables) : resolvedRunnables[0];
+                return this._runnable;
+            }).catch(error => {
+                systemLog.error(`Error creating runnable sequence: ${error}`, this.data.type);
+                return null;
+            });
         } catch (e) {
             systemLog.warn(`Error parsing Note ${this.data.id} logic as Runnable: ${e.message}, falling back to simulation`, this.data.type);
             return null;
         }
+        return null;
     }
 
     // Reflects on execution results, updating note content or creating sub-notes
@@ -177,6 +205,11 @@ export class NoteImpl {
                 this.data.references.push(subNote.data.id);
                 getSystemNote().addNote(subNote.data);
                 systemLog.info(`Created sub-note ${subNote.data.id} from reflection`, this.data.type);
+            }
+
+            // Call generateLogic if no logic exists
+            if (!this.data.logic) {
+                await this.generateLogic();
             }
         }
     }
