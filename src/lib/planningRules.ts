@@ -4,11 +4,27 @@ import { SystemNote, getSystemNote } from './systemNote';
 import idService from './idService';
 import { systemLog } from './systemLog';
 
+/**
+ * Represents a planning rule that can be applied to a note.
+ */
 export interface PlanningRule {
+    /**
+     * The name of the planning rule.
+     */
     name: string;
-    order: 'before' | 'after'; // Specify when the rule should be applied
-    condition?: (task: Note, system: SystemNote) => boolean | Promise<boolean>; // Optional condition (can be async)
-    action?: (task: Note, system: SystemNote) => Promise<void>; // Optional action
+    /**
+     * Specifies when the rule should be applied ('before' or 'after' note execution).
+     */
+    order: 'before' | 'after';
+    /**
+     * An optional condition that must be met for the rule to be applied.
+     * Can be a synchronous or asynchronous function.
+     */
+    condition?: (task: Note, system: SystemNote) => boolean | Promise<boolean>;
+    /**
+     * An optional action to be performed when the rule is applied.
+     */
+    action?: (task: Note, system: SystemNote) => Promise<void>;
 }
 
 /**
@@ -42,6 +58,9 @@ const shouldAddWebSearch = async (task: Note, system: SystemNote): Promise<boole
     return shouldSearch;
 };
 
+/**
+ * An array of planning rules that are applied to notes.
+ */
 const planningRules: PlanningRule[] = [
     {
         name: "Decompose Complex Task (Before)",

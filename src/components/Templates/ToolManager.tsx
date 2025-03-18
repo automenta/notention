@@ -9,6 +9,9 @@ import idService from "../../lib/idService";
 interface ToolManagerProps {
 }
 
+/**
+ * Component for managing tools, allowing users to create, edit, and delete tools.
+ */
 export const ToolManager: React.FC<ToolManagerProps> = () => {
     const system = getSystemNote();
 
@@ -27,11 +30,16 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
     const [editingApiToolId, setEditingApiToolId] = useState<string | null>(null);
     const [tools, setTools] = useState<Note[]>([]);
 
+    /**
+     * Fetches all tools from the system and updates the state.
+     */
     const fetchTools = useCallback(async () => {
         setTools(system.getAllTools());
     }, [system]);
 
-    // Handle the creation of a new tool
+    /**
+     * Handles the creation of a new tool.
+     */
     const handleCreateTool = useCallback(async () => {
         if (!newToolTitle || !newToolInputSchema || !newToolOutputSchema) {
             setToolCreationError('Tool Title, Input Schema, and Output Schema are required.');
@@ -91,7 +99,10 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
     }, [newToolInputSchema, newToolLogic, newToolOutputSchema, newToolTitle, newToolType, system, fetchTools, newApiEndpoint, newApiMethod, newApiHeaders]);
 
-    // Handle editing an existing tool
+    /**
+     * Handles editing an existing tool's logic.
+     * @param {string} toolId - The ID of the tool to edit.
+     */
     const handleEditTool = useCallback((toolId: string) => {
         try {
             setEditingToolId(toolId);
@@ -107,6 +118,10 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
     }, [system]);
 
+    /**
+     * Handles editing an existing API tool's configuration.
+     * @param {string} toolId - The ID of the API tool to edit.
+     */
      const handleEditApiTool = useCallback((toolId: string) => {
         try {
             setEditingApiToolId(toolId);
@@ -124,6 +139,10 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
     }, [system]);
 
+    /**
+     * Handles editing an existing tool's input schema.
+     * @param {string} toolId - The ID of the tool to edit.
+     */
     const handleEditToolInputSchema = useCallback((toolId: string) => {
         try {
             setEditingToolInputSchemaId(toolId);
@@ -139,6 +158,10 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
     }, [system]);
 
+    /**
+     * Handles editing an existing tool's output schema.
+     * @param {string} toolId - The ID of the tool to edit.
+     */
     const handleEditToolOutputSchema = useCallback((toolId: string) => {
         try {
             setEditingToolOutputSchemaId(toolId);
@@ -154,7 +177,11 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
     }, [system]);
 
-    // Handle saving an edited tool
+    /**
+     * Handles saving an edited tool's logic.
+     * @param {string} toolId - The ID of the tool to save.
+     * @param {string} newLogic - The new logic for the tool.
+     */
     const handleSaveTool = useCallback((toolId: string, newLogic: string) => {
         try {
             const tool = system.getTool(toolId);
@@ -174,6 +201,13 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
     }, [system, fetchTools]);
 
+    /**
+     * Handles saving an edited API tool's configuration.
+     * @param {string} toolId - The ID of the API tool to save.
+     * @param {string} newApiEndpoint - The new API endpoint URL.
+     * @param {string} newApiMethod - The new API method (GET, POST, PUT, DELETE).
+     * @param {string} newApiHeaders - The new API headers (JSON format).
+     */
     const handleSaveApiTool = useCallback((toolId: string, newApiEndpoint: string, newApiMethod: string, newApiHeaders: string) => {
          try {
             const tool = system.getTool(toolId);
@@ -205,6 +239,11 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
     }, [system, fetchTools]);
 
+    /**
+     * Handles saving an edited tool's input schema.
+     * @param {string} toolId - The ID of the tool to save.
+     * @param {string} newInputSchema - The new input schema for the tool.
+     */
     const handleSaveToolInputSchema = useCallback((toolId: string, newInputSchema: string) => {
         try {
             const tool = system.getTool(toolId);
@@ -224,6 +263,11 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
     }, [system, fetchTools]);
 
+    /**
+     * Handles saving an edited tool's output schema.
+     * @param {string} toolId - The ID of the tool to save.
+     * @param {string} newOutputSchema - The new output schema for the tool.
+     */
     const handleSaveToolOutputSchema = useCallback((toolId: string, newOutputSchema: string) => {
         try {
             const tool = system.getTool(toolId);
@@ -243,24 +287,37 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
         }
     }, [system, fetchTools]);
 
-    // Handle canceling the editing of a tool
+    /**
+     * Handles canceling the editing of a tool's logic.
+     */
     const handleCancelEditTool = useCallback(() => {
         setEditingToolId(null);
     }, []);
 
+    /**
+     * Handles canceling the editing of an API tool's configuration.
+     */
      const handleCancelEditApiTool = useCallback(() => {
         setEditingApiToolId(null);
     }, []);
 
+    /**
+     * Handles canceling the editing of a tool's input schema.
+     */
     const handleCancelEditToolInputSchema = useCallback(() => {
         setEditingToolInputSchemaId(null);
     }, []);
 
+    /**
+     * Handles canceling the editing of a tool's output schema.
+     */
     const handleCancelEditToolOutputSchema = useCallback(() => {
         setEditingToolOutputSchemaId(null);
     }, []);
 
-    // Monaco Editor options
+    /**
+     * Monaco Editor options for JSON editing.
+     */
     const editorOptions = useMemo(() => ({
         selectOnLineNumbers: true,
         roundedSelection: false,
@@ -476,7 +533,7 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
                                     options={editorOptions}
                                     onChange={(value) => setNewToolOutputSchema(value)}
                                 />
-                                <button onClick={() => handleSaveToolOutputSchema(tool.id, newToolOutputSchema)}>Save</button>
+                                <button onClick={() => handleSaveToolOutputSchema(tool.id, newOutputSchema)}>Save</button>
                                 <button onClick={handleCancelEditToolOutputSchema}>Cancel</button>
                             </div>
                         )}
