@@ -112,8 +112,6 @@ export const useSystemNote = () => {
 };
 
 export const getSystemNote = () => {
-    ensureSystemNote();
-
     if (localStorage.getItem('usePersistence') === 'true' && !hasMigratedData) {
         migrateDataToGraphDB();
         hasMigratedData = true;
