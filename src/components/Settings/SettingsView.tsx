@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styles from './SettingsView.module.css';
 import { getSystemNote, initializeSystemNote } from '../../lib/systemNote';
 import { UIView } from '../../components/UI/UI';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { systemLog } from '../../lib/systemLog';
 
 // Define a type for the settings
 interface Settings {
@@ -111,6 +112,28 @@ export const SettingsView: React.FC = () => {
         alert('Settings saved!');
     };
 
+    const handleRunTests = useCallback(async () => {
+        systemLog.info('Running unit tests...', 'SettingsView');
+        try {
+            // Dynamically import the test runner
+            const testRunner = await import('../../testRunner');
+            const results = await testRunner.runTests();
+
+            if (results.success) {
+                systemLog.info('All tests passed!', 'SettingsView');
+            } else {
+                systemLog.error('Some tests failed.', 'SettingsView');
+            }
+
+            // Log individual test results
+            results.testResults.forEach((testResult) => {
+                systemLog[testResult.status](`${testResult.name}: ${testResult.message}`, 'SettingsView');
+            });
+        } catch (error: any) {
+            systemLog.error(`Error running tests: ${error.message}`, 'SettingsView');
+        }
+    }, []);
+
     return (
         <UIView title="System Settings ⚙️">
             <div className={styles.settingsContainer}>
@@ -198,6 +221,7 @@ export const SettingsView: React.FC = () => {
                 </label>
 
                 <button onClick={handleSaveSettings}>Save Settings</button>
+                <button onClick={handleRunTests}>Run Tests</button>
             </div>
         </UIView>
     );
