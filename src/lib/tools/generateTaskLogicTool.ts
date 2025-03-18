@@ -4,6 +4,10 @@ import { SystemNote, getSystemNote } from '../systemNote';
 import { systemLog } from '../systemLog';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
 
+/**
+ * Registers the generate task logic tool with the system.
+ * @param {SystemNote} systemNote - The system note instance.
+ */
 export const registerGenerateTaskLogicTool = (systemNote: SystemNote) => {
     const generateTaskLogicToolData: Note = {
         id: idService.generateId(),
