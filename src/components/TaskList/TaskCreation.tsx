@@ -64,7 +64,7 @@ export const TaskCreation: React.FC<TaskCreationProps> = ({ onTaskAdd }) => {
         setShowTemplateSelector(true);
     }, []);
 
-    const handleSelectTemplate = useCallback((templateId: string) => {
+    const handleSelectTemplate = useCallback(async (templateId: string) => {
         setShowTemplateSelector(false);
         setSelectedTemplateId(templateId);
         const template = system.getNote(templateId);
