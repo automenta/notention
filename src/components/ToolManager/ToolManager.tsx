@@ -623,4 +623,4 @@ export const ToolManager: React.FC<ToolManagerProps> = () => {
             </div>
         </div>
     );
-};
+}
