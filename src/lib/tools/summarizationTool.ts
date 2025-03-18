@@ -1,79 +1,70 @@
 import { Note } from '../../types';
 import idService from '../idService';
-import { SystemNote, getSystemNote } from '../systemNote';
+import { SystemNote } from '../systemNote';
 import { systemLog } from '../systemLog';
-import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { handleToolError } from './toolUtils';
 
-/**
- * Registers the summarization tool with the system.
- * @param {SystemNote} systemNote - The system note instance.
- */
-export const registerSummarizationTool = (systemNote: SystemNote) => {
-    // 6. Summarization Tool
+export const registerSummarizationTool = (systemNote: SystemNote): void => {
     const summarizationToolData: Note = {
         id: idService.generateId(),
         type: 'Tool',
         title: 'Summarization Tool',
-        content: 'A tool to summarize text using the LLM.',
-        logic: {
-            "steps": [
-                {
-                    "id": "summarize",
-                    "type": "llm",
-                    "input": "{text}"
-                }
-            ],
-        },
+        content: 'Summarizes text using an LLM.',
+        logic: 'summarization-tool',
         status: 'active',
         priority: 50,
         createdAt: new Date().toISOString(),
         updatedAt: null,
         references: [],
-        inputSchema: JSON.stringify({
+        inputSchema: {
             type: 'object',
             properties: {
                 text: {
                     type: 'string',
-                    description: 'Text to summarize',
-                    inputType: 'textarea'
-                }
+                    description: 'The text to summarize',
+                },
             },
-            required: ['text']
-        }),
-        outputSchema: JSON.stringify({
+            required: ['text'],
+        },
+        outputSchema: {
             type: 'object',
             properties: {
                 summary: {
                     type: 'string',
-                    description: 'Summary of the text'
-                }
+                    description: 'The summary of the text',
+                },
             },
-            required: ['summary']
-        }),
-        description: 'Summarizes text using the LLM.',
+            required: ['summary'],
+        },
+        description: 'Summarizes text using an LLM.',
     };
 
-    /**
-     * Implementation for the summarization tool.
-     * @param {any} input - The input to the tool, containing the text to summarize.
-     * @returns {Promise<{ summary: string }>} - A promise that resolves with the summary of the text.
-     */
-    const summarizationToolImplementation = async (input: any): Promise<{ summary: string }> => {
+    const summarizationToolImplementation = async (input: any) => {
         try {
-            const llm: ChatOpenAI = systemNote.getLLM();
-            if (!llm) {
-                systemLog.warn('LLM not initialized, cannot summarize.', 'SummarizationTool');
-                return { summary: 'LLM not initialized. Please check your settings.' };
+            if (!input || !input.text) {
+                systemLog.warn('Summarization Tool: Invalid input', 'SummarizationTool');
+                throw new Error('Invalid input: Text is required.');
             }
 
-            const prompt: string = `Summarize the following text: ${input.text}`;
-            const summary: string = await llm.invoke(prompt);
-            return { summary: summary };
+            const llm = systemNote.getLLM();
+            if (!llm) {
+                systemLog.error('Summarization Tool: No LLM found', 'SummarizationTool');
+                throw new Error('No LLM found. Please configure the LLM.');
+            }
+
+            systemLog.info(`Summarization Tool: Summarizing text`, 'SummarizationTool');
+
+            const prompt = `Please summarize the following text: ${input.text}`;
+            const summary = await llm.invoke(prompt);
+
+            systemLog.info('Summarization Tool: Text summarized', 'SummarizationTool');
+
+            return { summary };
         } catch (error: any) {
-            systemLog.error(`Error summarizing text: ${error.message}`, 'SummarizationTool');
-            return { summary: `Error summarizing text: ${error.message}` };
+            return handleToolError(error, summarizationToolData.id);
         }
     };
-    systemNote.registerToolDefinition({ ...summarizationToolData, implementation: summarizationToolImplementation, type: 'langchain' });
+
+    systemNote.registerToolDefinition({ ...summarizationToolData, implementation: summarizationToolImplementation, type: 'custom' });
     systemLog.info(`🔨 Registered Tool ${summarizationToolData.id}: ${summarizationToolData.title}`, 'SystemNote');
 };

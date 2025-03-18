@@ -1,73 +1,70 @@
 import { Note } from '../../types';
 import idService from '../idService';
-import { SystemNote, getSystemNote } from '../systemNote';
+import { SystemNote } from '../systemNote';
 import { systemLog } from '../systemLog';
-import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { handleToolError } from './toolUtils';
 
-/**
- * Registers the generate task logic tool with the system.
- * @param {SystemNote} systemNote - The system note instance.
- */
-export const registerGenerateTaskLogicTool = (systemNote: SystemNote) => {
+export const registerGenerateTaskLogicTool = (systemNote: SystemNote): void => {
     const generateTaskLogicToolData: Note = {
         id: idService.generateId(),
         type: 'Tool',
         title: 'Generate Task Logic Tool',
-        content: 'A tool to generate task logic (JSON) using the LLM, based on a task description.',
-        logic: {
-            "steps": [
-                {
-                    "id": "generate",
-                    "type": "llm",
-                    "input": "{taskDescription}"
-                }
-            ],
-        },
+        content: 'Generates task logic based on a description.',
+        logic: 'generate-task-logic',
         status: 'active',
         priority: 50,
         createdAt: new Date().toISOString(),
         updatedAt: null,
         references: [],
-        inputSchema: JSON.stringify({
+        inputSchema: {
             type: 'object',
             properties: {
-                taskDescription: {
+                description: {
                     type: 'string',
-                    description: 'Description of the task for which to generate logic.',
-                    inputType: 'textarea'
-                }
+                    description: 'The task description',
+                },
             },
-            required: ['taskDescription']
-        }),
-        outputSchema: JSON.stringify({
+            required: ['description'],
+        },
+        outputSchema: {
             type: 'object',
             properties: {
-                taskLogic: {
+                logic: {
                     type: 'string',
-                    description: 'Generated task logic in JSON format.'
-                }
+                    description: 'The generated task logic',
+                },
             },
-            required: ['taskLogic']
-        }),
-        description: 'Generates task logic (JSON) using the LLM, based on a task description.',
+            required: ['logic'],
+        },
+        description: 'Generates task logic based on a description.',
     };
 
     const generateTaskLogicToolImplementation = async (input: any) => {
-        const llm = systemNote.getLLM();
-        if (!llm) {
-            systemLog.warn('LLM not initialized, cannot generate logic.', 'GenerateTaskLogicTool');
-            throw new Error('LLM not initialized.');
-        }
-
-        const prompt = `Generate a LangChain Runnable steps array (JSON format) for the following task: ${input.taskDescription}. Include a step to use the "web-search-tool" if appropriate.`;
         try {
-            const taskLogic = await llm.invoke(prompt);
-            return { taskLogic: taskLogic };
+            if (!input || !input.description) {
+                systemLog.warn('Generate Task Logic: Invalid input', 'GenerateTaskLogicTool');
+                throw new Error('Invalid input: Description is required.');
+            }
+
+            const llm = systemNote.getLLM();
+            if (!llm) {
+                systemLog.error('Generate Task Logic: No LLM found', 'GenerateTaskLogicTool');
+                throw new Error('No LLM found. Please configure the LLM.');
+            }
+
+            systemLog.info(`Generate Task Logic: Generating task logic for ${input.description}`, 'GenerateTaskLogicTool');
+
+            const prompt = `Generate a LangChain Runnable steps array (JSON format) for the following task: ${input.description}. Include a step to use the "web-search-tool" if appropriate.`;
+            const logic = await llm.invoke(prompt);
+
+            systemLog.info('Generate Task Logic: Task logic generated', 'GenerateTaskLogicTool');
+
+            return { logic };
         } catch (error: any) {
-            systemLog.error(`Error generating task logic: ${error.message}`, 'GenerateTaskLogicTool');
-            throw error;
+            return handleToolError(error, generateTaskLogicToolData.id);
         }
     };
+
     systemNote.registerToolDefinition({ ...generateTaskLogicToolData, implementation: generateTaskLogicToolImplementation, type: 'custom' });
     systemLog.info(`🔨 Registered Tool ${generateTaskLogicToolData.id}: ${generateTaskLogicToolData.title}`, 'SystemNote');
 };

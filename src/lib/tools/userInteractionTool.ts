@@ -1,59 +1,62 @@
 import { Note } from '../../types';
 import idService from '../idService';
-import { SystemNote, getSystemNote } from '../systemNote';
+import { SystemNote } from '../systemNote';
 import { systemLog } from '../systemLog';
+import { handleToolError } from './toolUtils';
 
-/**
- * Registers the user interaction tool with the system.
- * @param {SystemNote} systemNote - The system note instance.
- */
-export const registerUserInteractionTool = (systemNote: SystemNote) => {
+export const registerUserInteractionTool = (systemNote: SystemNote): void => {
     const userInteractionToolData: Note = {
         id: idService.generateId(),
         type: 'Tool',
         title: 'User Interaction Tool',
-        content: 'A tool to prompt the user for input.',
-        logic: {
-            "steps": [
-                {
-                    "id": "prompt",
-                    "type": "user_input",
-                    "input": "{prompt}"
-                }
-            ],
-        },
+        content: 'Prompts the user for input.',
+        logic: 'user-interaction-tool',
         status: 'active',
         priority: 50,
         createdAt: new Date().toISOString(),
         updatedAt: null,
         references: [],
-        inputSchema: JSON.stringify({
+        inputSchema: {
             type: 'object',
             properties: {
                 prompt: {
                     type: 'string',
-                    description: 'The prompt to display to the user.',
-                    inputType: 'textarea'
-                }
+                    description: 'The prompt to display to the user',
+                },
             },
-            required: ['prompt']
-        }),
-        outputSchema: JSON.stringify({
+            required: ['prompt'],
+        },
+        outputSchema: {
             type: 'object',
             properties: {
-                userInput: {
+                response: {
                     type: 'string',
-                    description: 'The input provided by the user.'
-                }
+                    description: 'The user\'s response',
+                },
             },
-            required: ['userInput']
-        }),
+            required: ['response'],
+        },
         description: 'Prompts the user for input.',
     };
 
     const userInteractionToolImplementation = async (input: any) => {
-        const userInput = window.prompt(input.prompt);
-        return { userInput: userInput || '' };
+        try {
+            if (!input || !input.prompt) {
+                systemLog.warn('User Interaction Tool: Invalid input', 'UserInteractionTool');
+                throw new Error('Invalid input: Prompt is required.');
+            }
+
+            systemLog.info(`User Interaction Tool: Prompting user for input`, 'UserInteractionTool');
+
+            // This is a placeholder for the actual user interaction logic
+            const response = prompt(input.prompt);
+
+            systemLog.info('User Interaction Tool: User input received', 'UserInteractionTool');
+
+            return { response };
+        } catch (error: any) {
+            return handleToolError(error, userInteractionToolData.id);
+        }
     };
 
     systemNote.registerToolDefinition({ ...userInteractionToolData, implementation: userInteractionToolImplementation, type: 'custom' });

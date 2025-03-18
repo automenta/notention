@@ -1,64 +1,83 @@
 import { Note } from '../../types';
 import idService from '../idService';
-import { SystemNote, getSystemNote } from '../systemNote';
-import { SerpAPI } from "langchain/tools";
+import { SystemNote } from '../systemNote';
 import { systemLog } from '../systemLog';
+import { handleToolError } from './toolUtils';
 
-export const registerWebSearchTool = (systemNote: SystemNote) => {
+export const registerWebSearchTool = (systemNote: SystemNote): void => {
     const webSearchToolData: Note = {
         id: idService.generateId(),
         type: 'Tool',
         title: 'Web Search Tool',
-        content: 'A tool to search the web using SerpAPI.',
-        logic: {
-            "steps": [
-                {
-                    "id": "search",
-                    "type": "serpapi",
-                    "input": "{query}"
-                }
-            ],
-        },
+        content: 'Searches the web using Google Search.',
+        logic: 'web-search',
         status: 'active',
         priority: 50,
         createdAt: new Date().toISOString(),
         updatedAt: null,
         references: [],
-        inputSchema: JSON.stringify({
+        inputSchema: {
             type: 'object',
             properties: {
-                query: { type: 'string', description: 'Search query' }
+                query: {
+                    type: 'string',
+                    description: 'The search query',
+                },
             },
-            required: ['query']
-        }),
-        outputSchema: JSON.stringify({
+            required: ['query'],
+        },
+        outputSchema: {
             type: 'object',
             properties: {
-                results: { type: 'array', description: 'Search results' }
-            }
-        }),
-        description: 'Searches the web using SerpAPI.',
+                results: {
+                    type: 'array',
+                    items: {
+                        type: 'string',
+                    },
+                    description: 'Search results',
+                },
+            },
+            required: ['results'],
+        },
+        description: 'Searches the web using Google Search.',
+        requiresWebSearch: true,
     };
 
     const webSearchToolImplementation = async (input: any) => {
         try {
-            const settingsString = localStorage.getItem('settings');
-            const settings = settingsString ? JSON.parse(settingsString) : null;
-            const serpApiKey = settings ? settings.serpApiKey : null;
-
-            if (!serpApiKey) {
-                systemLog.error('SerpAPI key not found in settings.', 'WebSearchTool');
-                return { results: 'SerpAPI key not found. Please configure it in the <a href="/settings">settings</a>.' };
+            if (!input || !input.query) {
+                systemLog.warn('Web Search: Invalid input', 'WebSearchTool');
+                throw new Error('Invalid input: Query is required.');
             }
 
-            const serpAPI = new SerpAPI(serpApiKey);
-            const results = await serpAPI.call(input.query);
-            return { results: results };
+            const apiKey = process.env.REACT_APP_SERPAPI_API_KEY;
+            if (!apiKey) {
+                systemLog.error('Web Search: No API key found', 'WebSearchTool');
+                throw new Error('No API key found. Set REACT_APP_SERPAPI_API_KEY environment variable.');
+            }
+
+            const query = encodeURIComponent(input.query);
+            const url = `https://serpapi.com/search?q=${query}&api_key=${apiKey}`;
+
+            systemLog.info(`Web Search: Searching the web for ${input.query}`, 'WebSearchTool');
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                systemLog.error(`Web Search: HTTP error! status: ${response.status}`, 'WebSearchTool');
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const results = data.organic_results?.map((result: any) => result.snippet) || [];
+
+            systemLog.info(`Web Search: Found ${results.length} results for ${input.query}`, 'WebSearchTool');
+
+            return { results };
         } catch (error: any) {
-            systemLog.error(`Web Search failed: ${error.message}`, 'WebSearchTool');
-            return { results: `Web Search failed: ${error.message}. Please check your SerpAPI key and try again.` };
+            return handleToolError(error, webSearchToolData.id);
         }
     };
+
     systemNote.registerToolDefinition({ ...webSearchToolData, implementation: webSearchToolImplementation, type: 'custom' });
     systemLog.info(`🔨 Registered Tool ${webSearchToolData.id}: ${webSearchToolData.title}`, 'SystemNote');
 };
