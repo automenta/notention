@@ -75,46 +75,14 @@ export class NoteImpl {
             systemLog.debug(`Note ${this.data.id} is not active or pending, skipping run. Status: ${this.data.status}`, this.data.type);
             return;
         }
+
         this.data.status = 'running';
         this.update();
         systemLog.info(`🚀 Running Note ${this.data.id}: ${this.data.title}`, this.data.type);
         getSystemNote().incrementRunning();
 
         try {
-            if (this.data.logic) {
-                const logic: any = this.data.logic;
-                if (logic && logic.steps && Array.isArray(logic.steps)) {
-                    for (const step of logic.steps) {
-                        if (step.type === 'tool') {
-                            const toolId = step.toolId;
-                            const input = step.input;
-
-                            if (!toolId) {
-                                systemLog.warn(`Tool ID not provided in step ${step.id}`, this.data.type);
-                                continue;
-                            }
-
-                            systemLog.info(`⚙️ Executing tool ${toolId} for Note ${this.data.id}`, this.data.type);
-                            try {
-                                const result = await getSystemNote().executeTool(toolId, input);
-                                systemLog.info(`✅ Tool ${toolId} executed successfully for Note ${this.data.id}. Result: ${JSON.stringify(result)}`, this.data.type);
-                                this.addSystemMessage(`Tool ${toolId} executed successfully. Result: ${JSON.stringify(result)}`);
-                            } catch (toolError: any) {
-                                systemLog.error(`❌ Error executing tool ${toolId} for Note ${this.data.id}: ${toolError.message}`, this.data.type);
-                                this.addSystemMessage(`Error executing tool ${toolId}: ${toolError.message}`, 'error');
-                                this.handleFailure(toolError);
-                            }
-                        } else {
-                            // Existing logic for non-tool steps
-                            systemLog.debug(`Running step ${step.id} of type ${step.type}`, this.data.type);
-                            // ... (existing logic for running non-tool steps) ...
-                        }
-                    }
-                }
-            } else {
-                systemLog.debug(`Note ${this.data.id} has no logic defined, using simulation.`, this.data.type);
-            }
-
+            await this.executeLogic();
             this.data.status = 'completed';
             this.update();
             getSystemNote().decrementRunning();
@@ -126,6 +94,60 @@ export class NoteImpl {
             getSystemNote().decrementRunning();
             systemLog.error(`🔥 Note ${this.data.id} failed: ${error.message}`, this.data.type);
             this.handleFailure(error);
+        }
+    }
+
+    private async executeLogic() {
+        if (!this.data.logic) {
+            systemLog.debug(`Note ${this.data.id} has no logic defined, using simulation.`, this.data.type);
+            return;
+        }
+
+        const logic: any = this.data.logic;
+        if (!logic || !logic.steps || !Array.isArray(logic.steps)) {
+            systemLog.warn(`Note ${this.data.id} has invalid or missing logic steps.`, this.data.type);
+            return;
+        }
+
+        for (const step of logic.steps) {
+            try {
+                await this.executeStep(step);
+            } catch (error: any) {
+                systemLog.error(`Error executing step ${step.id} in Note ${this.data.id}: ${error.message}`, this.data.type);
+                this.addSystemMessage(`Error executing step ${step.id}: ${error.message}`, 'error');
+                throw error; // Re-throw to be caught by the main run function
+            }
+        }
+    }
+
+    private async executeStep(step: any) {
+        systemLog.debug(`Running step ${step.id} of type ${step.type}`, this.data.type);
+
+        if (step.type === 'tool') {
+            await this.executeToolStep(step);
+        } else {
+            systemLog.warn(`Unknown step type: ${step.type}. Skipping step.`, this.data.type);
+        }
+    }
+
+    private async executeToolStep(step: any) {
+        const toolId = step.toolId;
+        const input = step.input;
+
+        if (!toolId) {
+            systemLog.warn(`Tool ID not provided in step ${step.id}`, this.data.type);
+            return;
+        }
+
+        systemLog.info(`⚙️ Executing tool ${toolId} for Note ${this.data.id}`, this.data.type);
+        try {
+            const result = await getSystemNote().executeTool(toolId, input);
+            systemLog.info(`✅ Tool ${toolId} executed successfully for Note ${this.data.id}. Result: ${JSON.stringify(result)}`, this.data.type);
+            this.addSystemMessage(`Tool ${toolId} executed successfully. Result: ${JSON.stringify(result)}`);
+        } catch (toolError: any) {
+            systemLog.error(`❌ Error executing tool ${toolId} for Note ${this.data.id}: ${toolError.message}`, this.data.type);
+            this.addSystemMessage(`Error executing tool ${toolId}: ${toolError.message}`, 'error');
+            throw toolError; // Re-throw to be caught by the executeLogic function
         }
     }
 
