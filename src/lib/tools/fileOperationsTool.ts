@@ -6,10 +6,14 @@ import * as fs from 'fs';
 import path from 'path';
 import { SAFE_DIRECTORY, ALLOWED_EXTENSIONS, sanitizeFilename } from '../initialTools';
 
-/**
- * Registers the file operations tool with the system.
- * @param {SystemNote} systemNote - The system note instance.
- */
+const HARDCODED_USERNAME = 'admin';
+const HARDCODED_PASSWORD = 'password';
+
+const ALLOWED_ACTIONS: { [filename: string]: string[] } = {
+    'test.txt': ['read', 'write', 'deleteFile'],
+    'test_directory': ['createDirectory'],
+};
+
 export const registerFileOperationsTool = (systemNote: SystemNote): void => {
     const fileOperationsToolData: Note = {
         id: idService.generateId(),
@@ -42,7 +46,7 @@ export const registerFileOperationsTool = (systemNote: SystemNote): void => {
                     type: 'string',
                     enum: ['read', 'write', 'createDirectory', 'deleteFile'],
                     description: 'Action to perform',
-                    inputType: 'select', // Specify inputType as select
+                    inputType: 'select',
                 },
                 filename: { type: 'string', description: 'Filename' },
 		        content: { type: 'string', description: 'Content to write', inputType: 'textarea' }
@@ -60,66 +64,78 @@ export const registerFileOperationsTool = (systemNote: SystemNote): void => {
 
     const fileOperationsToolImplementation = async (input: any) => {
          try {
+            if (!input || input.username !== HARDCODED_USERNAME || input.password !== HARDCODED_PASSWORD) {
+                systemLog.warn('File operation: Authentication failed', 'FileOperationsTool');
+                throw new Error('Access denied: Invalid username or password.');
+            }
+
             if (!input || !input.filename || !input.action) {
-                systemLog.warn('File operation: Invalid input - missing action or filename', 'FileOperationsTool');
+                systemLog.warn('File operation: Invalid input', 'FileOperationsTool');
                 throw new Error('Invalid input: Action and filename are required.');
             }
 
             const action: string = input.action;
-            let filename: string = sanitizeFilename(input.filename); // Sanitize the filename
-            filename = path.resolve(SAFE_DIRECTORY, filename); // Resolve the full path
+            let filename: string = sanitizeFilename(input.filename);
+            filename = path.resolve(SAFE_DIRECTORY, filename);
 
-            // More robust check to ensure the resolved path is within the safe directory
             if (!filename.startsWith(SAFE_DIRECTORY + path.sep)) {
-                systemLog.warn(`File operation: Access denied - filename outside safe directory.  Attempted filename: ${input.filename}, resolved to: ${filename}`, 'FileOperationsTool');
+                systemLog.warn(`File operation: Access denied - outside safe directory`, 'FileOperationsTool');
                 throw new Error('Access denied: Filename is outside the safe directory.');
             }
 
-             // Check if the file exists before attempting to read or delete it
             if (action === 'read' || action === 'deleteFile') {
                 if (!fs.existsSync(filename)) {
-                    systemLog.warn(`File operation: File not found: ${filename}`, 'FileOperationsTool');
+                    systemLog.warn(`File operation: File not found`, 'FileOperationsTool');
                     throw new Error('File not found.');
                 }
             }
 
-            // Validate file extension
             const ext: string = path.extname(filename).toLowerCase();
-	    //console.log(`action=${action} filename=${filename} ext=${ext} ALLOWED_EXTENSIONS=${ALLOWED_EXTENSIONS}`)
             if (action !== 'createDirectory' && !ALLOWED_EXTENSIONS.includes(ext)) {
-                systemLog.warn(`File operation: Invalid file extension: ${ext}. Allowed extensions: ${ALLOWED_EXTENSIONS.join(', ')}`, 'FileOperationsTool');
-                throw new Error(`Access denied: Invalid file extension. Allowed extensions are: ${ALLOWED_EXTENSIONS.join(', ')}`);
+                systemLog.warn(`File operation: Invalid file extension`, 'FileOperationsTool');
+                throw new Error(`Access denied: Invalid file extension.`);
+            }
+
+            // Action Whitelisting
+            const baseFilename = path.basename(filename);
+            if (ALLOWED_ACTIONS[baseFilename] && !ALLOWED_ACTIONS[baseFilename].includes(action)) {
+                systemLog.warn(`File operation: Action not allowed for file`, 'FileOperationsTool');
+                throw new Error(`Access denied: Action "${action}" is not allowed for file "${filename}".`);
             }
 
             if (action === 'read') {
-                systemLog.info(`File operation: Reading file: ${filename}`, 'FileOperationsTool');
+                systemLog.info(`File operation: Reading file`, 'FileOperationsTool');
                 const content: string = fs.readFileSync(filename, 'utf-8');
                 return { result: content };
             } else if (action === 'write') {
                  if (input.content === undefined || input.content === null) {
-                    systemLog.warn(`File operation: Write action - content is missing`, 'FileOperationsTool');
+                    systemLog.warn(`File operation: Write action - content missing`, 'FileOperationsTool');
                     throw new Error('Invalid input: Content is required for write action.');
                 }
-                // Ensure the content is a string before writing
+
                 const contentToWrite: string = String(input.content);
-                systemLog.info(`File operation: Writing to file: ${filename}`, 'FileOperationsTool');
+                if (contentToWrite.includes('<script>') || contentToWrite.includes('<iframe>')) {
+                    systemLog.warn(`File operation: Potential XSS attack`, 'FileOperationsTool');
+                    throw new Error('Access denied: Content contains potentially harmful code.');
+                }
+
+                systemLog.info(`File operation: Writing to file`, 'FileOperationsTool');
                 fs.writeFileSync(filename, contentToWrite, 'utf-8');
                 return { result: 'File written successfully' };
             } else if (action === 'createDirectory') {
-	         // Check if the directory already exists
                 if (fs.existsSync(filename)) {
-                    systemLog.warn(`File operation: Directory already exists: ${filename}`, 'FileOperationsTool');
+                    systemLog.warn(`File operation: Directory already exists`, 'FileOperationsTool');
                     throw new Error('Directory already exists.');
                 }
-                systemLog.info(`File operation: Creating directory: ${filename}`, 'FileOperationsTool');
+                systemLog.info(`File operation: Creating directory`, 'FileOperationsTool');
                 fs.mkdirSync(filename, { recursive: true });
                 return { result: 'Directory created successfully' };
             } else if (action === 'deleteFile') {
-                systemLog.info(`File operation: Deleting file: ${filename}`, 'FileOperationsTool');
+                systemLog.info(`File operation: Deleting file`, 'FileOperationsTool');
                 fs.unlinkSync(filename);
                 return { result: 'File deleted successfully' };
             } else {
-                systemLog.error(`File operation: Invalid action: ${action}`, 'FileOperationsTool');
+                systemLog.error(`File operation: Invalid action`, 'FileOperationsTool');
                 throw new Error('Invalid action');
             }
         } catch (error: any) {
