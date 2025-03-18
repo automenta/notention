@@ -12,6 +12,11 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
     const messagesEnd = useRef<HTMLDivElement>(null);
     const system = useMemo(() => getSystemNote(), []); // Memoize system to ensure stability
     const [editingNote, setEditingNote] = useState<boolean>(false);
+    const [showToolSelector, setShowToolSelector] = useState(false);
+    const [availableTools, setAvailableTools] = useState<any[]>([]);
+    const [selectedTool, setSelectedTool] = useState<string | null>(null);
+    const [toolInputValues, setToolInputValues] = useState<any>({});
+    const [addingTool, setAddingTool] = useState(false);
 
     useEffect(() => {
         systemLog.debug('ChatView useEffect triggered', 'ChatView');
@@ -53,6 +58,10 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
     useEffect(() => {
         messagesEnd.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
+
+    useEffect(() => {
+        setAvailableTools(system.getAllTools());
+    }, [system]);
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
@@ -115,6 +124,69 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
         setEditingNote(false);
     }, []);
 
+    const handleAddToolStep = useCallback(() => {
+        setShowToolSelector(true);
+    }, []);
+
+    const handleSelectTool = useCallback((toolId: string) => {
+        setSelectedTool(toolId);
+        setAddingTool(true); // Show the input form
+    }, []);
+
+    const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, inputName: string) => {
+        setToolInputValues({
+            ...toolInputValues,
+            [inputName]: event.target.value,
+        });
+    }, [toolInputValues]);
+
+    const handleAddSelectedTool = useCallback(() => {
+        if (!selectedTaskId || !selectedTool) {
+            systemLog.warn('Cannot add tool: no task or tool selected.', 'ChatView');
+            return;
+        }
+
+        const task = system.getNote(selectedTaskId);
+        if (!task) {
+            systemLog.error(`Task with ID ${selectedTaskId} not found.`, 'ChatView');
+            return;
+        }
+
+        const newLogic = {
+            steps: [
+                ...(task.logic ? JSON.parse(task.logic).steps : []),
+                {
+                    id: `tool-${Date.now()}`,
+                    type: 'tool',
+                    toolId: selectedTool,
+                    input: toolInputValues, // Use the input values from the form
+                }
+            ]
+        };
+
+        task.logic = JSON.stringify(newLogic);
+        system.updateNote(task);
+        setShowToolSelector(false);
+        setSelectedTool(null);
+        setToolInputValues({}); // Reset input values
+        setAddingTool(false);
+        systemLog.info(`Tool ${selectedTool} added to Task ${selectedTaskId}`, 'ChatView');
+    }, [selectedTaskId, selectedTool, system, toolInputValues]);
+
+    const handleCancelAddTool = useCallback(() => {
+        setShowToolSelector(false);
+        setSelectedTool(null);
+        setToolInputValues({});
+        setAddingTool(false);
+    }, []);
+
+    const selectedToolData = useMemo(() => {
+        if (selectedTool) {
+            return system.getTool(selectedTool);
+        }
+        return null;
+    }, [selectedTool, system]);
+
     return (
         <div className={styles.chatView}>
             <div className={styles.chatHeader}>
@@ -167,6 +239,66 @@ export const ChatView: React.FC<{ selectedTaskId: string | null }> = ({ selected
 
             {!selectedTaskId && !editingNote &&
                 <div className={styles.placeholder}>⬅️ Select a task to view messages and interact.</div>}
+
+            {selectedTaskId && (
+                <div className={styles.toolSection}>
+                    <button onClick={handleAddToolStep}>Add Tool Step</button>
+                    {showToolSelector && (
+                        <div className={styles.toolSelector}>
+                            <h3>Select a Tool</h3>
+                            <ul>
+                                {availableTools.map(tool => (
+                                    <li
+                                        key={tool.id}
+                                        onClick={() => handleSelectTool(tool.id)}
+                                        className={selectedTool === tool.id ? styles.selected : ''}
+                                    >
+                                        {tool.title}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {addingTool && selectedToolData && selectedToolData.inputSchema && (
+                        <div className={styles.toolInputForm}>
+                            <h3>Enter Input Parameters for {selectedToolData.title}</h3>
+                            {Object.entries(JSON.parse(selectedToolData.inputSchema).properties).map(([inputName, inputDetails]: [string, any]) => (
+                                <div key={inputName} className={styles.inputGroup}>
+                                    <label htmlFor={inputName}>{inputDetails.description || inputName}:</label>
+                                    {inputDetails.type === 'string' && (
+                                        <input
+                                            type="text"
+                                            id={inputName}
+                                            value={toolInputValues[inputName] || ''}
+                                            onChange={(e) => handleInputChange(e, inputName)}
+                                        />
+                                    )}
+                                    {inputDetails.type === 'number' && (
+                                        <input
+                                            type="number"
+                                            id={inputName}
+                                            value={toolInputValues[inputName] || ''}
+                                            onChange={(e) => handleInputChange(e, inputName)}
+                                        />
+                                    )}
+                                    {inputDetails.type === 'boolean' && (
+                                        <input
+                                            type="checkbox"
+                                            id={inputName}
+                                            checked={toolInputValues[inputName] || false}
+                                            onChange={(e) => handleInputChange(e, inputName)}
+                                        />
+                                    )}
+                                    {/* Add more input types as needed */}
+                                </div>
+                            ))}
+                            <button onClick={handleAddSelectedTool}>Add Tool</button>
+                            <button onClick={handleCancelAddTool}>Cancel</button>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
