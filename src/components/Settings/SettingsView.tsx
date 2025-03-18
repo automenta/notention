@@ -15,32 +15,32 @@ interface Settings {
     serpApiKey: string;
 }
 
+const defaultSettings: Settings = {
+    concurrency: 5,
+    apiKey: '',
+    theme: 'light',
+    modelName: 'gpt-3.5-turbo',
+    temperature: 0.7,
+    usePersistence: false,
+    serpApiKey: '',
+};
+
 export const SettingsView: React.FC = () => {
     const system = getSystemNote();
 
     // Initialize settings state
-    const [settings, setSettings] = useState<Settings>({
-        concurrency: system.data.content.concurrencyLimit,
-        apiKey: localStorage.getItem('apiKey') || '',
-        theme: localStorage.getItem('theme') || 'light',
-        modelName: localStorage.getItem('modelName') || 'gpt-3.5-turbo',
-        temperature: parseFloat(localStorage.getItem('temperature') || '0.7'),
-        usePersistence: localStorage.getItem('usePersistence') === 'true' || false, // Default to false
-        serpApiKey: localStorage.getItem('serpApiKey') || '',
+    const [settings, setSettings] = useState<Settings>(() => {
+        const storedSettings = localStorage.getItem('settings');
+        return storedSettings ? JSON.parse(storedSettings) : defaultSettings;
     });
 
     // Load settings from localStorage on component mount
     useEffect(() => {
-        setSettings({
-            concurrency: system.data.content.concurrencyLimit,
-            apiKey: localStorage.getItem('apiKey') || '',
-            theme: localStorage.getItem('theme') || 'light',
-            modelName: localStorage.getItem('modelName') || 'gpt-3.5-turbo',
-            temperature: parseFloat(localStorage.getItem('temperature') || '0.7'),
-            usePersistence: localStorage.getItem('usePersistence') === 'true' || false,
-            serpApiKey: localStorage.getItem('serpApiKey') || '',
-        });
-    }, [system]);
+        const storedSettings = localStorage.getItem('settings');
+        if (storedSettings) {
+            setSettings(JSON.parse(storedSettings));
+        }
+    }, []);
 
     // Generic handler for input changes
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -48,39 +48,17 @@ export const SettingsView: React.FC = () => {
         const newValue = type === 'checkbox' ? checked : value;
         const newSettings = { ...settings, [name]: newValue };
         setSettings(newSettings);
-
-        // Save to localStorage
-        localStorage.setItem(name, String(newValue));
-
-        // Apply changes to system where applicable
-        if (name === 'concurrency') {
-            system.data.content.concurrencyLimit = parseInt(String(newValue));
-        }
-
-        //Theme handling
-        if (name === 'theme') {
-            document.documentElement.setAttribute('data-theme', String(newValue));
-        }
     };
 
     const handleSaveSettings = () => {
-        // Save API key to localStorage
-        localStorage.setItem('apiKey', settings.apiKey);
+        // Save settings to localStorage as a single JSON object
+        localStorage.setItem('settings', JSON.stringify(settings));
 
-        // Save model name to localStorage
-        localStorage.setItem('modelName', settings.modelName);
+        // Apply changes to system where applicable
+        system.data.content.concurrencyLimit = settings.concurrency;
 
-        // Save temperature to localStorage
-        localStorage.setItem('temperature', settings.temperature.toString());
-
-        // Save theme to localStorage
-        localStorage.setItem('theme', settings.theme);
-
-        //  Save SerpAPI key to localStorage
-        localStorage.setItem('serpApiKey', settings.serpApiKey);
-
-        // Save persistence setting to localStorage
-        localStorage.setItem('usePersistence', String(settings.usePersistence));
+        //Theme handling
+        document.documentElement.setAttribute('data-theme', settings.theme);
 
         //Reinitialize system note if persistence changes
         const apiKey = process.env.REACT_APP_OPENAI_API_KEY;

@@ -34,7 +34,7 @@ export const initializeInitialTools = () => {
         type: 'Tool',
         title: 'Echo Tool',
         content: 'A simple tool that echoes back the input.',
-        logic: JSON.stringify({
+        logic: {
             "steps": [
                 {
                     "id": "echo",
@@ -46,7 +46,7 @@ export const initializeInitialTools = () => {
                     "input": "{input}" // Pass input through
                 }
             ],
-        }),
+        },
         status: 'active',
         priority: 50,
         createdAt: new Date().toISOString(),
@@ -83,7 +83,7 @@ export const initializeInitialTools = () => {
         type: 'Tool',
         title: 'Web Search Tool',
         content: 'A tool to search the web using SerpAPI.',
-        logic: JSON.stringify({
+        logic: {
             "steps": [
                 {
                     "id": "search",
@@ -91,7 +91,7 @@ export const initializeInitialTools = () => {
                     "input": "{query}"
                 }
             ],
-        }),
+        },
         status: 'active',
         priority: 50,
         createdAt: new Date().toISOString(),
@@ -118,7 +118,7 @@ export const initializeInitialTools = () => {
 
         if (!serpApiKey) {
             systemLog.error('SerpAPI key not found in settings.', 'WebSearchTool');
-            throw new Error('SerpAPI key not found in settings. Please configure it in the settings.');
+            return { results: 'SerpAPI key not found. Please configure it in the <a href="/settings">settings</a>.' };
         }
 
         const serpAPI = new SerpAPI(serpApiKey);
@@ -133,7 +133,7 @@ export const initializeInitialTools = () => {
         type: 'Tool',
         title: 'File Operations Tool',
         content: `A tool to read and write local files within the safe directory: ${SAFE_DIRECTORY} (SECURITY WARNING).`,
-        logic: JSON.stringify({
+        logic: {
             "steps": [
                 {
                     "id": "read-file",
@@ -146,7 +146,7 @@ export const initializeInitialTools = () => {
                     "input": "{filename, content}"
                 }
             ],
-        }),
+        },
         status: 'active',
         priority: 50,
         createdAt: new Date().toISOString(),
@@ -228,6 +228,15 @@ export const initializeInitialTools = () => {
         type: 'Tool',
         title: 'Generate Task Logic Tool',
         content: 'A tool to generate task logic (JSON) using the LLM, based on a task description.',
+        logic: {
+            "steps": [
+                {
+                    "id": "generate",
+                    "type": "llm",
+                    "input": "{taskDescription}"
+                }
+            ],
+        },
         status: 'active',
         priority: 50,
         createdAt: new Date().toISOString(),
@@ -306,7 +315,7 @@ export const initializeInitialTools = () => {
         type: 'Tool',
         title: 'Summarization Tool',
         content: 'A tool to summarize text using the LLM.',
-        logic: JSON.stringify({
+        logic: {
             "steps": [
                 {
                     "id": "summarize",
@@ -314,7 +323,7 @@ export const initializeInitialTools = () => {
                     "input": "{text}"
                 }
             ],
-        }),
+        },
         status: 'active',
         priority: 50,
         createdAt: new Date().toISOString(),
