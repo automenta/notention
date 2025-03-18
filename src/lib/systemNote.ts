@@ -34,6 +34,7 @@ export const initializeSystemNote = (llm: ChatOpenAI | any) => {
         createdAt: new Date().toISOString(),
         updatedAt: null,
         references: [],
+        description: 'The root note for the system.',
     };
     systemLog.info('System Note Initialized 🚀', 'SystemNote');
     // Start the system loop after initialization
@@ -251,6 +252,7 @@ const registerInitialTools = () => {
             },
             required: ['output']
         }),
+        description: 'Echoes the input text.',
     };
     const echoToolImplementation = async (input: any) => {
         return { output: input.input };
@@ -290,6 +292,7 @@ const registerInitialTools = () => {
                 results: { type: 'array', description: 'Search results' }
             }
         }),
+        description: 'Searches the web using SerpAPI.',
     };
 
     const webSearchToolImplementation = async (input: any) => {
@@ -345,6 +348,7 @@ const registerInitialTools = () => {
                 result: { type: 'string', description: 'Result of the operation' }
             }
         }),
+        description: 'Reads and writes local files within a safe directory (SECURITY WARNING).',
     };
 
     const fileOperationsToolImplementation = async (input: any) => {
@@ -410,6 +414,7 @@ const registerInitialTools = () => {
             },
             required: ['taskLogic']
         }),
+        description: 'Generates task logic (JSON) using the LLM, based on a task description.',
     };
 
     const generateTaskLogicToolImplementation = async (input: any) => {
