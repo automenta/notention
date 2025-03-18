@@ -233,17 +233,17 @@ export const TemplatesView: React.FC = () => {
                 <textarea
                     placeholder="Tool Logic (JSON)"
                     value={newToolLogic}
-                    onChange={(e) => setNewToolLogic(e.target.value)}
+                    onChange={(e) => setNewTemplateLogic(e.target.value)}
                 />
                 <textarea
                     placeholder="Tool Input Schema (JSON)"
                     value={newToolInputSchema}
-                    onChange={(e) => setNewToolInputSchema(e.target.value)}
+                    onChange={(e) => setNewTemplateLogic(e.target.value)}
                 />
                 <textarea
                     placeholder="Tool Output Schema (JSON)"
                     value={newToolOutputSchema}
-                    onChange={(e) => setNewToolOutputSchema(e.target.value)}
+                    onChange={(e) => setNewTemplateLogic(e.target.value)}
                 />
                 <button onClick={handleCreateTool}>Create Tool</button>
             </div>
